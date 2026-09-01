@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Autofac" Version="8.4.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.Bank.Application\LoreBank.Bank.Application.csproj"/>
+        <ProjectReference Include="..\LoreBank.Bank.Domain\LoreBank.Bank.Domain.csproj"/>
+    </ItemGroup>
+
+</Project>

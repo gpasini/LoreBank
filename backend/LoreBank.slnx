@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Host/">
+    <Project Path="LoreBank.Host/LoreBank.Host.csproj" />
+  </Folder>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/Bank/">
+    <Project Path="LoreBank.Bank.Api/LoreBank.Bank.Api.csproj" />
+    <Project Path="LoreBank.Bank.Application/LoreBank.Bank.Application.csproj" />
+    <Project Path="LoreBank.Bank.Domain/LoreBank.Bank.Domain.csproj" />
+    <Project Path="LoreBank.Bank.Infrastructure/LoreBank.Bank.Infrastructure.csproj" />
+    <Project Path="LoreBank.Bank.Test.Infrastructure/LoreBank.Bank.Test.Infrastructure.csproj" />
+    <Project Path="LoreBank.Bank.Test.Unit/LoreBank.Bank.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/SharedKernel/">
+    <Project Path="LoreBank.SharedKernel.Api/LoreBank.SharedKernel.Api.csproj" />
+    <Project Path="LoreBank.SharedKernel.Application/LoreBank.SharedKernel.Application.csproj" />
+    <Project Path="LoreBank.SharedKernel.Domain/LoreBank.SharedKernel.Domain.csproj" />
+    <Project Path="LoreBank.SharedKernel.Infrastructure/LoreBank.SharedKernel.Infrastructure.csproj" />
+    <Project Path="LoreBank.SharedKernel.Test.Unit/LoreBank.SharedKernel.Test.Unit.csproj" />
+  </Folder>
+</Solution>

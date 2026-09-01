@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.Bank.Domain\LoreBank.Bank.Domain.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Application\LoreBank.SharedKernel.Application.csproj"/>
+    </ItemGroup>
+
+</Project>

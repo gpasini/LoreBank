@@ -1,0 +1,253 @@
+# LoreBank
+
+Monolithe modulaire .NET en Clean Architecture / DDD. Ce repo est une base de
+départ : clone-le, renomme, et construis tes modules métier sur ce socle.
+Le module `Bank` sert d'exemple de référence.
+
+## Build & toolchain
+
+- Le SDK .NET vient de mise : `mise exec -- dotnet <cmd>`, jamais le dotnet du PATH.
+- C'est `backend/global.json` qui sélectionne la version du SDK (le pin de
+  `backend/mise.toml` installe l'outil mais ne suffit pas à le sélectionner).
+- Build : `cd backend && mise exec -- dotnet build LoreBank.slnx`.
+- Les propriétés MSBuild communes (`TargetFramework`, `Nullable`,
+  `ImplicitUsings`) vivent dans `backend/Directory.Build.props` — ne pas les
+  dupliquer dans les csproj.
+
+## Architecture
+
+- Un module = 6 projets `LoreBank.<Module>.{Domain, Application, Infrastructure,
+  Api, Test.Unit, Test.Infrastructure}`, à plat dans `backend/`, regroupés dans
+  la solution sous le dossier `Modules/<Module>`.
+- Les projets `Api` des modules sont des classlibs de controllers MVC (pas de
+  minimal API) ; l'hôte unique `LoreBank.Host` (dossier de solution `Host`) les
+  monte via `AddApplicationPart` et porte la composition (DI, filtres).
+- Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
+  de solution `SharedKernel`) : `Entity`, `AggregateRoot`, `ValueObject`,
+  `SimpleValueObject`, `IDomainEvent`, `IDomainEventHandler`, `DomainException`,
+  `NotFoundException`, et les VO transverses (`Iban`, `Bic`, `Money`). Le même
+  dossier porte `LoreBank.SharedKernel.Api`, qui accueille ce que tous les
+  modules partagent côté HTTP : `Problems/ApiProblem` (la forme unique d'une
+  réponse d'erreur), `Filters/DomainExceptionFilter` (les erreurs métier),
+  `Validation/ValidationProblemFactory` (les 400 de binding) et
+  `Handlers/UnhandledExceptionHandler` (tout le reste, en 500).
+  `LoreBank.SharedKernel.Infrastructure` complète la paire côté plomberie : ce
+  que tous les modules partagent en implémentation — aujourd'hui le seul
+  `DomainEventDispatcher`.
+
+## Conventions du domaine
+
+- Les erreurs métier sont des exceptions : une classe par violation, héritant de
+  `DomainException`, `sealed`. Pas de `Result`. Une exception ne porte aucun
+  texte : elle passe à sa base un dictionnaire de paramètres nommés, et son code
+  — l'identifiant que le front internationalise — est dérivé de son type, de la
+  forme `<MODULE>.<VIOLATION>` (`LoreBank.Bank.Domain.Exceptions.
+  InsufficientBalanceException` → `BANK.INSUFFICIENT_BALANCE`). Les exceptions du
+  SharedKernel n'ont pas de préfixe (`INVALID_IBAN`). La dérivation lit le 2ᵉ
+  segment du namespace : elle suppose le nommage `<Racine>.<Module>.<Couche>`.
+- Les valeurs des paramètres sont des primitives, jamais des value objects : on
+  passe `balance.Amount` et `balance.Currency`, pas `balance`. Sinon la forme
+  interne des VO devient un contrat public, et le front reçoit une valeur déjà
+  formatée qu'il ne peut plus adapter à la locale de l'utilisateur. Les clés du
+  dictionnaire sont en camelCase (`accountId`, pas `AccountId`) : ASP.NET Core
+  ne les convertit pas — le `DictionaryKeyPolicy` est nul, elles partent
+  telles quelles sur le fil.
+- `Exception.Message` est fabriqué automatiquement à partir du code et des
+  paramètres, en culture invariante : il sert aux logs, jamais au client.
+  Les exceptions « introuvable » héritent de `NotFoundException`.
+- Les value objects sont des classes, pas des records — choix délibéré. `sealed`,
+  normalisation puis validation dans le constructeur (aucune instance invalide
+  ne peut exister), propriétés `get`-only, regex via `[GeneratedRegex]`.
+- Un agrégat a un constructeur privé et une factory statique qui émet l'event de
+  naissance. Les invariants vivent dans les méthodes de transition ; les VO
+  portent les leurs (on ne revérifie pas dans l'agrégat ce qu'un VO garantit).
+- Un domain event par transition d'état : `record sealed`, nommé au passé,
+  portant l'id de l'agrégat et les données utiles.
+- Les handlers de domain events vivent dans le Domain (`EventHandlers/`) ; leurs
+  dépendances sont des ports — interfaces dans `Services/`, implémentées par
+  l'Infrastructure. Ils sont dispatchés par le `SaveChangesAsync` du `DbContext`
+  du module, qui ramasse les events des entités trackées via `IHasDomainEvents`,
+  les vide, écrit, puis les remet à `IDomainEventDispatcher`. Le dispatch a donc
+  lieu **dans la transaction de la commande** : un handler qui échoue l'annule
+  entièrement. C'est délibéré — un effet de bord métier qui rate ne doit pas
+  laisser derrière lui un fait métier enregistré. Les handlers s'enregistrent
+  par scan d'assembly dans le `Module` Autofac de l'Infrastructure du module.
+- Faire tourner les handlers dans la transaction de la commande a un coût :
+  les lignes qu'ils touchent restent verrouillées le temps de leur exécution,
+  donc un handler doit rester court et de préférence in-process — la commande
+  a un plafond implicite d'une minute. La garantie ne joue que dans un sens :
+  un handler qui échoue annule la commande, mais un handler qui réussit avant
+  un commit qui échoue laisse son effet de bord fait, sans rien derrière pour
+  le rattraper. Un effet de bord externe irréversible veut une outbox, pas ce
+  mécanisme.
+- Les repositories d'agrégats sont des ports du Domain (`Repositories/`),
+  implémentés par l'Infrastructure. Côté Api, les erreurs métier
+  (`DomainException`) deviennent des ProblemDetails via le `DomainExceptionFilter`
+  de `LoreBank.SharedKernel.Api`, enregistré une fois par l'hôte : 422, ou 404
+  pour une `NotFoundException`. La réponse porte `code` et `parameters` en
+  extensions, et aucun `detail` — le back ne produit pas de texte destiné à
+  l'utilisateur. Exemple, pour un solde insuffisant :
+
+  ```json
+  {
+    "title": "Unprocessable Entity",
+    "status": 422,
+    "code": "BANK.INSUFFICIENT_BALANCE",
+    "parameters": { "balance": 10.00, "requested": 20.00, "currency": "EUR" }
+  }
+  ```
+
+  Toutes les réponses d'erreur ont cette forme, y compris celles que le domaine
+  n'a jamais vues : le 400 de binding (`ValidationProblemFactory` remplace le
+  `ValidationProblemDetails` d'`[ApiController]`, dont les messages citent des
+  types .NET — code unique `VALIDATION_FAILED`, paramètre `fields`) et le 500
+  (`UnhandledExceptionHandler`, monté via `app.UseExceptionHandler()` donc en
+  amont de MVC — sans `code`, et identique en dev et en prod : la page
+  d'exception de développement n'est volontairement pas montée, l'exception part
+  dans `ILogger`). `ApiProblem` centralise la forme pour que ces trois portes de
+  sortie ne divergent pas. Le type de média est
+  `application/problem+json; charset=utf-8` partout. Voir `docs/erreurs.md`.
+
+## Couche Application
+
+- CQS avec MediatR (pinné en 12.x, dernière version sous licence Apache 2.0),
+  derrière les marqueurs de `LoreBank.SharedKernel.Application` : `ICommand`
+  (mute, ne retourne rien), `ICreationCommand` (seul retour admis : le `Guid`
+  créé), `IQuery<TResponse>` (lit, retourne un `Results/` immuable — jamais
+  l'agrégat). Une query rend un `TResponse` **non nullable** : l'absence de la
+  ressource est une erreur métier, pas une valeur de retour, et son handler lève
+  la `NotFoundException` du module. C'est ce qui garantit qu'un 404 porte
+  toujours un `code`, qu'on soit passé par une commande ou par une lecture — le
+  controller n'a donc aucun cas d'absence à traiter, et jamais de `NotFound()` à
+  écrire. Corollaire : une query ne peut pas servir de sonde d'existence.
+- `ICommand` et `ICreationCommand` portent le marqueur `IMutatingRequest`, que
+  `IQuery<TResponse>` n'a pas. C'est lui, et lui seul, qui décide de ce que le
+  `TransactionBehavior` de `LoreBank.SharedKernel.Application` enveloppe : toute
+  commande s'exécute dans un `TransactionScope` ambiant en `ReadCommitted`, les
+  lectures non. Le behavior ne connaît aucun `DbContext` — les connexions
+  ouvertes à l'intérieur du scope s'y enrôlent d'elles-mêmes, ce qui le rend
+  indépendant du nombre de modules. Le scope ambiant n'est pas un garde-fou de
+  frontière : selon que les connexions des deux modules sont ouvertes
+  simultanément ou non, Npgsql peut réutiliser le même connecteur (et la
+  commande passera silencieusement) ou en enrôler un second (et la transaction
+  escaladera en distribué, non supporté hors Windows). Ne comptez pas dessus
+  pour interdire une commande qui traverse deux modules — c'est une règle
+  d'architecture à tenir, pas une contrainte technique.
+- `ReadCommitted` ne protège pas un lire-modifier-écrire : deux dépôts
+  concurrents peuvent lire le même solde et l'une des deux écritures se perd ;
+  le remède est un jeton de concurrence optimiste sur l'agrégat, pas un niveau
+  d'isolation plus strict. Attention aussi à `Enlist=false` dans la chaîne de
+  connexion : Npgsql enrôle par défaut (`Enlist` vaut `true`), et le passer à
+  `false` ne produit ni erreur ni avertissement ni test qui échoue — les
+  commandes cessent simplement d'être transactionnelles.
+- Une query ne passe **pas** par le repository de l'agrégat : elle dépend d'un
+  port de lecture (`Readers/`, `IBankAccountReader`), déclaré dans l'Application
+  parce qu'il rend un `Results/`, et implémenté par l'Infrastructure. Un
+  repository charge un agrégat pour le muter — value objects reconstruits, entité
+  suivie par le change tracker ; une lecture n'a besoin que des colonnes qu'elle
+  affiche. Le port rend `null` quand la ligne n'existe pas : pour un lecteur
+  l'absence est un résultat normal, et c'est le handler de query qui la
+  transforme en `NotFoundException`. Conséquence : `LoreBank.Bank.Infrastructure`
+  référence `LoreBank.Bank.Application`, et un DTO de `Results/` ne dépend plus
+  du tout du modèle d'écriture.
+- Un fichier par use case dans `Commands/` ou `Queries/`, colocalisant le
+  `record` de la requête et son handler, nommé d'après la requête complète
+  suffixée de `Handler` (`OpenBankAccountCommand` →
+  `OpenBankAccountCommandHandler`).
+- Les controllers ne parlent qu'à `ISender`, et tiennent le CQS jusqu'au bord
+  HTTP : **une action qui mute ne renvoie aucune représentation**, une action qui
+  lit en renvoie une. Une commande de création rend `201` + `Location` et un
+  corps vide (le `Guid` d'`ICreationCommand` ne sert qu'à bâtir l'en-tête) ;
+  toute autre commande rend `204`. Le client qui veut l'état d'après fait un
+  `GET`. C'est un aller-retour de plus, assumé : une commande qui renvoie aussi
+  la ressource est également une lecture, et la représentation qu'elle sert peut
+  diverger de celle du `GET` sans que rien ne le signale.
+- Le conteneur racine est Autofac (`UseServiceProviderFactory`) ; les
+  dépendances s'enregistrent dans des `Module` Autofac, les handlers MediatR
+  par scan d'assembly (`RegisterServicesFromAssembly`).
+
+## Couche Infrastructure
+
+- EF Core + Npgsql. Un `DbContext` par module, un schéma PostgreSQL par module
+  (`bank`), migrations dans `Persistence/Migrations` (`dotnet tool run
+  dotnet-ef`, manifest dans `backend/.config`), appliquées au démarrage en dev.
+- Pas de classes d'entités de persistance : les agrégats du Domain sont mappés
+  directement via `IEntityTypeConfiguration` — `HasConversion` pour les VO
+  mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
+- Seule concession à EF dans le Domain : un constructeur privé sans paramètre
+  réservé à la matérialisation.
+- Le repository implémente le port du Domain ; chaque Infrastructure expose son
+  `Module` Autofac, enregistré par l'hôte.
+- Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
+  **SQL écrit à la main** (ADO.NET brut, `NpgsqlCommand` + `DbDataReader`) :
+  aucun agrégat n'est matérialisé, le `SELECT` ne ramène que les colonnes du DTO.
+  La connexion est **empruntée au `DbContext`** (`Database.OpenConnectionAsync`
+  puis `GetDbConnection()`, refermée dans un `finally` — EF compte les
+  ouvertures), jamais ouverte en propre : une seconde connexion vers le même
+  PostgreSQL sous le `TransactionScope` ambiant d'une commande ferait enrôler un
+  second connecteur, et la transaction escaladerait en distribué. Le lien colonne
+  → propriété n'étant vérifié par aucun compilateur, chaque reader doit avoir un
+  test qui relit tous ses champs (voir `GetBankAccountByIdTest`).
+- Un nouveau module doit : surcharger `SaveChangesAsync(bool,
+  CancellationToken)` sur son `DbContext` pour ramasser les events des entités
+  trackées et les dispatcher (voir `BankDbContext.cs`) — sans ça, les events du
+  module ne sont jamais dispatchés, et rien ne le signale ; faire ignorer la
+  collection d'events par chaque `IEntityTypeConfiguration`
+  (`builder.Ignore(...)`, voir `BankAccountConfiguration.cs`) ; faire scanner
+  son `Module` Autofac à la recherche des implémentations de
+  `IDomainEventHandler<>`, comme décrit plus haut (« Conventions du domaine »).
+
+## Tests
+
+- NUnit 4 pour l'exécution, FluentAssertions (pinné en 7.x, dernière version
+  sous licence Apache 2.0) pour les assertions : `x.Should().Be(...)`,
+  `act.Should().Throw<...>()`. Une classe de test par méthode d'agrégat
+  (`Domain/<Agrégat>/<Méthode>Test.cs`), `[TestFixture]` + `[TestOf]`, noms
+  `Méthode_ShouldX_WhenY`, sections `// Arrange` / `// Act` / `// Assert` dès
+  que le corps a plusieurs phases, omises sur les tests à deux lignes.
+- Pas de framework de mock : des fakes manuels (`Fakes/`) pour les ports, des
+  builders de test (`Builders/`) pour les agrégats.
+- Exception à la règle Domain/Infrastructure : `SharedKernel.Test.Unit` teste
+  aussi `SharedKernel.Infrastructure`, parce que le `DomainEventDispatcher` n'a
+  aucune E/S — un `IServiceProvider` fake suffit à l'isoler, rien ne justifie
+  de le remonter jusqu'à `Test.Infrastructure`.
+- `Test.Infrastructure` : `WebApplicationFactory` partagée + Testcontainers
+  PostgreSQL ; chaque test s'exécute dans un `TransactionScope` rollbacké ; les
+  données se créent via les vrais use cases avec `DbSetup` (classe partielle
+  par agrégat, `CreateXxx()` fluent, `GetLastXxxId()`) ; les tests parlent à
+  `ISender`, pas à HTTP — à l'exception du dossier `Apis/`, seul endroit qui
+  parle vraiment HTTP : `ErrorContractTest` épingle le contrat d'erreur
+  (statuts, type de média, `code`, absence de `detail`) et `CqsContractTest` le
+  fait qu'une commande ne serve aucune représentation (201 + `Location`, ou
+  204). Ni l'un ni l'autre ne peut hériter de `BaseIntegrationTest`, le
+  `TransactionScope` ambiant ne traversant pas la frontière HTTP — ils écrivent
+  donc pour de vrai, avec des IBAN qui leur sont propres. Son niveau d'isolation doit rester celui du
+  `TransactionBehavior` (`ReadCommitted`) : un `TransactionScope` en `Required`
+  qui rejoint un scope ambiant d'un niveau différent lève une
+  `ArgumentException`. Un test qui doit observer un rollback réel ne peut pas
+  hériter de `BaseIntegrationTest` — un scope interne non complété condamne
+  l'ambiant — et passe par `TestHost.Factory` directement.
+- Substituer un service enregistré par un `Module` Autofac ne peut pas se faire
+  dans `ConfigureTestServices` : la dernière inscription Autofac gagne, et le
+  `Module` de l'Infrastructure s'exécute après — on passe par une surcharge de
+  `CreateHost` à la place.
+- Lancer : `mise exec -- dotnet test LoreBank.slnx`.
+
+## Style
+
+- Dès qu'une signature — constructeur (primaire inclus), méthode, opérateur,
+  record positionnel — a plus d'un paramètre : retour à la ligne après la
+  parenthèse ouvrante, un paramètre par ligne, parenthèse fermante sur sa
+  propre ligne. Un seul paramètre reste sur la ligne.
+- Même règle pour les invocations (appels, `new`, `throw new`) : dès deux
+  arguments, un argument par ligne et **arguments nommés** (`amount: 0m`).
+  Un appel à un seul argument reste inline et non nommé.
+- Le tout est encodé pour Rider dans `.editorconfig`
+  (`resharper_max_formal_parameters_on_line = 1`,
+  `resharper_max_invocation_arguments_on_line = 1`,
+  `resharper_arguments_* = named`, `resharper_arguments_skip_single = true`).
+
+## Vérification
+
+Avant de considérer un changement terminé : build de la solution sans warning,
+et comportement démontré à l'exécution (tests, ou programme de vérification).

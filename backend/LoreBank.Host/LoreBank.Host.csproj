@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <ItemGroup>
+        <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="11.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.Bank.Api\LoreBank.Bank.Api.csproj"/>
+        <ProjectReference Include="..\LoreBank.Bank.Infrastructure\LoreBank.Bank.Infrastructure.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Api\LoreBank.SharedKernel.Api.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Infrastructure\LoreBank.SharedKernel.Infrastructure.csproj"/>
+    </ItemGroup>
+
+</Project>

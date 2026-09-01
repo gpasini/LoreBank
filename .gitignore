@@ -1,0 +1,31 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+[Bb]uild/
+[Oo]ut/
+artifacts/
+TestResults/
+*.coverage
+*.trx
+
+# Front (à venir)
+node_modules/
+dist/
+.vite/
+.nuxt/
+.angular/
+
+# IDE
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+
+# Secrets locaux
+.env
+*.env.local
