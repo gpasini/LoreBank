@@ -29,3 +29,6 @@ dist/
 # Secrets locaux
 .env
 *.env.local
+
+# Issues locales des agents
+.scratch/

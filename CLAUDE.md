@@ -251,3 +251,21 @@ Le module `Bank` sert d'exemple de référence.
 
 Avant de considérer un changement terminé : build de la solution sans warning,
 et comportement démontré à l'exécution (tests, ou programme de vérification).
+
+## Agent skills
+
+### Issue tracker
+
+Les issues vivent en fichiers markdown sous `.scratch/<feature>/` dans ce
+repo. Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Labels par défaut, chaque label égal à son nom (`needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix`). Voir
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context : un `CONTEXT.md` à la racine + `docs/adr/`. Voir
+`docs/agents/domain.md`.
