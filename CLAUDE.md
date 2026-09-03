@@ -20,8 +20,18 @@ Le module `Bank` sert d'exemple de référence.
   Api, Test.Unit, Test.Infrastructure}`, à plat dans `backend/`, regroupés dans
   la solution sous le dossier `Modules/<Module>`.
 - Les projets `Api` des modules sont des classlibs de controllers MVC (pas de
-  minimal API) ; l'hôte unique `LoreBank.Host` (dossier de solution `Host`) les
-  monte via `AddApplicationPart` et porte la composition (DI, filtres).
+  minimal API). L'hôte unique `LoreBank.Host` (dossier de solution `Host`)
+  porte la composition (DI, filtres) et monte les modules à travers le seam
+  `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
+  adapter dans `LoreBank.Host/Modules/` (voir `BankModule`) exposant ses
+  assemblies de controllers et d'application, son `Module` Autofac, son
+  `DbContext` et sa migration. La liste `HostModules.All` est la seule source
+  de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
+  (`Test.Infrastructure`, dossier `Hosting/`) itère la même pour vérifier que
+  chaque requête MediatR résout son handler, que chaque controller est monté
+  et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
+  l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
+  alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`).
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
   de solution `SharedKernel`) : `Entity`, `AggregateRoot`, `ValueObject`,
   `SimpleValueObject`, `IDomainEvent`, `IDomainEventHandler`, `DomainException`,
@@ -32,8 +42,8 @@ Le module `Bank` sert d'exemple de référence.
   `Validation/ValidationProblemFactory` (les 400 de binding) et
   `Handlers/UnhandledExceptionHandler` (tout le reste, en 500).
   `LoreBank.SharedKernel.Infrastructure` complète la paire côté plomberie : ce
-  que tous les modules partagent en implémentation — aujourd'hui le seul
-  `DomainEventDispatcher`.
+  que tous les modules partagent en implémentation — le `DomainEventDispatcher`
+  et le seam de montage `IHostModule`.
 
 ## Conventions du domaine
 
@@ -164,7 +174,8 @@ Le module `Bank` sert d'exemple de référence.
   diverger de celle du `GET` sans que rien ne le signale.
 - Le conteneur racine est Autofac (`UseServiceProviderFactory`) ; les
   dépendances s'enregistrent dans des `Module` Autofac, les handlers MediatR
-  par scan d'assembly (`RegisterServicesFromAssembly`).
+  par scan d'assembly — l'hôte agrège les `ApplicationAssembly` de tous les
+  `IHostModule` en un seul `RegisterServicesFromAssemblies`.
 
 ## Couche Infrastructure
 
@@ -177,7 +188,7 @@ Le module `Bank` sert d'exemple de référence.
 - Seule concession à EF dans le Domain : un constructeur privé sans paramètre
   réservé à la matérialisation.
 - Le repository implémente le port du Domain ; chaque Infrastructure expose son
-  `Module` Autofac, enregistré par l'hôte.
+  `Module` Autofac, enregistré par l'hôte via l'adapter `IHostModule` du module.
 - Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
   **SQL écrit à la main** (ADO.NET brut, `NpgsqlCommand` + `DbDataReader`) :
   aucun agrégat n'est matérialisé, le `SELECT` ne ramène que les colonnes du DTO.

@@ -1,29 +1,32 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using LoreBank.Bank.Api.Controllers;
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Infrastructure;
-using LoreBank.Bank.Infrastructure.Persistence;
+using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
 using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+var modules = HostModules.All;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(container => {
         container.RegisterModule(new SharedKernelInfrastructureModule());
-        container.RegisterModule(new BankInfrastructureModule());
+
+        foreach (var module in modules) {
+            container.RegisterModule(module.AutofacModule);
+        }
     }
 );
 
-builder.Services
-    .AddControllers(options => options.Filters.Add<DomainExceptionFilter>())
-    .AddApplicationPart(typeof(BankAccountsController).Assembly);
+var mvc = builder.Services.AddControllers(options => options.Filters.Add<DomainExceptionFilter>());
+
+foreach (var module in modules) {
+    mvc.AddApplicationPart(module.ControllerAssembly);
+}
 
 // Le 400 automatique d'[ApiController] est le seul ProblemDetails que l'API ne
 // fabrique pas elle-même : on le remplace pour qu'il ait la même forme que les
@@ -39,14 +42,19 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
 builder.Services.AddMediatR(configuration => {
-        configuration.RegisterServicesFromAssembly(typeof(OpenBankAccountCommand).Assembly);
+        configuration.RegisterServicesFromAssemblies(
+            modules.Select(module => module.ApplicationAssembly).ToArray()
+        );
         configuration.AddOpenBehavior(typeof(TransactionBehavior<,>));
     }
 );
 
-builder.Services.AddDbContext<BankDbContext>(
-    options => options.UseNpgsql(builder.Configuration.GetConnectionString("BankDb"))
-);
+foreach (var module in modules) {
+    module.ConfigureDbContext(
+        services: builder.Services,
+        configuration: builder.Configuration
+    );
+}
 
 var app = builder.Build();
 
@@ -57,7 +65,10 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment()) {
     using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.Migrate();
+
+    foreach (var module in modules) {
+        await module.MigrateAsync(scope.ServiceProvider);
+    }
 }
 
 app.MapControllers();
