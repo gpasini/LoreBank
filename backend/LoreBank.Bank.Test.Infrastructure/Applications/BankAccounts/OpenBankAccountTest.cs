@@ -6,7 +6,7 @@ using LoreBank.SharedKernel.Domain.Exceptions;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class OpenBankAccountTest : BaseIntegrationTest
+public sealed class OpenBankAccountTest : BankIntegrationTest
 {
     [Test]
     public async Task OpenBankAccount_ShouldPersistAccount()

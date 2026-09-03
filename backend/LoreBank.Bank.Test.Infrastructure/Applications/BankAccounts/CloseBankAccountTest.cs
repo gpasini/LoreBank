@@ -5,14 +5,14 @@ using LoreBank.Bank.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class CloseBankAccountTest : BaseIntegrationTest
+public sealed class CloseBankAccountTest : BankIntegrationTest
 {
     [Test]
     public async Task CloseBankAccount_ShouldCloseAccount()
     {
         // Arrange
 
-        DbSetup.CreateBankAccount();
+        await DbSetup.CreateBankAccountAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -32,7 +32,7 @@ public sealed class CloseBankAccountTest : BaseIntegrationTest
     {
         // Arrange
 
-        DbSetup.CreateBankAccount(balance: 70m);
+        await DbSetup.CreateBankAccountAsync(balance: 70m);
 
         // Act & Assert
 

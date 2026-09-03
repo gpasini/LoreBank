@@ -5,7 +5,7 @@ using LoreBank.Bank.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class GetBankAccountByIdTest : BaseIntegrationTest
+public sealed class GetBankAccountByIdTest : BankIntegrationTest
 {
     // L'absence est une erreur métier, pas un `null` : c'est ce qui donne un
     // code au 404 d'une lecture comme à celui d'une commande.
@@ -30,7 +30,7 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest
     {
         // Arrange
 
-        DbSetup.CreateBankAccount(
+        await DbSetup.CreateBankAccountAsync(
             iban: "FR7630006000011234567890189",
             currency: "EUR",
             balance: 42.50m
@@ -56,7 +56,7 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest
     {
         // Arrange
 
-        DbSetup.CreateBankAccount();
+        await DbSetup.CreateBankAccountAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 

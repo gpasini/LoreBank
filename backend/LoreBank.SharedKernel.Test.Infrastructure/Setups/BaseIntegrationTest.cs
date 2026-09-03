@@ -1,28 +1,28 @@
 using System.Transactions;
-using LoreBank.Bank.Test.Infrastructure.Fakes;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace LoreBank.Bank.Test.Infrastructure.Setups;
+namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
-public abstract class BaseIntegrationTest
+// Chaque test s'exécute dans un TransactionScope rollbacké, au même niveau
+// d'isolation que le TransactionBehavior (ReadCommitted) : un scope Required
+// qui rejoint un ambiant d'un niveau différent lève une ArgumentException.
+public abstract class BaseIntegrationTest<TFactory> : BaseHostTest<TFactory>
+    where TFactory : IntegrationTestWebAppFactory, new()
 {
     private IServiceScope? _scope;
     private TransactionScope? _transaction;
     protected ISender Sender = null!;
-    protected DbSetup DbSetup = null!;
 
-    // Force l'initialisation de TestHost avant que BaseSetUp n'ouvre son
-    // TransactionScope : sans ça, l'hôte démarrerait sous une transaction
-    // ambiante et sa migration EF Core échouerait (HandleAmbientTransactions).
-    static BaseIntegrationTest()
-    {
-        _ = TestHost.Factory;
-    }
+    protected IServiceProvider ScopeServices => _scope!.ServiceProvider;
 
     [SetUp]
     public void BaseSetUp()
     {
+        // NUnit exécute les [SetUp] de la base d'abord : HostSetUp a déjà
+        // touché Factory, donc l'hôte a démarré — et migré — avant l'ouverture
+        // du scope ambiant, à laquelle sa migration EF Core ne survivrait pas
+        // (HandleAmbientTransactions).
         _transaction = new TransactionScope(
             scopeOption: TransactionScopeOption.Required,
             transactionOptions: new TransactionOptions {
@@ -32,11 +32,8 @@ public abstract class BaseIntegrationTest
             asyncFlowOption: TransactionScopeAsyncFlowOption.Enabled
         );
 
-        _scope = TestHost.Factory.Services.CreateScope();
+        _scope = Factory.Services.CreateScope();
         Sender = _scope.ServiceProvider.GetRequiredService<ISender>();
-        DbSetup = new DbSetup(_scope.ServiceProvider);
-
-        TestHost.Factory.Services.GetRequiredService<ConfigurableWelcomeLetterSender>().Reset();
     }
 
     [TearDown]

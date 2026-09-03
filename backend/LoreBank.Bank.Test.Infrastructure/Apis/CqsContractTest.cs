@@ -2,17 +2,18 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Apis;
 
-// N'hérite pas de BaseIntegrationTest, pour la même raison qu'ErrorContractTest :
+// Hérite de BaseHostTest, pour la même raison qu'ErrorContractTest :
 // le TransactionScope ambiant ne traverse pas la frontière HTTP. Ces tests
 // écrivent donc pour de vrai, d'où des IBAN qui leur sont propres.
 //
 // Épingle le contrat CQS au bord HTTP : une commande ne sert aucune
 // représentation, une lecture en sert une.
 [TestFixture]
-public sealed class CqsContractTest
+public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
 {
     private const string OpeningIban = "PT50000201231234567890154";
 
@@ -23,7 +24,7 @@ public sealed class CqsContractTest
     [SetUp]
     public void SetUp()
     {
-        _client = TestHost.Factory.CreateClient();
+        _client = Factory.CreateClient();
     }
 
     [TearDown]

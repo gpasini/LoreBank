@@ -27,7 +27,7 @@ Le module `Bank` sert d'exemple de référence.
   assemblies de controllers et d'application, son `Module` Autofac, son
   `DbContext` et sa migration. La liste `HostModules.All` est la seule source
   de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
-  (`Test.Infrastructure`, dossier `Hosting/`) itère la même pour vérifier que
+  (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
   chaque requête MediatR résout son handler, que chaque controller est monté
   et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
   l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
@@ -222,26 +222,45 @@ Le module `Bank` sert d'exemple de référence.
   aussi `SharedKernel.Infrastructure`, parce que le `DomainEventDispatcher` n'a
   aucune E/S — un `IServiceProvider` fake suffit à l'isoler, rien ne justifie
   de le remonter jusqu'à `Test.Infrastructure`.
-- `Test.Infrastructure` : `WebApplicationFactory` partagée + Testcontainers
-  PostgreSQL ; chaque test s'exécute dans un `TransactionScope` rollbacké ; les
-  données se créent via les vrais use cases avec `DbSetup` (classe partielle
-  par agrégat, `CreateXxx()` fluent, `GetLastXxxId()`) ; les tests parlent à
-  `ISender`, pas à HTTP — à l'exception du dossier `Apis/`, seul endroit qui
-  parle vraiment HTTP : `ErrorContractTest` épingle le contrat d'erreur
-  (statuts, type de média, `code`, absence de `detail`) et `CqsContractTest` le
-  fait qu'une commande ne serve aucune représentation (201 + `Location`, ou
-  204). Ni l'un ni l'autre ne peut hériter de `BaseIntegrationTest`, le
-  `TransactionScope` ambiant ne traversant pas la frontière HTTP — ils écrivent
-  donc pour de vrai, avec des IBAN qui leur sont propres. Son niveau d'isolation doit rester celui du
-  `TransactionBehavior` (`ReadCommitted`) : un `TransactionScope` en `Required`
-  qui rejoint un scope ambiant d'un niveau différent lève une
-  `ArgumentException`. Un test qui doit observer un rollback réel ne peut pas
-  hériter de `BaseIntegrationTest` — un scope interne non complété condamne
-  l'ambiant — et passe par `TestHost.Factory` directement.
-- Substituer un service enregistré par un `Module` Autofac ne peut pas se faire
-  dans `ConfigureTestServices` : la dernière inscription Autofac gagne, et le
-  `Module` de l'Infrastructure s'exécute après — on passe par une surcharge de
-  `CreateHost` à la place.
+- Le harnais d'intégration vit dans `LoreBank.SharedKernel.Test.Infrastructure`
+  (seul projet SharedKernel à référencer l'hôte, et lui-même un vrai projet de
+  test) : `IntegrationTestWebAppFactory` démarre l'hôte réel contre un
+  Testcontainers PostgreSQL et redirige **toutes** les `ConnectionStrings:*`
+  vers le conteneur — ne rediriger que le DbContext du module courant
+  laisserait ceux des autres modules pointer sur la base réelle du développeur,
+  que l'hôte de test (en Development) migrerait au démarrage.
+  `ConnectionRedirectTest` épingle cette garantie, et `ModuleCompositionTest`
+  itère `HostModules.All` (voir « Architecture »). `TestHost<TFactory>` porte
+  l'hôte et le conteneur, partagés par toutes les fixtures d'un assembly.
+- Deux bases dans ce socle : `BaseIntegrationTest<TFactory>` — `TransactionScope`
+  rollbacké par test (niveau `ReadCommitted`, celui du `TransactionBehavior` :
+  un scope `Required` qui rejoint un ambiant d'un niveau différent lève une
+  `ArgumentException`), scope DI, `Sender` — pour les tests qui parlent à
+  `ISender` ; et `BaseHostTest<TFactory>` — hôte partagé sans transaction —
+  pour le dossier `Apis/` (le `TransactionScope` ambiant ne traverse pas la
+  frontière HTTP : `ErrorContractTest` épingle le contrat d'erreur — statuts,
+  type de média, `code`, absence de `detail` — et `CqsContractTest` le fait
+  qu'une commande ne serve aucune représentation ; ils écrivent pour de vrai,
+  avec des IBAN qui leur sont propres) et pour les tests qui observent un
+  rollback réel, comme `TransactionRollbackTest` (un scope interne non complété
+  condamne l'ambiant).
+- Un module fournit trois petites classes (voir Bank) : une factory scellée
+  (`BankWebAppFactory`) qui enregistre ses fakes dans `ConfigureModuleContainer`
+  — la substitution d'un service inscrit par un `Module` Autofac ne peut pas se
+  faire dans `ConfigureTestServices`, la dernière inscription Autofac gagne et
+  le `Module` de l'Infrastructure s'exécute après ; le hook est un second
+  `ConfigureContainer` ajouté après celui de l'hôte — et les remet à zéro dans
+  `ResetFakes`, appelé par `BaseHostTest` au SetUp et au TearDown (point
+  unique, pas de reset à recopier par fixture) ; une base
+  (`BankIntegrationTest`) qui instancie son `DbSetup` ; et un
+  `DbSetup : DbSetupBase` (classe partielle par agrégat, `CreateXxxAsync()`,
+  `GetLastXxxId()`), qui crée les données via les vrais use cases. Les arranges
+  sont async : bloquer (`.Result`) sous le `TransactionScope` ambiant
+  emballerait tout échec en `AggregateException`.
+- Les assemblies de test d'intégration déclarent
+  `[assembly: Parallelizable(ParallelScope.None)]` : les fakes sont des
+  singletons mutables non synchronisés, l'exécution en série est une hypothèse
+  déclarée, pas un hasard de configuration.
 - Lancer : `mise exec -- dotnet test LoreBank.slnx`.
 
 ## Style

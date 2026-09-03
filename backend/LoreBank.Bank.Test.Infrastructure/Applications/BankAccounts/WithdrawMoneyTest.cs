@@ -5,14 +5,14 @@ using LoreBank.Bank.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class WithdrawMoneyTest : BaseIntegrationTest
+public sealed class WithdrawMoneyTest : BankIntegrationTest
 {
     [Test]
     public async Task WithdrawMoney_ShouldDecreaseBalance()
     {
         // Arrange
 
-        DbSetup.CreateBankAccount(balance: 100m);
+        await DbSetup.CreateBankAccountAsync(balance: 100m);
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -38,7 +38,7 @@ public sealed class WithdrawMoneyTest : BaseIntegrationTest
     {
         // Arrange
 
-        DbSetup.CreateBankAccount(balance: 70m);
+        await DbSetup.CreateBankAccountAsync(balance: 70m);
 
         // Act & Assert
 

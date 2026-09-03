@@ -14,7 +14,7 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 // Le test sur la query vérifie qu'elle ne laisse aucune transaction ambiante.
 [TestFixture]
 [TestOf(typeof(TransactionBehavior<,>))]
-public sealed class PipelineWiringTest : BaseIntegrationTest
+public sealed class PipelineWiringTest : BankIntegrationTest
 {
     [Test]
     public void Handle_ShouldWrapTheRequest_WhenRequestIsACommand()

@@ -4,11 +4,12 @@ using System.Text;
 using System.Text.Json;
 using LoreBank.Bank.Test.Infrastructure.Fakes;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LoreBank.Bank.Test.Infrastructure.Apis;
 
-// N'hérite volontairement pas de BaseIntegrationTest : son TransactionScope
+// Hérite de BaseHostTest, pas de BaseIntegrationTest : son TransactionScope
 // ambiant ne traverse pas la frontière HTTP, et une requête servie par l'hôte
 // écrirait donc hors du rollback. Ces tests n'écrivent rien qui survive — le
 // seul qui ouvre un compte le fait échouer.
@@ -16,7 +17,7 @@ namespace LoreBank.Bank.Test.Infrastructure.Apis;
 // Seul endroit de la suite qui parle vraiment HTTP : les statuts, les en-têtes
 // et la forme du JSON ne sont observables nulle part ailleurs.
 [TestFixture]
-public sealed class ErrorContractTest
+public sealed class ErrorContractTest : BaseHostTest<BankWebAppFactory>
 {
     private const string ProblemJson = "application/problem+json; charset=utf-8";
 
@@ -25,18 +26,10 @@ public sealed class ErrorContractTest
     private HttpClient _client = null!;
 
     [SetUp]
-    public void SetUp()
-    {
-        _client = TestHost.Factory.CreateClient();
-        WelcomeLetterSender.Reset();
-    }
+    public void SetUp() => _client = Factory.CreateClient();
 
     [TearDown]
-    public void TearDown()
-    {
-        WelcomeLetterSender.Reset();
-        _client.Dispose();
-    }
+    public void TearDown() => _client.Dispose();
 
     [Test]
     public async Task Post_ShouldReturn422WithACode_WhenAValueObjectRefusesTheValue()
@@ -188,7 +181,7 @@ public sealed class ErrorContractTest
     }
 
     private static ConfigurableWelcomeLetterSender WelcomeLetterSender =>
-        TestHost.Factory.Services.GetRequiredService<ConfigurableWelcomeLetterSender>();
+        Factory.Services.GetRequiredService<ConfigurableWelcomeLetterSender>();
 
     private static async Task Expect(
         HttpResponseMessage response,

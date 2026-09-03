@@ -5,14 +5,14 @@ using LoreBank.Bank.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class DepositMoneyTest : BaseIntegrationTest
+public sealed class DepositMoneyTest : BankIntegrationTest
 {
     [Test]
     public async Task DepositMoney_ShouldIncreaseBalance()
     {
         // Arrange
 
-        DbSetup.CreateBankAccount();
+        await DbSetup.CreateBankAccountAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 

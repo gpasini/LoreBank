@@ -16,6 +16,7 @@
     <Project Path="LoreBank.SharedKernel.Application/LoreBank.SharedKernel.Application.csproj" />
     <Project Path="LoreBank.SharedKernel.Domain/LoreBank.SharedKernel.Domain.csproj" />
     <Project Path="LoreBank.SharedKernel.Infrastructure/LoreBank.SharedKernel.Infrastructure.csproj" />
+    <Project Path="LoreBank.SharedKernel.Test.Infrastructure/LoreBank.SharedKernel.Test.Infrastructure.csproj" />
     <Project Path="LoreBank.SharedKernel.Test.Unit/LoreBank.SharedKernel.Test.Unit.csproj" />
   </Folder>
 </Solution>
