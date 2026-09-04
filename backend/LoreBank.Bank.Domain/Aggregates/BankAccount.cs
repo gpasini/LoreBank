@@ -54,35 +54,37 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         return account;
     }
 
-    public void Deposit(Money amount)
+    // PositiveMoney, pas Money : un dépôt négatif débiterait le compte en
+    // contournant le contrôle de solde du retrait — le cas est inexprimable.
+    public void Deposit(PositiveMoney amount)
     {
         EnsureIsOpen();
-        Balance += amount;
+        Balance += amount.Value;
         AddDomainEvent(
             new MoneyDeposited(
                 AccountId: Id,
-                Amount: amount,
+                Amount: amount.Value,
                 NewBalance: Balance
             )
         );
     }
 
-    public void Withdraw(Money amount)
+    public void Withdraw(PositiveMoney amount)
     {
         EnsureIsOpen();
 
-        if (amount.Amount > Balance.Amount) {
+        if (amount.Value.Amount > Balance.Amount) {
             throw new InsufficientBalanceException(
                 balance: Balance,
-                requested: amount
+                requested: amount.Value
             );
         }
 
-        Balance -= amount;
+        Balance -= amount.Value;
         AddDomainEvent(
             new MoneyWithdrawn(
                 AccountId: Id,
-                Amount: amount,
+                Amount: amount.Value,
                 NewBalance: Balance
             )
         );

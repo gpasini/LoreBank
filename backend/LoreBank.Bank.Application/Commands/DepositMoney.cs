@@ -29,7 +29,7 @@ public sealed class DepositMoneyCommandHandler(IBankAccountRepository repository
         ) ?? throw new BankAccountNotFoundException(accountId);
 
         account.Deposit(
-            new Money(
+            new PositiveMoney(
                 amount: request.Amount,
                 currency: request.Currency
             )

@@ -56,7 +56,10 @@ Le module `Bank` sert d'exemple de référence.
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
   de solution `SharedKernel`) : `Entity`, `AggregateRoot`, `ValueObject`,
   `SimpleValueObject`, `IDomainEvent`, `IDomainEventHandler`, `DomainException`,
-  `NotFoundException`, et les VO transverses (`Iban`, `Bic`, `Money`). Le même
+  `NotFoundException`, et les VO transverses (`Iban`, `Bic`, `Money`,
+  `PositiveMoney` — le montant d'une opération, strictement positif : une
+  transition qui prend un `Money` nu accepterait un montant négatif qui
+  inverse son sens). Le même
   dossier porte `LoreBank.SharedKernel.Api`, qui accueille ce que tous les
   modules partagent côté HTTP : `Problems/ApiProblem` (la forme unique d'une
   réponse d'erreur), `Filters/DomainExceptionFilter` (les erreurs métier),

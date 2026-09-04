@@ -28,6 +28,17 @@ public sealed class ExceptionCodesTest
     }
 
     [Test]
+    public void Code_ShouldBeNonPositiveAmount_WhenExceptionIsNonPositiveAmountException()
+    {
+        var exception = new NonPositiveAmountException(
+            amount: -100m,
+            currency: "EUR"
+        );
+
+        exception.Code.Should().Be("NON_POSITIVE_AMOUNT");
+    }
+
+    [Test]
     public void Code_ShouldBeCurrencyMismatch_WhenExceptionIsCurrencyMismatchException()
     {
         var exception = new CurrencyMismatchException(

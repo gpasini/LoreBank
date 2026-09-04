@@ -29,7 +29,7 @@ public sealed class WithdrawMoneyCommandHandler(IBankAccountRepository repositor
         ) ?? throw new BankAccountNotFoundException(accountId);
 
         account.Withdraw(
-            new Money(
+            new PositiveMoney(
                 amount: request.Amount,
                 currency: request.Currency
             )

@@ -43,7 +43,7 @@ public sealed class BankAccountBuilder
 
         if (_balance > 0m) {
             account.Deposit(
-                new Money(
+                new PositiveMoney(
                     amount: _balance,
                     currency: _currency
                 )
@@ -53,7 +53,7 @@ public sealed class BankAccountBuilder
         if (_isClosed) {
             if (_balance > 0m) {
                 account.Withdraw(
-                    new Money(
+                    new PositiveMoney(
                         amount: _balance,
                         currency: _currency
                     )

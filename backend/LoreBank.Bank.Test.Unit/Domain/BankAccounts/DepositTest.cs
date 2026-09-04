@@ -23,7 +23,7 @@ public sealed class DepositTest
         // Act
 
         account.Deposit(
-            new Money(
+            new PositiveMoney(
                 amount: 100m,
                 currency: "EUR"
             )
@@ -45,7 +45,7 @@ public sealed class DepositTest
         // Act & Assert
 
         var act = () => account.Deposit(
-            new Money(
+            new PositiveMoney(
                 amount: 10m,
                 currency: "USD"
             )
@@ -66,7 +66,7 @@ public sealed class DepositTest
         // Act & Assert
 
         var act = () => account.Deposit(
-            new Money(
+            new PositiveMoney(
                 amount: 10m,
                 currency: "EUR"
             )

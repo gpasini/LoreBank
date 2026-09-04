@@ -22,7 +22,7 @@ public sealed class WithdrawTest
         // Act
 
         account.Withdraw(
-            new Money(
+            new PositiveMoney(
                 amount: 30m,
                 currency: "EUR"
             )
@@ -46,7 +46,7 @@ public sealed class WithdrawTest
         // Act & Assert
 
         var act = () => account.Withdraw(
-            new Money(
+            new PositiveMoney(
                 amount: 1000m,
                 currency: "EUR"
             )
@@ -67,7 +67,7 @@ public sealed class WithdrawTest
         // Act & Assert
 
         var act = () => account.Withdraw(
-            new Money(
+            new PositiveMoney(
                 amount: 1m,
                 currency: "EUR"
             )
