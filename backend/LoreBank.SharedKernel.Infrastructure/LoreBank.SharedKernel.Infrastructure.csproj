@@ -12,4 +12,9 @@
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Le parsing de ModuleAssemblyName est interne : ses cas d'échec se testent sur des chaînes. -->
+        <InternalsVisibleTo Include="LoreBank.SharedKernel.Test.Unit"/>
+    </ItemGroup>
+
 </Project>

@@ -9,8 +9,15 @@ namespace LoreBank.SharedKernel.Infrastructure.Modules;
 // sont des données et non des hooks : MediatR et AddApplicationPart ne
 // s'inscrivent qu'en un seul appel côté hôte, qui doit donc collecter les
 // assemblies de tous les modules avant d'inscrire quoi que ce soit.
+// La façon prévue d'implémenter ce seam est la base HostModule<TDbContext>,
+// qui dérive le nom et les assemblies du DbContext (ADR 0007).
 public interface IHostModule
 {
+    // Le nom du module (« Bank ») : le même segment que DomainException lit
+    // dans le namespace pour préfixer ses codes — ModuleCompositionTest
+    // épingle la correspondance.
+    string ModuleName { get; }
+
     Assembly ControllerAssembly { get; }
 
     Assembly ApplicationAssembly { get; }

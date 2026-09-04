@@ -1,8 +1,4 @@
-using System.Reflection;
 using Autofac.Core;
-using LoreBank.Bank.Api.Controllers;
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Infrastructure;
 using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Infrastructure.Modules;
@@ -10,19 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.Host.Modules;
 
-public sealed class BankModule : IHostModule
+public sealed class BankModule : HostModule<BankDbContext>
 {
-    public Assembly ControllerAssembly => typeof(BankAccountsController).Assembly;
+    public override IModule AutofacModule => new BankInfrastructureModule();
 
-    public Assembly ApplicationAssembly => typeof(OpenBankAccountCommand).Assembly;
-
-    public Assembly DomainAssembly => typeof(BankAccount).Assembly;
-
-    public IModule AutofacModule => new BankInfrastructureModule();
-
-    public Type DbContextType => typeof(BankDbContext);
-
-    public void ConfigureDbContext(
+    public override void ConfigureDbContext(
         IServiceCollection services,
         IConfiguration configuration
     )

@@ -1,5 +1,9 @@
 # Le type du DbContext déclaré sur le seam
 
+> Statut : prolongé par l'ADR 0007 — le `DbContextType` devient l'ancre de
+> toute l'identité du module, dont la base `HostModule<TDbContext>` dérive les
+> assemblies et le nom.
+
 Rouvre en partie l'ADR 0001, qui avait écarté « `Type DbContextType`
 générique ». Le coût de l'absence s'était accumulé : le harnais de test avait
 besoin du fait quand même et le retrouvait par scan d'assembly

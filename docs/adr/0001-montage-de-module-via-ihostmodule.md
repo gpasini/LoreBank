@@ -1,7 +1,8 @@
 # Montage de module via IHostModule
 
 > Statut : complété par l'ADR 0005, qui revient sur l'option
-> « `Type DbContextType` générique » écartée ci-dessous.
+> « `Type DbContextType` générique » écartée ci-dessous, puis par l'ADR 0007,
+> qui dérive les assemblies du seam depuis le DbContext.
 
 L'hôte doit connaître cinq faits par module (assembly de controllers, assembly
 d'application pour MediatR, `Module` Autofac, `DbContext` + chaîne de connexion,

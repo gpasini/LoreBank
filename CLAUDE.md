@@ -29,17 +29,25 @@ Le module `Bank` sert d'exemple de référence.
   minimal API). L'hôte unique `LoreBank.Host` (dossier de solution `Host`)
   porte la composition (DI, filtres) et monte les modules à travers le seam
   `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
-  adapter dans `LoreBank.Host/Modules/` (voir `BankModule`) exposant ses
-  assemblies de controllers, d'application et de domaine (`DomainAssembly`,
-  que l'hôte scanne à la recherche des handlers de domain events), son
-  `Module` Autofac, le type de son `DbContext` (`DbContextType`, au singulier —
-  un DbContext par module ; `ModuleMigrator` migre via lui) et sa configuration
-  de persistance (`ConfigureDbContext`). La liste `HostModules.All` est la seule source
-  de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
+  adapter dans `LoreBank.Host/Modules/` dérivant de `HostModule<TDbContext>`
+  (voir `BankModule`), qui ne déclare que son `Module` Autofac et sa
+  configuration de persistance (`ConfigureDbContext`). Le reste de l'identité
+  est dérivé du `TDbContext` (au singulier — un DbContext par module ;
+  `ModuleMigrator` migre via lui, et la contrainte générique impose
+  `ModuleDbContext`) : la base lit `<Racine>.<Module>` sur le nom de son
+  assembly — trois segments exactement, échec bruyant au premier contact avec
+  `HostModules.All` sinon — et charge les assemblies de controllers,
+  d'application et de domaine (`DomainAssembly`, que l'hôte scanne à la
+  recherche des handlers de domain events), plus `ModuleName` (ADR 0007). La
+  liste `HostModules.All` est la seule source de vérité : `Program.cs` la
+  boucle, et `ModuleCompositionTest`
   (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
   chaque requête MediatR résout son handler, que chaque controller est monté,
-  que chaque `DbContext` dérive de `ModuleDbContext`, que chaque handler de
-  domain event se résout et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
+  que chaque handler de domain event se résout, qu'aucun
+  `IDomainEventHandler<>` ne vit hors de la `DomainAssembly` (rangés dans
+  `Application/`, ils échapperaient au scan en silence), que le namespace de
+  chaque `DomainException` du module nomme le module en 2ᵉ segment (c'est lui
+  qui préfixe les codes d'erreur) et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
   l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
   alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`).
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
@@ -226,9 +234,10 @@ Le module `Bank` sert d'exemple de référence.
   (schéma, configurations — voir `BankDbContext.cs`) : le dispatch des events
   vit dans la base, qui interdit la famille synchrone `SaveChanges` (elle
   perdrait les events en silence). Rien d'autre à câbler — les handlers sont
-  scannés par l'hôte via `DomainAssembly`, et `ModuleCompositionTest` rougit
-  si un `DbContext` monté ne dérive pas de la base ou si un handler ne se
-  résout pas. Inutile d'ignorer la collection d'events dans les
+  scannés par l'hôte via `DomainAssembly`, la contrainte générique de
+  `HostModule<TDbContext>` rend incompilable un `DbContext` monté qui ne
+  dériverait pas de la base, et `ModuleCompositionTest` rougit si un handler
+  ne se résout pas ou vit hors de la `DomainAssembly`. Inutile d'ignorer la collection d'events dans les
   `IEntityTypeConfiguration` : EF ne mappe pas une propriété sans setter d'un
   type non mappable, et `ModuleDbContextTest` épingle ce contrat.
 

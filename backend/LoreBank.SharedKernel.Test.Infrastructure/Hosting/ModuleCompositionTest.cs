@@ -1,7 +1,7 @@
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Domain.Events;
+using LoreBank.SharedKernel.Domain.Exceptions;
 using LoreBank.SharedKernel.Infrastructure.Modules;
-using LoreBank.SharedKernel.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -73,9 +73,11 @@ public sealed class ModuleCompositionTest
     {
         using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
 
-        // Pas de garde NotBeEmpty : un module sans handler est légitime. Le
-        // mécanisme de scan est unique et côté hôte — le module Bank, qui a un
-        // handler, suffit à prouver qu'il fonctionne pour tous.
+        // Pas de garde NotBeEmpty : un module sans handler est légitime, et la
+        // garde « aucun handler hors de DomainAssembly » ci-dessous garantit
+        // qu'un handler existant ne peut pas être rangé ailleurs. Le mécanisme
+        // de scan est unique et côté hôte — le module Bank, qui a un handler,
+        // suffit à prouver qu'il fonctionne pour tous.
         var handlerInterfaces = module.DomainAssembly
             .GetTypes()
             .Where(type => type is { IsAbstract: false, IsInterface: false })
@@ -93,11 +95,52 @@ public sealed class ModuleCompositionTest
     }
 
     [TestCaseSource(nameof(Modules))]
-    public void All_ShouldDeriveTheDbContextFromModuleDbContext_WhenTheModuleIsDeclared(IHostModule module)
+    public void All_ShouldKeepEveryDomainEventHandlerInTheDomainAssembly_WhenTheModuleIsDeclared(IHostModule module)
     {
-        module.DbContextType
-            .Should()
-            .BeAssignableTo<ModuleDbContext>($"le dispatch des domain events vit dans ModuleDbContext — un {module.DbContextType.Name} qui n'en dérive pas ne dispatcherait jamais rien");
+        // Une DomainAssembly juste ne suffit pas : des handlers rangés dans
+        // Application/ par réflexe Clean Architecture échapperaient au scan de
+        // l'hôte sans que rien ne le signale — c'est cette garde qui rend
+        // honnête l'absence de NotBeEmpty du test de résolution ci-dessus.
+        var misplacedHandlers = new[] {
+                module.ControllerAssembly,
+                module.ApplicationAssembly,
+                module.DbContextType.Assembly
+            }
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .Where(type => type
+                .GetInterfaces()
+                .Any(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>))
+            )
+            .ToList();
+
+        misplacedHandlers.Should().BeEmpty("un IDomainEventHandler<> n'est scanné que dans DomainAssembly — à déménager vers Domain/EventHandlers/ du module");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldNameTheModuleInEveryDomainExceptionNamespace_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // DomainException préfixe ses codes du 2e segment du namespace ; la
+        // base HostModule dérive ModuleName de la même convention, côté nom
+        // d'assembly. Si le segment correspond au nom, le préfixe est correct
+        // par construction — sans re-dériver la conversion SCREAMING_SNAKE ici.
+        var exceptionTypes = module.DomainAssembly
+            .GetTypes()
+            .Where(type => type is { IsAbstract: false } && type.IsAssignableTo(typeof(DomainException)))
+            .ToList();
+
+        foreach (var exceptionType in exceptionTypes) {
+            var segments = exceptionType.Namespace?.Split('.') ?? [];
+
+            segments.Should().HaveCountGreaterThan(
+                expected: 1,
+                because: $"le namespace de {exceptionType.Name} doit suivre <Racine>.<Module>.<Couche>"
+            );
+            segments[1].Should().Be(
+                expected: module.ModuleName,
+                because: $"le code de {exceptionType.Name} est préfixé du 2e segment de son namespace, qui doit nommer le module"
+            );
+        }
     }
 
     [TestCaseSource(nameof(Modules))]
