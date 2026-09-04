@@ -93,17 +93,11 @@ public sealed class ModuleCompositionTest
     }
 
     [TestCaseSource(nameof(Modules))]
-    public void All_ShouldDeriveEveryDbContextFromModuleDbContext_WhenTheModuleIsDeclared(IHostModule module)
+    public void All_ShouldDeriveTheDbContextFromModuleDbContext_WhenTheModuleIsDeclared(IHostModule module)
     {
-        var dbContextTypes = ModuleDbContexts.Of(module);
-
-        dbContextTypes.Should().NotBeEmpty("un module a un DbContext par doctrine");
-
-        foreach (var dbContextType in dbContextTypes) {
-            dbContextType
-                .Should()
-                .BeAssignableTo<ModuleDbContext>($"le dispatch des domain events vit dans ModuleDbContext — un {dbContextType.Name} qui n'en dérive pas ne dispatcherait jamais rien");
-        }
+        module.DbContextType
+            .Should()
+            .BeAssignableTo<ModuleDbContext>($"le dispatch des domain events vit dans ModuleDbContext — un {module.DbContextType.Name} qui n'en dérive pas ne dispatcherait jamais rien");
     }
 
     [TestCaseSource(nameof(Modules))]
@@ -111,17 +105,11 @@ public sealed class ModuleCompositionTest
     {
         using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
 
-        var dbContextTypes = ModuleDbContexts.Of(module);
+        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
 
-        dbContextTypes.Should().NotBeEmpty("un module a un DbContext par doctrine");
-
-        foreach (var dbContextType in dbContextTypes) {
-            var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(dbContextType);
-
-            dbContext.Database
-                .HasPendingModelChanges()
-                .Should()
-                .BeFalse($"le modèle de {dbContextType.Name} doit être couvert par une migration (dotnet-ef migrations add)");
-        }
+        dbContext.Database
+            .HasPendingModelChanges()
+            .Should()
+            .BeFalse($"le modèle de {module.DbContextType.Name} doit être couvert par une migration (dotnet-ef migrations add)");
     }
 }

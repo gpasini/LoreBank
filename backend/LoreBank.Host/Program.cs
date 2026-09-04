@@ -8,6 +8,7 @@ using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 var modules = HostModules.All;
 
@@ -75,8 +76,13 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment()) {
     using var scope = app.Services.CreateScope();
 
+    // La migration se dérive du type déclaré : le mécanisme est identique pour
+    // tous les modules, seule la politique — ne migrer qu'en Development —
+    // appartient à l'hôte.
     foreach (var module in modules) {
-        await module.MigrateAsync(scope.ServiceProvider);
+        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
+
+        await dbContext.Database.MigrateAsync();
     }
 }
 

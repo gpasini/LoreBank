@@ -20,6 +20,8 @@ public sealed class BankModule : IHostModule
 
     public IModule AutofacModule => new BankInfrastructureModule();
 
+    public Type DbContextType => typeof(BankDbContext);
+
     public void ConfigureDbContext(
         IServiceCollection services,
         IConfiguration configuration
@@ -28,10 +30,5 @@ public sealed class BankModule : IHostModule
         services.AddDbContext<BankDbContext>(
             options => options.UseNpgsql(configuration.GetConnectionString("BankDb"))
         );
-    }
-
-    public async Task MigrateAsync(IServiceProvider services)
-    {
-        await services.GetRequiredService<BankDbContext>().Database.MigrateAsync();
     }
 }

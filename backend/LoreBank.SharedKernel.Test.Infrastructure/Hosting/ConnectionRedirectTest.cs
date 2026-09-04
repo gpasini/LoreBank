@@ -22,13 +22,11 @@ public sealed class ConnectionRedirectTest
     {
         using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
 
-        foreach (var dbContextType in ModuleDbContexts.Of(module)) {
-            var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(dbContextType);
+        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
 
-            dbContext.Database
-                .GetConnectionString()
-                .Should()
-                .Be(TestHost<SharedKernelWebAppFactory>.Factory.ContainerConnectionString);
-        }
+        dbContext.Database
+            .GetConnectionString()
+            .Should()
+            .Be(TestHost<SharedKernelWebAppFactory>.Factory.ContainerConnectionString);
     }
 }

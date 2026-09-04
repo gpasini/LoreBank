@@ -26,7 +26,9 @@ Le module `Bank` sert d'exemple de référence.
   adapter dans `LoreBank.Host/Modules/` (voir `BankModule`) exposant ses
   assemblies de controllers, d'application et de domaine (`DomainAssembly`,
   que l'hôte scanne à la recherche des handlers de domain events), son
-  `Module` Autofac, son `DbContext` et sa migration. La liste `HostModules.All` est la seule source
+  `Module` Autofac, le type de son `DbContext` (`DbContextType`, au singulier —
+  un DbContext par module ; l'hôte migre via lui en dev) et sa configuration
+  de persistance (`ConfigureDbContext`). La liste `HostModules.All` est la seule source
   de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
   (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
   chaque requête MediatR résout son handler, que chaque controller est monté,
