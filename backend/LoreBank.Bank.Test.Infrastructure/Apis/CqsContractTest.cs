@@ -48,7 +48,10 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
     }
 
     // La commande ne renvoie rien, mais elle dit où lire : le Location doit
-    // pointer sur une ressource que le GET sert vraiment.
+    // pointer sur une ressource que le GET sert vraiment. Et la forme servie
+    // est la surface Application elle-même (ADR 0012) : l'ensemble exact des
+    // clés est épinglé ici — renommer une propriété du Result est un breaking
+    // change HTTP, il doit rougir au lieu de partir silencieusement sur le fil.
     [Test]
     public async Task Get_ShouldServeTheAccount_WhenFollowingTheLocationOfTheCreation()
     {
@@ -63,7 +66,17 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
         // Assert
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await BodyOf(response)).GetProperty("iban").GetString().Should().Be(DepositIban);
+
+        var body = await BodyOf(response);
+
+        body.GetProperty("iban").GetString().Should().Be(DepositIban);
+        body.EnumerateObject().Select(property => property.Name).Should().BeEquivalentTo(
+            "id",
+            "iban",
+            "balance",
+            "currency",
+            "isClosed"
+        );
     }
 
     [Test]

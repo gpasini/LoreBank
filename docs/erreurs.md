@@ -235,14 +235,14 @@ même forme que les autres erreurs :
 POST /api/bank/accounts/{id}/deposits   {"amount":"beaucoup","currency":"EUR"}
 → 400
 {"title":"Bad Request","status":400,
- "code":"VALIDATION_FAILED","parameters":{"fields":["amount","request"]}}
+ "code":"VALIDATION_FAILED","parameters":{"fields":["amount","command"]}}
 ```
 
 ```
 POST /api/bank/accounts/{id}/deposits   (corps vide)
 → 400
 {"title":"Bad Request","status":400,
- "code":"VALIDATION_FAILED","parameters":{"fields":["request"]}}
+ "code":"VALIDATION_FAILED","parameters":{"fields":["command"]}}
 ```
 
 Le code est unique — `VALIDATION_FAILED`, sans préfixe de module, puisque
@@ -251,9 +251,10 @@ paramètres ne portent que les champs fautifs, débarrassés du préfixe `$.` qu
 System.Text.Json ajoute à ses chemins JSON.
 
 Ce qui a disparu au passage, et c'était le but : les messages de binding, qui
-citaient `LoreBank.Bank.Api.Contracts.AmountRequest` en toutes lettres.
+citaient `LoreBank.Bank.Application.Commands.DepositMoneyCommand` en toutes
+lettres.
 
-`request` dans `fields` est le nom du paramètre d'action qui n'a pas pu être
+`command` dans `fields` est le nom du paramètre d'action qui n'a pas pu être
 lié — pas un champ du corps. Il apparaît dès que la désérialisation du corps
 échoue en entier. C'est un nom que nous choisissons, pas un type interne qui
 fuit, mais le front doit savoir qu'il ne correspond à rien de visible dans sa
@@ -335,7 +336,7 @@ Une seule ligne sans code, et c'est toujours la même : le 500.
 Trois coutures, documentées plutôt que tues, parce qu'un développeur qui
 construit sur ce socle finira par les toucher.
 
-**`fields` mélange deux natures.** `["amount", "request"]` : le premier est un
+**`fields` mélange deux natures.** `["amount", "command"]` : le premier est un
 champ du corps, le second le nom du paramètre d'action. Le front ne peut pas
 distinguer les deux sans connaître la signature du controller. Aller plus loin
 demanderait de filtrer les clés qui ne sont pas des chemins JSON — au prix de

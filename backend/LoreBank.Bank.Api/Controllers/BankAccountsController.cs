@@ -1,6 +1,6 @@
-using LoreBank.Bank.Api.Contracts;
 using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Queries;
+using LoreBank.Bank.Application.Results;
 using LoreBank.SharedKernel.Api.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -11,61 +11,50 @@ namespace LoreBank.Bank.Api.Controllers;
 // représentation (201 + Location, ou 204), une action qui lit en renvoie une.
 // Le geste est porté par ModuleController — SendAsync et CreateAsync n'
 // acceptent qu'une commande, une lecture ne peut pas les emprunter.
+//
+// Le contrat HTTP est la surface Application (ADR 0012) : le body se lie
+// directement sur la commande, une lecture sert son Result tel quel. Sur une
+// route mixte, la route est autoritaire — le `with` écrase ce que le body
+// aurait posté.
 [Route("api/bank/accounts")]
 public sealed class BankAccountsController(ISender sender) : ModuleController(sender)
 {
     [HttpPost]
     public Task<ActionResult> Open(
-        OpenBankAccountRequest request,
+        OpenBankAccountCommand command,
         CancellationToken cancellationToken
     ) => CreateAsync(
-        command: new OpenBankAccountCommand(
-            Iban: request.Iban,
-            Currency: request.Currency
-        ),
+        command: command,
         actionName: nameof(GetById),
         cancellationToken: cancellationToken
     );
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<BankAccountResponse>> GetById(
+    public async Task<ActionResult<BankAccountResult>> GetById(
         Guid id,
         CancellationToken cancellationToken
-    )
-    {
-        var result = await Sender.Send(
-            request: new GetBankAccountByIdQuery(id),
-            cancellationToken: cancellationToken
-        );
-
-        return BankAccountResponse.From(result);
-    }
+    ) => await Sender.Send(
+        request: new GetBankAccountByIdQuery(id),
+        cancellationToken: cancellationToken
+    );
 
     [HttpPost("{id:guid}/deposits")]
     public Task<ActionResult> Deposit(
         Guid id,
-        AmountRequest request,
+        DepositMoneyCommand command,
         CancellationToken cancellationToken
     ) => SendAsync(
-        command: new DepositMoneyCommand(
-            AccountId: id,
-            Amount: request.Amount,
-            Currency: request.Currency
-        ),
+        command: command with { AccountId = id },
         cancellationToken: cancellationToken
     );
 
     [HttpPost("{id:guid}/withdrawals")]
     public Task<ActionResult> Withdraw(
         Guid id,
-        AmountRequest request,
+        WithdrawMoneyCommand command,
         CancellationToken cancellationToken
     ) => SendAsync(
-        command: new WithdrawMoneyCommand(
-            AccountId: id,
-            Amount: request.Amount,
-            Currency: request.Currency
-        ),
+        command: command with { AccountId = id },
         cancellationToken: cancellationToken
     );
 

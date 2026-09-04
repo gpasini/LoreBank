@@ -203,8 +203,16 @@ Le module `Bank` sert d'exemple de référence.
   `204`, `CreateAsync(ICreationCommand, actionName)` → `201` + `Location` et un
   corps vide (le `Guid` d'`ICreationCommand` ne sert qu'à bâtir l'en-tête) —
   une query ne peut emprunter aucun des deux chemins, et `[ApiController]` est
-  hérité de la base. Les lectures gardent leur `Sender.Send` + mapping vers
-  `Contracts/`. Le client qui veut l'état d'après fait un
+  hérité de la base. Le contrat HTTP d'un module est sa surface Application
+  (ADR 0012) — pas de dossier `Contracts/` : le body se lie directement sur
+  la commande (sur une route mixte, le controller réécrit `command with
+  { AccountId = id }` — la route est autoritaire, un champ posté en double
+  est écrasé), et une lecture sert le `Results/` de sa query tel quel.
+  Renommer une propriété de commande ou de Result est donc un breaking change
+  HTTP : le compilateur n'en dit rien, c'est `CqsContractTest` qui épingle
+  l'ensemble exact des clés JSON du `GET`. Un besoin de forme wire divergente
+  se règle par une autre query avec son propre Result, jamais par un record
+  de réponse dans l'Api. Le client qui veut l'état d'après fait un
   `GET`. C'est un aller-retour de plus, assumé : une commande qui renvoie aussi
   la ressource est également une lecture, et la représentation qu'elle sert peut
   diverger de celle du `GET` sans que rien ne le signale.

@@ -12,7 +12,8 @@ typées par les marqueurs du CQS : `SendAsync(ICommand)` → 204,
 `CreateAsync(ICreationCommand, actionName)` → 201 + `Location` + corps vide.
 La règle devient un fait du système de types — une query ne peut emprunter
 aucun des deux chemins. Pas de `QueryAsync` : ce serait un pass-through, les
-lectures gardent leur `Sender.Send` + mapping vers `Contracts/`. La preuve se
+lectures gardent leur `Sender.Send` — et servent le `Results/` de leur query
+tel quel (ADR 0012). La preuve se
 dédouble : `ModuleControllerTest` (unitaire, socle — survit à la suppression
 de Bank) épingle la plomberie, `CqsContractTest` (E2E, Bank) continue de
 prouver le bout en bout, Location suivi d'un GET.
