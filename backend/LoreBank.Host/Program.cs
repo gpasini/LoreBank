@@ -5,6 +5,7 @@ using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
 using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
+using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,14 @@ builder.Host.ConfigureContainer<ContainerBuilder>(container => {
 
         foreach (var module in modules) {
             container.RegisterModule(module.AutofacModule);
+
+            // Les IDomainEventHandler<> s'enregistrent ici et non dans chaque
+            // Module Autofac : la ligne recopiée par module était oubliable, et
+            // l'oubli silencieux — un event sans handler résolu ne signale rien.
+            container
+                .RegisterAssemblyTypes(module.DomainAssembly)
+                .AsClosedTypesOf(typeof(IDomainEventHandler<>))
+                .InstancePerLifetimeScope();
         }
     }
 );

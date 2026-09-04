@@ -1,5 +1,7 @@
 using LoreBank.Host.Modules;
+using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure.Modules;
+using LoreBank.SharedKernel.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -64,6 +66,44 @@ public sealed class ModuleCompositionTest
 
         moduleControllers.Should().NotBeEmpty();
         moduleControllers.Should().BeSubsetOf(feature.Controllers.Select(controller => controller.AsType()));
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldResolveEveryDomainEventHandler_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
+
+        // Pas de garde NotBeEmpty : un module sans handler est légitime. Le
+        // mécanisme de scan est unique et côté hôte — le module Bank, qui a un
+        // handler, suffit à prouver qu'il fonctionne pour tous.
+        var handlerInterfaces = module.DomainAssembly
+            .GetTypes()
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .SelectMany(type => type.GetInterfaces())
+            .Where(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>))
+            .Distinct()
+            .ToList();
+
+        foreach (var handlerInterface in handlerInterfaces) {
+            scope.ServiceProvider
+                .GetService(handlerInterface)
+                .Should()
+                .NotBeNull($"le handler {handlerInterface.GenericTypeArguments.Single().Name} doit être résolu par le scan de DomainAssembly côté hôte");
+        }
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldDeriveEveryDbContextFromModuleDbContext_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        var dbContextTypes = ModuleDbContexts.Of(module);
+
+        dbContextTypes.Should().NotBeEmpty("un module a un DbContext par doctrine");
+
+        foreach (var dbContextType in dbContextTypes) {
+            dbContextType
+                .Should()
+                .BeAssignableTo<ModuleDbContext>($"le dispatch des domain events vit dans ModuleDbContext — un {dbContextType.Name} qui n'en dérive pas ne dispatcherait jamais rien");
+        }
     }
 
     [TestCaseSource(nameof(Modules))]

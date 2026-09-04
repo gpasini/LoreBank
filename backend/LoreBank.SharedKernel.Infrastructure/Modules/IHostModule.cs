@@ -15,6 +15,11 @@ public interface IHostModule
 
     Assembly ApplicationAssembly { get; }
 
+    // L'assembly Domain du module : l'hôte y scanne les IDomainEventHandler<>,
+    // pour que l'enregistrement des handlers ne soit pas une ligne à recopier
+    // par module — la recopie était oubliable, et l'oubli silencieux.
+    Assembly DomainAssembly { get; }
+
     IModule AutofacModule { get; }
 
     void ConfigureDbContext(

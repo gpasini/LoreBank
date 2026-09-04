@@ -46,16 +46,14 @@ public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender wel
 
 ## Câblage dans le socle
 
-Le dispatch existe : le `SaveChangesAsync` du `DbContext` du module ramasse les
-events des entités trackées, écrit, puis les remet à `IDomainEventDispatcher` —
+Le dispatch existe et ne demande rien au module : le `SaveChangesAsync` de
+`ModuleDbContext` (la base de tout `DbContext` de module) ramasse les events
+des entités trackées, écrit, puis les remet à `IDomainEventDispatcher` —
 **dans la transaction de la commande** (un handler qui échoue l'annule ; voir
-CLAUDE.md « Conventions du domaine » pour les limites). Deux conditions pour
-qu'un handler soit appelé, toutes deux à échec silencieux si oubliées :
-
-1. Le `Module` Autofac de l'Infrastructure du module scanne son assembly Domain
-   (`AsClosedTypesOf(typeof(IDomainEventHandler<>))`, voir
-   `BankInfrastructureModule`).
-2. Le `DbContext` du module surcharge `SaveChangesAsync` comme `BankDbContext`.
+CLAUDE.md « Conventions du domaine » pour les limites). Les handlers sont
+enregistrés par l'hôte, qui scanne la `DomainAssembly` de chaque `IHostModule`,
+et `ModuleCompositionTest` vérifie qu'ils se résolvent — un handler posé dans
+`EventHandlers/` de l'assembly Domain déclarée est câblé d'office.
 
 En unitaire, un handler se teste en l'appelant directement avec un event et un
 faux port ; en intégration, via le vrai use case qui émet l'event (voir

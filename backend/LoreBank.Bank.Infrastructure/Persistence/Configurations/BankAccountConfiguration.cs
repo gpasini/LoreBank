@@ -49,7 +49,5 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
         builder
             .Property(account => account.IsClosed)
             .HasColumnName("is_closed");
-
-        builder.Ignore(account => account.DomainEvents);
     }
 }

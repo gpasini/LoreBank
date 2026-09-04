@@ -2,6 +2,7 @@ using System.Reflection;
 using Autofac.Core;
 using LoreBank.Bank.Api.Controllers;
 using LoreBank.Bank.Application.Commands;
+using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Infrastructure;
 using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Infrastructure.Modules;
@@ -14,6 +15,8 @@ public sealed class BankModule : IHostModule
     public Assembly ControllerAssembly => typeof(BankAccountsController).Assembly;
 
     public Assembly ApplicationAssembly => typeof(OpenBankAccountCommand).Assembly;
+
+    public Assembly DomainAssembly => typeof(BankAccount).Assembly;
 
     public IModule AutofacModule => new BankInfrastructureModule();
 

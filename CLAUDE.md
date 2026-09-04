@@ -24,12 +24,14 @@ Le module `Bank` sert d'exemple de référence.
   porte la composition (DI, filtres) et monte les modules à travers le seam
   `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
   adapter dans `LoreBank.Host/Modules/` (voir `BankModule`) exposant ses
-  assemblies de controllers et d'application, son `Module` Autofac, son
-  `DbContext` et sa migration. La liste `HostModules.All` est la seule source
+  assemblies de controllers, d'application et de domaine (`DomainAssembly`,
+  que l'hôte scanne à la recherche des handlers de domain events), son
+  `Module` Autofac, son `DbContext` et sa migration. La liste `HostModules.All` est la seule source
   de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
   (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
-  chaque requête MediatR résout son handler, que chaque controller est monté
-  et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
+  chaque requête MediatR résout son handler, que chaque controller est monté,
+  que chaque `DbContext` dérive de `ModuleDbContext`, que chaque handler de
+  domain event se résout et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
   l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
   alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`).
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
@@ -42,8 +44,8 @@ Le module `Bank` sert d'exemple de référence.
   `Validation/ValidationProblemFactory` (les 400 de binding) et
   `Handlers/UnhandledExceptionHandler` (tout le reste, en 500).
   `LoreBank.SharedKernel.Infrastructure` complète la paire côté plomberie : ce
-  que tous les modules partagent en implémentation — le `DomainEventDispatcher`
-  et le seam de montage `IHostModule`.
+  que tous les modules partagent en implémentation — le `DomainEventDispatcher`,
+  la base `ModuleDbContext` et le seam de montage `IHostModule`.
 
 ## Conventions du domaine
 
@@ -75,13 +77,15 @@ Le module `Bank` sert d'exemple de référence.
   portant l'id de l'agrégat et les données utiles.
 - Les handlers de domain events vivent dans le Domain (`EventHandlers/`) ; leurs
   dépendances sont des ports — interfaces dans `Services/`, implémentées par
-  l'Infrastructure. Ils sont dispatchés par le `SaveChangesAsync` du `DbContext`
-  du module, qui ramasse les events des entités trackées via `IHasDomainEvents`,
-  les vide, écrit, puis les remet à `IDomainEventDispatcher`. Le dispatch a donc
+  l'Infrastructure. Ils sont dispatchés par le `SaveChangesAsync` de `ModuleDbContext`
+  (la base de tout `DbContext` de module), qui ramasse les events des entités
+  trackées via `IHasDomainEvents`, les vide, écrit, puis les remet à
+  `IDomainEventDispatcher`. Le dispatch a donc
   lieu **dans la transaction de la commande** : un handler qui échoue l'annule
   entièrement. C'est délibéré — un effet de bord métier qui rate ne doit pas
   laisser derrière lui un fait métier enregistré. Les handlers s'enregistrent
-  par scan d'assembly dans le `Module` Autofac de l'Infrastructure du module.
+  côté hôte : `Program.cs` scanne la `DomainAssembly` de chaque `IHostModule` —
+  rien à câbler dans le module.
 - Faire tourner les handlers dans la transaction de la commande a un coût :
   les lignes qu'ils touchent restent verrouillées le temps de leur exécution,
   donc un handler doit rester court et de préférence in-process — la commande
@@ -199,14 +203,16 @@ Le module `Bank` sert d'exemple de référence.
   second connecteur, et la transaction escaladerait en distribué. Le lien colonne
   → propriété n'étant vérifié par aucun compilateur, chaque reader doit avoir un
   test qui relit tous ses champs (voir `GetBankAccountByIdTest`).
-- Un nouveau module doit : surcharger `SaveChangesAsync(bool,
-  CancellationToken)` sur son `DbContext` pour ramasser les events des entités
-  trackées et les dispatcher (voir `BankDbContext.cs`) — sans ça, les events du
-  module ne sont jamais dispatchés, et rien ne le signale ; faire ignorer la
-  collection d'events par chaque `IEntityTypeConfiguration`
-  (`builder.Ignore(...)`, voir `BankAccountConfiguration.cs`) ; faire scanner
-  son `Module` Autofac à la recherche des implémentations de
-  `IDomainEventHandler<>`, comme décrit plus haut (« Conventions du domaine »).
+- Le `DbContext` d'un nouveau module dérive de `ModuleDbContext`
+  (`LoreBank.SharedKernel.Infrastructure`) et implémente `ConfigureModule`
+  (schéma, configurations — voir `BankDbContext.cs`) : le dispatch des events
+  vit dans la base, qui interdit la famille synchrone `SaveChanges` (elle
+  perdrait les events en silence). Rien d'autre à câbler — les handlers sont
+  scannés par l'hôte via `DomainAssembly`, et `ModuleCompositionTest` rougit
+  si un `DbContext` monté ne dérive pas de la base ou si un handler ne se
+  résout pas. Inutile d'ignorer la collection d'events dans les
+  `IEntityTypeConfiguration` : EF ne mappe pas une propriété sans setter d'un
+  type non mappable, et `ModuleDbContextTest` épingle ce contrat.
 
 ## Tests
 
@@ -220,8 +226,9 @@ Le module `Bank` sert d'exemple de référence.
   builders de test (`Builders/`) pour les agrégats.
 - Exception à la règle Domain/Infrastructure : `SharedKernel.Test.Unit` teste
   aussi `SharedKernel.Infrastructure`, parce que le `DomainEventDispatcher` n'a
-  aucune E/S — un `IServiceProvider` fake suffit à l'isoler, rien ne justifie
-  de le remonter jusqu'à `Test.Infrastructure`.
+  aucune E/S et que `ModuleDbContext` se teste sur un Sqlite en mémoire — un
+  fake ou une connexion locale suffisent à les isoler, rien ne justifie de les
+  remonter jusqu'à `Test.Infrastructure`.
 - Le harnais d'intégration vit dans `LoreBank.SharedKernel.Test.Infrastructure`
   (seul projet SharedKernel à référencer l'hôte, et lui-même un vrai projet de
   test) : `IntegrationTestWebAppFactory` démarre l'hôte réel contre un

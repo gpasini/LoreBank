@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\LoreBank.Bank.Application\LoreBank.Bank.Application.csproj"/>
         <ProjectReference Include="..\LoreBank.Bank.Domain\LoreBank.Bank.Domain.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Infrastructure\LoreBank.SharedKernel.Infrastructure.csproj"/>
     </ItemGroup>
 
 </Project>
