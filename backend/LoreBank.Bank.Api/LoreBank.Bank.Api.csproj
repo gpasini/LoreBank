@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\LoreBank.Bank.Application\LoreBank.Bank.Application.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Api\LoreBank.SharedKernel.Api.csproj"/>
     </ItemGroup>
 
 </Project>

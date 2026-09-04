@@ -5,6 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Application\LoreBank.SharedKernel.Application.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>
 

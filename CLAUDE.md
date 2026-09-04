@@ -61,7 +61,8 @@ Le module `Bank` sert d'exemple de référence.
   transition qui prend un `Money` nu accepterait un montant négatif qui
   inverse son sens). Le même
   dossier porte `LoreBank.SharedKernel.Api`, qui accueille ce que tous les
-  modules partagent côté HTTP : `Problems/ApiProblem` (la forme unique d'une
+  modules partagent côté HTTP : `Controllers/ModuleController` (la base des
+  controllers de module — ADR 0011), `Problems/ApiProblem` (la forme unique d'une
   réponse d'erreur), `Filters/DomainExceptionFilter` (les erreurs métier),
   `Validation/ValidationProblemFactory` (les 400 de binding) et
   `Handlers/UnhandledExceptionHandler` (tout le reste, en 500).
@@ -195,11 +196,15 @@ Le module `Bank` sert d'exemple de référence.
   `record` de la requête et son handler, nommé d'après la requête complète
   suffixée de `Handler` (`OpenBankAccountCommand` →
   `OpenBankAccountCommandHandler`).
-- Les controllers ne parlent qu'à `ISender`, et tiennent le CQS jusqu'au bord
+- Les controllers dérivent de `ModuleController` (`LoreBank.SharedKernel.Api`,
+  ADR 0011), ne parlent qu'à `ISender`, et tiennent le CQS jusqu'au bord
   HTTP : **une action qui mute ne renvoie aucune représentation**, une action qui
-  lit en renvoie une. Une commande de création rend `201` + `Location` et un
-  corps vide (le `Guid` d'`ICreationCommand` ne sert qu'à bâtir l'en-tête) ;
-  toute autre commande rend `204`. Le client qui veut l'état d'après fait un
+  lit en renvoie une. Le geste est typé par la base : `SendAsync(ICommand)` →
+  `204`, `CreateAsync(ICreationCommand, actionName)` → `201` + `Location` et un
+  corps vide (le `Guid` d'`ICreationCommand` ne sert qu'à bâtir l'en-tête) —
+  une query ne peut emprunter aucun des deux chemins, et `[ApiController]` est
+  hérité de la base. Les lectures gardent leur `Sender.Send` + mapping vers
+  `Contracts/`. Le client qui veut l'état d'après fait un
   `GET`. C'est un aller-retour de plus, assumé : une commande qui renvoie aussi
   la ressource est également une lecture, et la représentation qu'elle sert peut
   diverger de celle du `GET` sans que rien ne le signale.
@@ -311,8 +316,10 @@ Le module `Bank` sert d'exemple de référence.
   d'erreur — statuts, type de média, `code`, absence de `detail` — via le
   `ProbeController`, un controller-sonde monté par `SharedKernelWebAppFactory`
   seulement ; `CqsContractTest`, côté Bank, le fait qu'une commande ne serve
-  aucune représentation — discipline écrite dans chaque controller, pas
-  plomberie du socle, donc sa preuve reste dans le module de référence — en
+  aucune représentation de bout en bout — la plomberie 204/201+Location est
+  celle de `ModuleController`, prouvée en unitaire côté socle
+  (`ModuleControllerTest`), le test E2E prouve que le module de référence
+  l'emprunte vraiment, Location suivi d'un GET — en
   écrivant pour de vrai, avec des IBAN qui lui sont propres) et pour les tests
   qui observent un rollback réel, comme `TransactionRollbackTest` (un scope
   interne non complété condamne l'ambiant).

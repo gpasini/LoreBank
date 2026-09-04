@@ -35,6 +35,12 @@ et le passage par le SaveChangesAsync qui dispatche les events ; un repository
 concret ne fournit que sa fabrique d'exception.
 _Avoid_ : repository générique, repository de base
 
+**ModuleController** :
+La base des controllers d'un module métier. Type le CQS du bord HTTP : une
+commande → 204, une création → 201 + Location sans corps — une lecture ne
+peut emprunter aucun des deux chemins.
+_Avoid_ : controller de base, BaseController
+
 **HostModule** :
 La base des adapters `IHostModule`. Dérive l'identité du module — ses trois
 assemblies, son nom et sa persistance par défaut — du DbContext ancré en
