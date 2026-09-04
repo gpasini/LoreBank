@@ -3,6 +3,7 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Application.Results;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Application.Behaviors;
 using MediatR;
 
@@ -14,7 +15,7 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 // Le test sur la query vérifie qu'elle ne laisse aucune transaction ambiante.
 [TestFixture]
 [TestOf(typeof(TransactionBehavior<,>))]
-public sealed class PipelineWiringTest : BankIntegrationTest
+public sealed class PipelineWiringTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     [Test]
     public void Handle_ShouldWrapTheRequest_WhenRequestIsACommand()

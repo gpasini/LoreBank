@@ -2,10 +2,11 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Domain.Exceptions;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class CloseBankAccountTest : BankIntegrationTest
+public sealed class CloseBankAccountTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     [Test]
     public async Task CloseBankAccount_ShouldCloseAccount()

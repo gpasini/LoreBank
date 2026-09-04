@@ -287,7 +287,11 @@ Le module `Bank` sert d'exemple de référence.
   rollbacké par test (niveau `ReadCommitted`, celui du `TransactionBehavior` :
   un scope `Required` qui rejoint un ambiant d'un niveau différent lève une
   `ArgumentException`), scope DI, `Sender` — pour les tests qui parlent à
-  `ISender` ; et `BaseHostTest<TFactory>` — hôte partagé sans transaction —
+  `ISender` (sa variante `BaseIntegrationTest<TFactory, TDbSetup>` porte en
+  plus le `DbSetup` du module, instancié après l'ouverture du scope — l'ordre
+  des `[SetUp]` est une garantie du socle, pas un commentaire à recopier ;
+  convention : un `DbSetup` a un constructeur `(IServiceProvider)`, celui de
+  `DbSetupBase`) ; et `BaseHostTest<TFactory>` — hôte partagé sans transaction —
   pour les dossiers `Apis/` (le `TransactionScope` ambiant ne traverse pas la
   frontière HTTP : `ErrorContractTest`, côté SharedKernel, épingle le contrat
   d'erreur — statuts, type de média, `code`, absence de `detail` — via le
@@ -298,23 +302,26 @@ Le module `Bank` sert d'exemple de référence.
   écrivant pour de vrai, avec des IBAN qui lui sont propres) et pour les tests
   qui observent un rollback réel, comme `TransactionRollbackTest` (un scope
   interne non complété condamne l'ambiant).
-- Un module fournit trois petites classes (voir Bank) : une factory scellée
+- Un module fournit deux petites classes (voir Bank) : une factory scellée
   (`BankWebAppFactory`) qui enregistre ses fakes dans `ConfigureModuleContainer`
   — la substitution d'un service inscrit par un `Module` Autofac ne peut pas se
   faire dans `ConfigureTestServices`, la dernière inscription Autofac gagne et
   le `Module` de l'Infrastructure s'exécute après ; le hook est un second
   `ConfigureContainer` ajouté après celui de l'hôte — et les remet à zéro dans
   `ResetFakes`, appelé par `BaseHostTest` au SetUp et au TearDown (point
-  unique, pas de reset à recopier par fixture) ; une base
-  (`BankIntegrationTest`) qui instancie son `DbSetup` ; et un
+  unique, pas de reset à recopier par fixture) ; et un
   `DbSetup : DbSetupBase` (classe partielle par agrégat, `CreateXxxAsync()`,
-  `GetLastXxxId()`), qui crée les données via les vrais use cases. Les arranges
+  `GetLastXxxId()`), qui crée les données via les vrais use cases. Ses
+  fixtures dérivent `BaseIntegrationTest<BankWebAppFactory, DbSetup>`
+  directement — pas de classe de base par module. Les arranges
   sont async : bloquer (`.Result`) sous le `TransactionScope` ambiant
   emballerait tout échec en `AggregateException`.
 - Les assemblies de test d'intégration déclarent
   `[assembly: Parallelizable(ParallelScope.None)]` : les fakes sont des
   singletons mutables non synchronisés, l'exécution en série est une hypothèse
-  déclarée, pas un hasard de configuration.
+  déclarée, pas un hasard de configuration. `BaseHostTest` la vérifie au SetUp
+  — l'attribut est par assembly et ne s'hérite pas, son oubli casserait au
+  premier test avec un message explicite au lieu de flaker en CI.
 - Lancer : `mise exec -- dotnet test LoreBank.slnx`.
 
 ## Style

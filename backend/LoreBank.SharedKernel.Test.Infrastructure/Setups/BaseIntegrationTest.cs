@@ -47,3 +47,22 @@ public abstract class BaseIntegrationTest<TFactory> : BaseHostTest<TFactory>
 
     protected T GetService<T>() where T : notnull => _scope!.ServiceProvider.GetRequiredService<T>();
 }
+
+// Variante pour les fixtures d'un module : porte aussi son DbSetup, instancié
+// après l'ouverture du scope — l'ordre des [SetUp] (NUnit exécute ceux des
+// bases d'abord) devient une garantie du socle, pas un commentaire à recopier
+// par module. Convention : un DbSetup a un constructeur (IServiceProvider),
+// celui de DbSetupBase — une dérivation sans lui casse bruyamment au premier
+// test.
+public abstract class BaseIntegrationTest<TFactory, TDbSetup> : BaseIntegrationTest<TFactory>
+    where TFactory : IntegrationTestWebAppFactory, new()
+    where TDbSetup : DbSetupBase
+{
+    protected TDbSetup DbSetup = null!;
+
+    [SetUp]
+    public void DbSetupSetUp() => DbSetup = (TDbSetup)Activator.CreateInstance(
+        type: typeof(TDbSetup),
+        args: ScopeServices
+    )!;
+}

@@ -2,11 +2,12 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Test.Infrastructure.Fakes;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Domain.Exceptions;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class OpenBankAccountTest : BankIntegrationTest
+public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     [Test]
     public async Task OpenBankAccount_ShouldPersistAccount()

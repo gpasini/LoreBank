@@ -2,10 +2,11 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Domain.Exceptions;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class WithdrawMoneyTest : BankIntegrationTest
+public sealed class WithdrawMoneyTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     [Test]
     public async Task WithdrawMoney_ShouldDecreaseBalance()

@@ -2,10 +2,11 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Exceptions;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class GetBankAccountByIdTest : BankIntegrationTest
+public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     // L'absence est une erreur métier, pas un `null` : c'est ce qui donne un
     // code au 404 d'une lecture comme à celui d'une commande.

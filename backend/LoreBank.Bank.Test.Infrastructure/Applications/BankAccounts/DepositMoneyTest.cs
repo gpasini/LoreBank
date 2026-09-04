@@ -2,10 +2,11 @@ using LoreBank.Bank.Application.Commands;
 using LoreBank.Bank.Application.Exceptions;
 using LoreBank.Bank.Application.Queries;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-public sealed class DepositMoneyTest : BankIntegrationTest
+public sealed class DepositMoneyTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     [Test]
     public async Task DepositMoney_ShouldIncreaseBalance()
