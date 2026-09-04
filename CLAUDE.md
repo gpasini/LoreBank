@@ -30,15 +30,18 @@ Le module `Bank` sert d'exemple de référence.
   porte la composition (DI, filtres) et monte les modules à travers le seam
   `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
   adapter dans `LoreBank.Host/Modules/` dérivant de `HostModule<TDbContext>`
-  (voir `BankModule`), qui ne déclare que son `Module` Autofac et sa
-  configuration de persistance (`ConfigureDbContext`). Le reste de l'identité
-  est dérivé du `TDbContext` (au singulier — un DbContext par module ;
-  `ModuleMigrator` migre via lui, et la contrainte générique impose
+  (voir `BankModule`), qui ne déclare que son `Module` Autofac. Le reste de
+  l'identité est dérivé du `TDbContext` (au singulier — un DbContext par
+  module ; `ModuleMigrator` migre via lui, et la contrainte générique impose
   `ModuleDbContext`) : la base lit `<Racine>.<Module>` sur le nom de son
   assembly — trois segments exactement, échec bruyant au premier contact avec
-  `HostModules.All` sinon — et charge les assemblies de controllers,
+  `HostModules.All` sinon — charge les assemblies de controllers,
   d'application et de domaine (`DomainAssembly`, que l'hôte scanne à la
-  recherche des handlers de domain events), plus `ModuleName` (ADR 0007). La
+  recherche des handlers de domain events), expose `ModuleName` (ADR 0007) et
+  monte la persistance par défaut : clé `<Module>Db` sous `ConnectionStrings`,
+  validée par `AddModuleDbContext` — clé absente ou `Enlist=false` cassent à
+  la composition — et surchargeable via `ConfigureDbContext`, qui reste sur le
+  seam (ADR 0008). La
   liste `HostModules.All` est la seule source de vérité : `Program.cs` la
   boucle, et `ModuleCompositionTest`
   (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
@@ -166,10 +169,12 @@ Le module `Bank` sert d'exemple de référence.
 - `ReadCommitted` ne protège pas un lire-modifier-écrire : deux dépôts
   concurrents peuvent lire le même solde et l'une des deux écritures se perd ;
   le remède est un jeton de concurrence optimiste sur l'agrégat, pas un niveau
-  d'isolation plus strict. Attention aussi à `Enlist=false` dans la chaîne de
-  connexion : Npgsql enrôle par défaut (`Enlist` vaut `true`), et le passer à
-  `false` ne produit ni erreur ni avertissement ni test qui échoue — les
-  commandes cessent simplement d'être transactionnelles.
+  d'isolation plus strict. `Enlist=false` dans la chaîne de connexion est
+  refusé dès la composition par `AddModuleDbContext` (ADR 0008) : sans ce
+  garde-fou, les commandes cesseraient simplement d'être transactionnelles,
+  sans erreur ni avertissement ni test qui échoue — Npgsql enrôle par défaut
+  (`Enlist` vaut `true`). Un module qui surcharge `ConfigureDbContext` sans
+  passer par l'extension reprend ce risque à sa charge.
 - Une query ne passe **pas** par le repository de l'agrégat : elle dépend d'un
   port de lecture (`Readers/`, `IBankAccountReader`), déclaré dans l'Application
   parce qu'il rend un `Results/`, et implémenté par l'Infrastructure. Un
@@ -199,7 +204,9 @@ Le module `Bank` sert d'exemple de référence.
 
 ## Couche Infrastructure
 
-- EF Core + Npgsql. Un `DbContext` par module, un schéma PostgreSQL par module
+- EF Core + Npgsql — le package du provider est référencé par
+  `LoreBank.SharedKernel.Infrastructure` (ADR 0008), les modules l'héritent en
+  transitif. Un `DbContext` par module, un schéma PostgreSQL par module
   (`bank`), migrations dans `Persistence/Migrations` (`dotnet tool run
   dotnet-ef`, manifest dans `backend/.config`). Le démarrage de l'API ne migre
   **jamais** — ni en dev ni ailleurs (ADR 0006) : les migrations s'appliquent

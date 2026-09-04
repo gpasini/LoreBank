@@ -29,6 +29,6 @@ _Avoid_ : reader de base, helper SQL
 
 **HostModule** :
 La base des adapters `IHostModule`. Dérive l'identité du module — ses trois
-assemblies et son nom — du DbContext ancré en paramètre générique ; un adapter
-ne déclare plus que son `Module` Autofac et sa persistance.
+assemblies, son nom et sa persistance par défaut — du DbContext ancré en
+paramètre générique ; un adapter ne déclare plus que son `Module` Autofac.
 _Avoid_ : ModuleIdentity, adapter d'hôte

@@ -1,5 +1,9 @@
 # L'identité du module dérivée du DbContext
 
+> Statut : prolongé par l'ADR 0008 — la clé de connexion rejoint les
+> assemblies dans l'identité dérivée, `ConfigureDbContext` gagne un défaut
+> virtuel.
+
 Prolonge l'ADR 0005 : `DbContextType` devient l'ancre de toute l'identité du
 module. Le seam `IHostModule` exposait trois `Assembly` remplies par trois
 `typeof(X).Assembly` indépendants ; la seule dont l'erreur était silencieuse —

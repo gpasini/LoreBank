@@ -43,8 +43,16 @@ public abstract class HostModule<TDbContext> : IHostModule
 
     public abstract IModule AutofacModule { get; }
 
-    public abstract void ConfigureDbContext(
+    // La persistance par défaut est elle aussi dérivée de l'identité : la clé
+    // « <Module>Db » sous ConnectionStrings, validée et montée par
+    // AddModuleDbContext (ADR 0008). Une autre clé = surcharge d'une ligne qui
+    // rappelle l'extension ; un provider exotique = surcharge complète,
+    // invariants à la charge du module.
+    public virtual void ConfigureDbContext(
         IServiceCollection services,
         IConfiguration configuration
+    ) => services.AddModuleDbContext<TDbContext>(
+        configuration: configuration,
+        connectionStringName: $"{ModuleName}Db"
     );
 }
