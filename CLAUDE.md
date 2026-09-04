@@ -11,8 +11,14 @@ Le module `Bank` sert d'exemple de référence.
   `backend/mise.toml` installe l'outil mais ne suffit pas à le sélectionner).
 - Build : `cd backend && mise exec -- dotnet build LoreBank.slnx`.
 - Les propriétés MSBuild communes (`TargetFramework`, `Nullable`,
-  `ImplicitUsings`) vivent dans `backend/Directory.Build.props` — ne pas les
-  dupliquer dans les csproj.
+  `ImplicitUsings`, `TreatWarningsAsErrors` — la doctrine « build sans
+  warning » est tenue par le compilateur) vivent dans
+  `backend/Directory.Build.props` — ne pas les dupliquer dans les csproj.
+- Les versions de packages sont centralisées dans
+  `backend/Directory.Packages.props` (central package management) : un csproj
+  référence sans attribut `Version`, et les pins — licence (FluentAssertions
+  7.x, MediatR 12.x), avis de sécurité — y sont des faits uniques, commentés à
+  côté de la version.
 
 ## Architecture
 

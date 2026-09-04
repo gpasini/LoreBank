@@ -1,0 +1,37 @@
+<Project>
+
+    <!-- Central package management : l'unique endroit où une version de package
+         existe. Les csproj référencent sans version — un pin (licence, avis de
+         sécurité) est un fait unique ici, pas un accord tacite entre copies. -->
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="Autofac" Version="8.4.0"/>
+        <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="11.0.2"/>
+        <PackageVersion Include="coverlet.collector" Version="6.0.4"/>
+        <!-- Pinné en 7.x : dernière version sous licence Apache 2.0. -->
+        <PackageVersion Include="FluentAssertions" Version="7.2.0"/>
+        <!-- Pinné en 12.x : dernière version sous licence Apache 2.0. -->
+        <PackageVersion Include="MediatR" Version="12.5.0"/>
+        <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1"/>
+        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
+        <PackageVersion Include="NUnit" Version="4.4.0"/>
+        <PackageVersion Include="NUnit3TestAdapter" Version="6.1.0"/>
+        <!-- Relève la dépendance transitive d'EF Sqlite : la 2.1.11 qu'il
+             référence est sous avis de sécurité (NU1903, GHSA-2m69-gcr7-jv3q). -->
+        <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13"/>
+        <!-- Pin d'une dépendance transitive de Testcontainers. -->
+        <PackageVersion Include="SSH.NET" Version="2026.0.0"/>
+        <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0"/>
+    </ItemGroup>
+
+</Project>
