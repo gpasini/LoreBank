@@ -13,7 +13,7 @@ public sealed class ValidationProblemFactoryTest
     // Le message que produit System.Text.Json quand le corps ne se lie pas : il
     // cite le type .NET visé, et c'est exactement ce qui ne doit pas sortir.
     private const string BindingMessage =
-        "The JSON value could not be converted to LoreBank.Bank.Application.Commands.DepositMoneyCommand.";
+        "The JSON value could not be converted to LoreBank.Bank.Application.Commands.DepositMoney.DepositMoneyCommand.";
 
     [Test]
     public void Create_ShouldProduce400_WhenBindingFailed()

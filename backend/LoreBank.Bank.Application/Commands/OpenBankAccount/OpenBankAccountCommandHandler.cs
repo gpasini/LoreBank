@@ -1,15 +1,9 @@
 using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Domain.Repositories;
-using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Domain.ValueObjects;
 using MediatR;
 
-namespace LoreBank.Bank.Application.Commands;
-
-public sealed record OpenBankAccountCommand(
-    string Iban,
-    string Currency
-) : ICreationCommand;
+namespace LoreBank.Bank.Application.Commands.OpenBankAccount;
 
 public sealed class OpenBankAccountCommandHandler(IBankAccountRepository repository)
     : IRequestHandler<OpenBankAccountCommand, Guid>

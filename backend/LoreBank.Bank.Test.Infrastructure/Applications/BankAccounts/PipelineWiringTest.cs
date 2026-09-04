@@ -1,7 +1,6 @@
 using System.Transactions;
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Application.Queries;
-using LoreBank.Bank.Application.Results;
+using LoreBank.Bank.Application.Commands.DepositMoney;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Application.Behaviors;

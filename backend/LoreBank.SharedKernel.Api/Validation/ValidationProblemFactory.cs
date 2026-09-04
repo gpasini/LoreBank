@@ -7,7 +7,8 @@ namespace LoreBank.SharedKernel.Api.Validation;
 
 // Remplace le ValidationProblemDetails que produit [ApiController] par défaut :
 // ses messages sont du texte anglais qui cite des noms de types .NET
-// (« could not be converted to LoreBank.Bank.Application.Commands.DepositMoneyCommand »),
+// (« could not be converted to
+// LoreBank.Bank.Application.Commands.DepositMoney.DepositMoneyCommand »),
 // donc inaffichable et fuyant. On n'en garde que ce qui est un contrat : les
 // champs fautifs, sous un code que le front traduit comme les autres.
 public static class ValidationProblemFactory

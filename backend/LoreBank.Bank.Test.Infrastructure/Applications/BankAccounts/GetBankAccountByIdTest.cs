@@ -1,6 +1,6 @@
-using LoreBank.Bank.Application.Commands;
+using LoreBank.Bank.Application.Commands.CloseBankAccount;
 using LoreBank.Bank.Application.Exceptions;
-using LoreBank.Bank.Application.Queries;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 

@@ -1,4 +1,4 @@
-namespace LoreBank.Bank.Application.Results;
+namespace LoreBank.Bank.Application.Queries.GetBankAccountById;
 
 // Aucune dépendance au modèle d'écriture : ce DTO est peuplé colonne par colonne
 // par le reader de l'Infrastructure, jamais projeté depuis l'agrégat.

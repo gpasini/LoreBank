@@ -1,6 +1,8 @@
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Application.Queries;
-using LoreBank.Bank.Application.Results;
+using LoreBank.Bank.Application.Commands.CloseBankAccount;
+using LoreBank.Bank.Application.Commands.DepositMoney;
+using LoreBank.Bank.Application.Commands.OpenBankAccount;
+using LoreBank.Bank.Application.Commands.WithdrawMoney;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.SharedKernel.Api.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

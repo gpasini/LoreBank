@@ -153,7 +153,7 @@ Le module `Bank` sert d'exemple de référence.
 - CQS avec MediatR (pinné en 12.x, dernière version sous licence Apache 2.0),
   derrière les marqueurs de `LoreBank.SharedKernel.Application` : `ICommand`
   (mute, ne retourne rien), `ICreationCommand` (seul retour admis : le `Guid`
-  créé), `IQuery<TResponse>` (lit, retourne un `Results/` immuable — jamais
+  créé), `IQuery<TResponse>` (lit, retourne son Result immuable — jamais
   l'agrégat). Une query rend un `TResponse` **non nullable** : l'absence de la
   ressource est une erreur métier, pas une valeur de retour, et son handler lève
   la `NotFoundException` du module. C'est ce qui garantit qu'un 404 porte
@@ -184,18 +184,23 @@ Le module `Bank` sert d'exemple de référence.
   passer par l'extension reprend ce risque à sa charge.
 - Une query ne passe **pas** par le repository de l'agrégat : elle dépend d'un
   port de lecture (`Readers/`, `IBankAccountReader`), déclaré dans l'Application
-  parce qu'il rend un `Results/`, et implémenté par l'Infrastructure. Un
+  parce qu'il rend un Result, et implémenté par l'Infrastructure. Un
   repository charge un agrégat pour le muter — value objects reconstruits, entité
   suivie par le change tracker ; une lecture n'a besoin que des colonnes qu'elle
   affiche. Le port rend `null` quand la ligne n'existe pas : pour un lecteur
   l'absence est un résultat normal, et c'est le handler de query qui la
   transforme en `NotFoundException`. Conséquence : `LoreBank.Bank.Infrastructure`
-  référence `LoreBank.Bank.Application`, et un DTO de `Results/` ne dépend plus
+  référence `LoreBank.Bank.Application`, et un Result ne dépend plus
   du tout du modèle d'écriture.
-- Un fichier par use case dans `Commands/` ou `Queries/`, colocalisant le
-  `record` de la requête et son handler, nommé d'après la requête complète
-  suffixée de `Handler` (`OpenBankAccountCommand` →
-  `OpenBankAccountCommandHandler`).
+- Un dossier par use case dans `Commands/` ou `Queries/`
+  (`Commands/OpenBankAccount/`), le `record` de la requête et son handler dans
+  des fichiers séparés, le handler nommé d'après la requête complète suffixée
+  de `Handler` (`OpenBankAccountCommand.cs` →
+  `OpenBankAccountCommandHandler.cs`), namespaces alignés sur les dossiers.
+  Le dossier d'une query colocalise aussi son Result
+  (`Queries/GetBankAccountById/BankAccountResult.cs`) : depuis l'ADR 0012 un
+  Result appartient à exactement une query. Ce qui est partagé entre use cases
+  reste dans un dossier transverse (`Readers/`, `Exceptions/`).
 - Les controllers dérivent de `ModuleController` (`LoreBank.SharedKernel.Api`,
   ADR 0011), ne parlent qu'à `ISender`, et tiennent le CQS jusqu'au bord
   HTTP : **une action qui mute ne renvoie aucune représentation**, une action qui
@@ -207,7 +212,7 @@ Le module `Bank` sert d'exemple de référence.
   (ADR 0012) — pas de dossier `Contracts/` : le body se lie directement sur
   la commande (sur une route mixte, le controller réécrit `command with
   { AccountId = id }` — la route est autoritaire, un champ posté en double
-  est écrasé), et une lecture sert le `Results/` de sa query tel quel.
+  est écrasé), et une lecture sert le Result de sa query tel quel.
   Renommer une propriété de commande ou de Result est donc un breaking change
   HTTP : le compilateur n'en dit rien, c'est `CqsContractTest` qui épingle
   l'ensemble exact des clés JSON du `GET`. Un besoin de forme wire divergente

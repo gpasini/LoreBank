@@ -1,4 +1,4 @@
-using LoreBank.Bank.Application.Commands;
+using LoreBank.Bank.Application.Commands.OpenBankAccount;
 using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.Bank.Test.Infrastructure.Fakes;

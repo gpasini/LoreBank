@@ -1,6 +1,6 @@
 using System.Data.Common;
 using LoreBank.Bank.Application.Readers;
-using LoreBank.Bank.Application.Results;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Infrastructure.Readers;
 

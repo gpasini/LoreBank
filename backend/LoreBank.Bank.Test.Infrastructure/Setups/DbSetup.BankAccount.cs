@@ -1,4 +1,5 @@
-using LoreBank.Bank.Application.Commands;
+using LoreBank.Bank.Application.Commands.DepositMoney;
+using LoreBank.Bank.Application.Commands.OpenBankAccount;
 using LoreBank.Bank.Domain.Aggregates;
 
 namespace LoreBank.Bank.Test.Infrastructure.Setups;

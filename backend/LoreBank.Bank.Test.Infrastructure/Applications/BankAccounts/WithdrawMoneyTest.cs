@@ -1,5 +1,5 @@
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Application.Queries;
+using LoreBank.Bank.Application.Commands.WithdrawMoney;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Domain.Exceptions;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Domain.Exceptions;

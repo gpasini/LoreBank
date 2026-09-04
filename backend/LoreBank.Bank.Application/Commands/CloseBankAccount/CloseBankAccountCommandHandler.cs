@@ -1,11 +1,8 @@
 using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Domain.Repositories;
-using LoreBank.SharedKernel.Application;
 using MediatR;
 
-namespace LoreBank.Bank.Application.Commands;
-
-public sealed record CloseBankAccountCommand(Guid AccountId) : ICommand;
+namespace LoreBank.Bank.Application.Commands.CloseBankAccount;
 
 public sealed class CloseBankAccountCommandHandler(IBankAccountRepository repository)
     : IRequestHandler<CloseBankAccountCommand>

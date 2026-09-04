@@ -1,13 +1,9 @@
 using LoreBank.Bank.Application.Exceptions;
 using LoreBank.Bank.Application.Readers;
-using LoreBank.Bank.Application.Results;
 using LoreBank.Bank.Domain.Aggregates;
-using LoreBank.SharedKernel.Application;
 using MediatR;
 
-namespace LoreBank.Bank.Application.Queries;
-
-public sealed record GetBankAccountByIdQuery(Guid AccountId) : IQuery<BankAccountResult>;
+namespace LoreBank.Bank.Application.Queries.GetBankAccountById;
 
 public sealed class GetBankAccountByIdQueryHandler(IBankAccountReader reader)
     : IRequestHandler<GetBankAccountByIdQuery, BankAccountResult>

@@ -1,4 +1,4 @@
-using LoreBank.Bank.Application.Results;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 
 namespace LoreBank.Bank.Application.Readers;
 

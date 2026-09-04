@@ -1,5 +1,5 @@
-using LoreBank.Bank.Application.Commands;
-using LoreBank.Bank.Application.Queries;
+using LoreBank.Bank.Application.Commands.OpenBankAccount;
+using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Test.Infrastructure.Fakes;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
