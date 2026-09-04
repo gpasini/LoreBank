@@ -33,7 +33,7 @@ Le module `Bank` sert d'exemple de référence.
   assemblies de controllers, d'application et de domaine (`DomainAssembly`,
   que l'hôte scanne à la recherche des handlers de domain events), son
   `Module` Autofac, le type de son `DbContext` (`DbContextType`, au singulier —
-  un DbContext par module ; l'hôte migre via lui en dev) et sa configuration
+  un DbContext par module ; `ModuleMigrator` migre via lui) et sa configuration
   de persistance (`ConfigureDbContext`). La liste `HostModules.All` est la seule source
   de vérité : `Program.cs` la boucle, et `ModuleCompositionTest`
   (`LoreBank.SharedKernel.Test.Infrastructure`) itère la même pour vérifier que
@@ -193,7 +193,13 @@ Le module `Bank` sert d'exemple de référence.
 
 - EF Core + Npgsql. Un `DbContext` par module, un schéma PostgreSQL par module
   (`bank`), migrations dans `Persistence/Migrations` (`dotnet tool run
-  dotnet-ef`, manifest dans `backend/.config`), appliquées au démarrage en dev.
+  dotnet-ef`, manifest dans `backend/.config`). Le démarrage de l'API ne migre
+  **jamais** — ni en dev ni ailleurs (ADR 0006) : les migrations s'appliquent
+  par `ModuleMigrator` (`LoreBank.SharedKernel.Infrastructure`, jumeau du seam
+  `IHostModule`), invoqué par le verbe `migrate` de l'hôte — `dotnet
+  LoreBank.Host migrate`, enveloppé par `mise run migrate` — qui compose les
+  modules comme l'API puis sort sans servir de HTTP, et par le harnais
+  d'intégration pour son Testcontainer.
 - Pas de classes d'entités de persistance : les agrégats du Domain sont mappés
   directement via `IEntityTypeConfiguration` — `HasConversion` pour les VO
   mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
@@ -244,15 +250,16 @@ Le module `Bank` sert d'exemple de référence.
 - Le harnais d'intégration vit dans `LoreBank.SharedKernel.Test.Infrastructure`
   (seul projet SharedKernel à référencer l'hôte, et lui-même un vrai projet de
   test) : `IntegrationTestWebAppFactory` démarre l'hôte réel contre un
-  Testcontainers PostgreSQL, épingle l'environnement à Development — les
-  migrations du démarrage en dépendent, et l'`ASPNETCORE_ENVIRONMENT` du shell
-  ne doit pas pouvoir en décider (`TestHostEnvironmentTest`) — et redirige
+  Testcontainers PostgreSQL, épingle l'environnement à Development — le
+  chargement de la configuration en dépend, et l'`ASPNETCORE_ENVIRONMENT` du
+  shell ne doit pas pouvoir en décider (`TestHostEnvironmentTest`) — et redirige
   **toutes** les `ConnectionStrings:*` vers le conteneur — ne rediriger que le DbContext du module courant
   laisserait ceux des autres modules pointer sur la base réelle du développeur,
-  que l'hôte de test (en Development) migrerait au démarrage.
+  que le harnais migrerait via `ModuleMigrator`.
   `ConnectionRedirectTest` épingle cette garantie, et `ModuleCompositionTest`
   itère `HostModules.All` (voir « Architecture »). `TestHost<TFactory>` porte
-  l'hôte et le conteneur, partagés par toutes les fixtures d'un assembly.
+  l'hôte et le conteneur, partagés par toutes les fixtures d'un assembly, et
+  migre le conteneur lui-même — l'API ne le fait plus à son démarrage.
 - Deux bases dans ce socle : `BaseIntegrationTest<TFactory>` — `TransactionScope`
   rollbacké par test (niveau `ReadCommitted`, celui du `TransactionBehavior` :
   un scope `Required` qui rejoint un ambiant d'un niveau différent lève une

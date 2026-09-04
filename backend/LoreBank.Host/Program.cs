@@ -7,12 +7,17 @@ using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
+using LoreBank.SharedKernel.Infrastructure.Modules;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 var modules = HostModules.All;
 
-var builder = WebApplication.CreateBuilder(args);
+// `dotnet LoreBank.Host migrate` : même composition que l'API, mais le process
+// migre puis sort sans servir de HTTP. Le verbe est retiré des args pour ne
+// pas atteindre le binder de configuration.
+var migrateOnly = args.Contains("migrate");
+
+var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "migrate").ToArray());
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(container => {
@@ -68,23 +73,22 @@ foreach (var module in modules) {
 
 var app = builder.Build();
 
+// Le démarrage de l'API ne migre jamais — ni en dev ni ailleurs (ADR 0006) :
+// le dev lance `mise run migrate`, et le harnais d'intégration appelle
+// ModuleMigrator lui-même. Seul le verbe migre, et il ne sert pas de HTTP.
+if (migrateOnly) {
+    await ModuleMigrator.MigrateAsync(
+        services: app.Services,
+        modules: modules
+    );
+
+    return;
+}
+
 // Volontairement inconditionnel : pas de page d'exception de développement. Le
 // contrat HTTP est le même en dev et en prod, et la stack trace part dans les
 // logs plutôt que dans la réponse.
 app.UseExceptionHandler();
-
-if (app.Environment.IsDevelopment()) {
-    using var scope = app.Services.CreateScope();
-
-    // La migration se dérive du type déclaré : le mécanisme est identique pour
-    // tous les modules, seule la politique — ne migrer qu'en Development —
-    // appartient à l'hôte.
-    foreach (var module in modules) {
-        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
-
-        await dbContext.Database.MigrateAsync();
-    }
-}
 
 app.MapControllers();
 

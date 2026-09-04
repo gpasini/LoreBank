@@ -24,14 +24,15 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // ConfigureDbContext de module lit la sienne via IConfiguration, et un
     // schéma PostgreSQL par module rend le partage d'une même base sans
     // conflit. Ne rediriger que le DbContext du module courant laisserait ceux
-    // des autres modules pointer sur la base réelle du développeur — que
-    // l'hôte de test, en Development, migrerait au démarrage
+    // des autres modules pointer sur la base réelle du développeur — que le
+    // harnais migrerait via ModuleMigrator (TestHost)
     // (ConnectionRedirectTest épingle cette garantie).
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Les migrations ne tournent qu'en Development (Program.cs) : toute la
-        // suite en dépend. On épingle l'environnement plutôt que d'hériter de
-        // l'ASPNETCORE_ENVIRONMENT du shell qui lance les tests
+        // L'environnement pilote le chargement de la configuration
+        // (appsettings.Development.json) : on l'épingle plutôt que d'hériter
+        // de l'ASPNETCORE_ENVIRONMENT du shell qui lance les tests, pour que
+        // la config de l'hôte de test ne varie pas d'un poste à l'autre
         // (TestHostEnvironmentTest tient cette garantie).
         builder.UseEnvironment(Environments.Development);
 

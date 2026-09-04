@@ -23,10 +23,10 @@ public interface IHostModule
     IModule AutofacModule { get; }
 
     // Le type au singulier encode la doctrine « un DbContext par module » : ni
-    // liste vide ni second contexte possible. L'hôte s'en sert pour migrer en
-    // dev, et le harnais de test pour vérifier la redirection des connexions —
-    // sans ce fait sur le seam, il le retrouvait par scan d'assembly (voir
-    // ADR 0005).
+    // liste vide ni second contexte possible. ModuleMigrator s'en sert pour
+    // migrer, et le harnais de test pour vérifier la redirection des
+    // connexions — sans ce fait sur le seam, il le retrouvait par scan
+    // d'assembly (voir ADR 0005).
     Type DbContextType { get; }
 
     // La configuration de persistance, elle, reste au module : nom de chaîne

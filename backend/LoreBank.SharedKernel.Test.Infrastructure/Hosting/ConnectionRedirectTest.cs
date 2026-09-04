@@ -8,8 +8,8 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Hosting;
 
 // La factory redirige TOUTES les chaînes de connexion vers le Testcontainer.
 // Sans cette garantie, l'hôte de test d'un module laisserait les DbContext des
-// autres modules pointer sur la base réelle du développeur — et, en
-// Development, la migrerait au démarrage. Cet échec-là serait silencieux et
+// autres modules pointer sur la base réelle du développeur — que le harnais
+// migrerait via ModuleMigrator (TestHost). Cet échec-là serait silencieux et
 // destructeur : c'est précisément lui qu'on épingle ici.
 [TestFixture]
 [TestOf(typeof(IntegrationTestWebAppFactory))]

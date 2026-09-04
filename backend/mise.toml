@@ -1,2 +1,6 @@
 [tools]
 dotnet = "10"
+
+[tasks.migrate]
+description = "Applique les migrations de tous les modules (l'API ne migre jamais au démarrage)"
+run = "dotnet run --project LoreBank.Host -- migrate"

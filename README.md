@@ -24,6 +24,7 @@ Les versions d'outils sont gérées par [mise](https://mise.jdx.dev).
 mise install
 docker compose up -d          # PostgreSQL
 cd backend && mise exec -- dotnet build LoreBank.slnx
+mise run migrate              # l'API ne migre jamais au démarrage
 mise exec -- dotnet run --project LoreBank.Host
 ```
 

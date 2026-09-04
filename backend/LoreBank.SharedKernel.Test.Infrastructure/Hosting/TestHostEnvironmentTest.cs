@@ -5,11 +5,11 @@ using Microsoft.Extensions.Hosting;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Hosting;
 
-// Les migrations ne tournent qu'en Development (Program.cs) : toute la suite
-// d'intégration en dépend. Sans épingle, l'environnement de l'hôte de test
-// hériterait de la variable ambiante ASPNETCORE_ENVIRONMENT du shell qui
-// lance les tests — un runner CI exportant Production rendrait toute la suite
-// rouge avec « relation does not exist », loin de la cause.
+// L'API ne migre plus à son démarrage (ADR 0006), mais l'environnement pilote
+// toujours le chargement de la configuration (appsettings.Development.json).
+// Sans épingle, l'environnement de l'hôte de test hériterait de la variable
+// ambiante ASPNETCORE_ENVIRONMENT du shell qui lance les tests — et la config
+// de l'hôte varierait d'un poste ou d'un runner CI à l'autre.
 [TestFixture]
 [TestOf(typeof(IntegrationTestWebAppFactory))]
 public sealed class TestHostEnvironmentTest

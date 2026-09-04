@@ -20,9 +20,9 @@ public abstract class BaseIntegrationTest<TFactory> : BaseHostTest<TFactory>
     public void BaseSetUp()
     {
         // NUnit exécute les [SetUp] de la base d'abord : HostSetUp a déjà
-        // touché Factory, donc l'hôte a démarré — et migré — avant l'ouverture
-        // du scope ambiant, à laquelle sa migration EF Core ne survivrait pas
-        // (HandleAmbientTransactions).
+        // touché Factory, donc TestHost a démarré l'hôte — et migré — avant
+        // l'ouverture du scope ambiant, à laquelle une migration EF Core ne
+        // survivrait pas (HandleAmbientTransactions).
         _transaction = new TransactionScope(
             scopeOption: TransactionScopeOption.Required,
             transactionOptions: new TransactionOptions {
