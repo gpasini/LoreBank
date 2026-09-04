@@ -2,6 +2,7 @@ using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Domain.Exceptions;
 using LoreBank.SharedKernel.Infrastructure.Modules;
+using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -160,6 +161,67 @@ public sealed class ModuleCompositionTest
             because: "un schéma PostgreSQL nommé par module, jamais public — la précondition du partage d'une même base par le harnais (ADR 0002)"
         );
         schemas.Should().OnlyHaveUniqueItems("deux modules qui partagent un schéma se marcheraient dessus dans la base commune des tests");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldStampEveryDataMigration_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // IdOf lève si [DataMigration] manque — le test rougit avec le message
+        // du socle plutôt qu'au premier `migrate` sur une vraie base. Le
+        // timestamp est la position dans la timeline fusionnée : sa forme est
+        // celle des ids EF, et un doublon rendrait l'ordre ambigu.
+        var ids = DataMigrations
+            .DiscoverIn(module.DbContextType.Assembly)
+            .Select(DataMigrations.IdOf)
+            .ToList();
+
+        foreach (var id in ids) {
+            id.Split('_')[0].Should().MatchRegex(
+                regularExpression: "^[0-9]{14}$",
+                because: $"le timestamp de {id} doit avoir la forme des ids EF (14 chiffres) pour se trier dans la même timeline"
+            );
+        }
+
+        ids.Should().OnlyHaveUniqueItems("deux migrations de données au même id n'ont pas d'ordre défini dans la timeline");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldKeepEveryDataMigrationInTheInfrastructureAssembly_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // Le pendant de la garde sur les IDomainEventHandler : une migration
+        // de données n'est découverte que dans l'assembly du DbContext — une
+        // classe rangée ailleurs échapperait au scan en silence.
+        var misplacedMigrations = new[] {
+                module.ControllerAssembly,
+                module.ApplicationAssembly,
+                module.DomainAssembly
+            }
+            .SelectMany(assembly => DataMigrations.DiscoverIn(assembly))
+            .ToList();
+
+        misplacedMigrations.Should().BeEmpty("une migration de données n'est scannée que dans l'assembly du DbContext — à déménager vers Persistence/DataMigrations/ de l'Infrastructure du module");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public async Task All_ShouldJournalEveryDataMigration_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // TestHost a migré par ModuleMigrator : chaque migration de données
+        // découverte doit donc être passée par le runner et journalisée —
+        // c'est la preuve de bout en bout que la découverte, la timeline et le
+        // journal sont câblés, y compris sur base vide (no-op journalisé).
+        await using var runner = DataMigrationRunner.Create(
+            services: TestHost<SharedKernelWebAppFactory>.Factory.Services,
+            dbContextType: module.DbContextType
+        );
+
+        var applied = await runner.GetAppliedIdsAsync(CancellationToken.None);
+
+        foreach (var migrationType in DataMigrations.DiscoverIn(module.DbContextType.Assembly)) {
+            applied.Should().Contain(
+                expected: DataMigrations.IdOf(migrationType),
+                because: $"{migrationType.Name} doit avoir été appliquée et journalisée par la migration du harnais"
+            );
+        }
     }
 
     [TestCaseSource(nameof(Modules))]

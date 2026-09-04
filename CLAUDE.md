@@ -50,7 +50,10 @@ Le module `Bank` sert d'exemple de référence.
   `IDomainEventHandler<>` ne vit hors de la `DomainAssembly` (rangés dans
   `Application/`, ils échapperaient au scan en silence), que le namespace de
   chaque `DomainException` du module nomme le module en 2ᵉ segment (c'est lui
-  qui préfixe les codes d'erreur) et qu'aucune migration ne manque. Ajouter un module = écrire son adapter et
+  qui préfixe les codes d'erreur), qu'aucune migration ne manque, et que les
+  migrations de données sont bien formées — `[DataMigration]` à 14 chiffres,
+  ids uniques, rangées dans l'assembly du DbContext, toutes journalisées après
+  la migration du harnais (ADR 0013). Ajouter un module = écrire son adapter et
   l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
   alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`).
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
@@ -239,6 +242,32 @@ Le module `Bank` sert d'exemple de référence.
   LoreBank.Host migrate`, enveloppé par `mise run migrate` — qui compose les
   modules comme l'API puis sort sans servir de HTTP, et par le harnais
   d'intégration pour son Testcontainer.
+- Les migrations de **données** s'écrivent en code, jamais en SQL (ADR 0013) :
+  une classe `[DataMigration("<timestamp>")]` (14 chiffres, la forme des ids
+  EF) dérivant de `DataMigration`, dans `Persistence/DataMigrations/` de
+  l'Infrastructure du module (voir `NormalizeLegacyIbans`, l'exemple de
+  référence). `ModuleMigrator` fusionne migrations de schéma et de données
+  pending en une seule timeline triée par id (`<timestamp>_<NomDeClasse>`) et
+  l'applique pas à pas : une migration de données s'intercale entre deux
+  migrations de schéma — le triptyque ajouter / backfiller / resserrer tient
+  en une release. La logique vit dans le code vivant (les VO d'aujourd'hui,
+  jamais leur copie SQL), avec deux corollaires assumés : une migration
+  appliquée sur tous les environnements est un artefact mort, supprimable avec
+  sa ligne de journal ; et le SQL de bordure — les helpers
+  `QueryAsync`/`ExecuteSqlAsync` de la base : connexion empruntée, `{Schema}`
+  interpolé, commande enrôlée dans la transaction du runner — reste permis
+  pour les formes intermédiaires que le modèle vivant ne matérialise plus.
+  `DataMigrationRunner` applique chaque migration dans sa propre transaction,
+  ligne de journal incluse (`<schéma>.__data_migrations_history`, créé
+  paresseusement) : halte à l'échec sur un état cohérent, reprise au run
+  suivant, et le dispatcher d'events de son scope est neutre — une migration
+  ne produit aucun fait métier, ses events ont déjà eu lieu. Pas de `Down` —
+  revenir en arrière est une restauration de sauvegarde. Chaque migration de
+  données a un test qui la rejoue sur des données arrangées en SQL brut
+  (`NormalizeLegacyIbansTest`, dans un dossier `Persistence/DataMigrations/`
+  du Test.Infrastructure du module, sur `BaseHostTest` — le runner ouvre ses
+  propres transactions), et `DataMigrationRunnerTest` épingle côté socle le
+  tout-ou-rien et la neutralisation des events.
 - Pas de classes d'entités de persistance : les agrégats du Domain sont mappés
   directement via `IEntityTypeConfiguration` — `HasConversion` pour les VO
   mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
