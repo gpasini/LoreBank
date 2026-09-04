@@ -29,6 +29,12 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // (ConnectionRedirectTest épingle cette garantie).
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Les migrations ne tournent qu'en Development (Program.cs) : toute la
+        // suite en dépend. On épingle l'environnement plutôt que d'hériter de
+        // l'ASPNETCORE_ENVIRONMENT du shell qui lance les tests
+        // (TestHostEnvironmentTest tient cette garantie).
+        builder.UseEnvironment(Environments.Development);
+
         builder.ConfigureAppConfiguration((context, configuration) => {
                 var redirected = context.Configuration
                     .GetSection("ConnectionStrings")

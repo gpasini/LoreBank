@@ -244,8 +244,10 @@ Le module `Bank` sert d'exemple de référence.
 - Le harnais d'intégration vit dans `LoreBank.SharedKernel.Test.Infrastructure`
   (seul projet SharedKernel à référencer l'hôte, et lui-même un vrai projet de
   test) : `IntegrationTestWebAppFactory` démarre l'hôte réel contre un
-  Testcontainers PostgreSQL et redirige **toutes** les `ConnectionStrings:*`
-  vers le conteneur — ne rediriger que le DbContext du module courant
+  Testcontainers PostgreSQL, épingle l'environnement à Development — les
+  migrations du démarrage en dépendent, et l'`ASPNETCORE_ENVIRONMENT` du shell
+  ne doit pas pouvoir en décider (`TestHostEnvironmentTest`) — et redirige
+  **toutes** les `ConnectionStrings:*` vers le conteneur — ne rediriger que le DbContext du module courant
   laisserait ceux des autres modules pointer sur la base réelle du développeur,
   que l'hôte de test (en Development) migrerait au démarrage.
   `ConnectionRedirectTest` épingle cette garantie, et `ModuleCompositionTest`
