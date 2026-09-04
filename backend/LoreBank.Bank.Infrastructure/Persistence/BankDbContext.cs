@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.Bank.Infrastructure.Persistence;
 
+// Le schéma (« bank ») et les IEntityTypeConfiguration de cette assembly sont
+// appliqués par la base — rien à configurer ici (ADR 0009).
 public sealed class BankDbContext(
     DbContextOptions<BankDbContext> options,
     IDomainEventDispatcher dispatcher
@@ -14,10 +16,4 @@ public sealed class BankDbContext(
 )
 {
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
-
-    protected override void ConfigureModule(ModelBuilder modelBuilder)
-    {
-        modelBuilder.HasDefaultSchema("bank");
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(BankDbContext).Assembly);
-    }
 }

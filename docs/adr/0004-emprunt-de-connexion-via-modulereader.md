@@ -1,5 +1,8 @@
 # Emprunt de connexion via ModuleReader
 
+> Statut : complété par l'ADR 0009 — `ModuleReader` prend un `ModuleDbContext`
+> et expose le schéma du module, que les readers interpolent dans leur SQL.
+
 Écrire le deuxième reader du codebase demandait de ré-encoder à la main cinq
 invariants de cycle de vie de connexion, tous en commentaires et aucun dans un
 type — dont un (ouvrir sa propre connexion) dont la violation escalade la

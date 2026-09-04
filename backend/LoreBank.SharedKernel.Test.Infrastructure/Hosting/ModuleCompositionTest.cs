@@ -143,6 +143,25 @@ public sealed class ModuleCompositionTest
         }
     }
 
+    [Test]
+    public void All_ShouldGiveEachModuleItsOwnSchema_WhenTheModulesAreDeclared()
+    {
+        using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
+
+        // On lit le modèle EF effectif, pas la propriété Schema : une
+        // régression de la base qui cesserait d'appliquer HasDefaultSchema
+        // rougirait ici aussi.
+        var schemas = HostModules.All
+            .Select(module => ((DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType)).Model.GetDefaultSchema())
+            .ToList();
+
+        schemas.Should().OnlyContain(
+            predicate: schema => !string.IsNullOrWhiteSpace(schema) && schema != "public",
+            because: "un schéma PostgreSQL nommé par module, jamais public — la précondition du partage d'une même base par le harnais (ADR 0002)"
+        );
+        schemas.Should().OnlyHaveUniqueItems("deux modules qui partagent un schéma se marcheraient dessus dans la base commune des tests");
+    }
+
     [TestCaseSource(nameof(Modules))]
     public void All_ShouldResolveADbContextWithoutPendingModelChanges_WhenTheModuleIsDeclared(IHostModule module)
     {

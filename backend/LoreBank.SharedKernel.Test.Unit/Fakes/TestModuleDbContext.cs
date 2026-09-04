@@ -9,7 +9,8 @@ public sealed class TestModuleDbContext(
     IDomainEventDispatcher dispatcher
 ) : ModuleDbContext(
     options: options,
-    dispatcher: dispatcher
+    dispatcher: dispatcher,
+    schema: "test"
 )
 {
     public DbSet<TestThing> Things => Set<TestThing>();

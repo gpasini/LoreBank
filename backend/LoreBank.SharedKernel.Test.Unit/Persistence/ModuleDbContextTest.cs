@@ -166,6 +166,31 @@ public sealed class ModuleDbContextTest
         entityType.GetNavigations().Should().BeEmpty();
     }
 
+    [Test]
+    public async Task OnModelCreating_ShouldApplyTheModuleSchema_WhenTheModelIsBuilt()
+    {
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+
+        context.Model
+            .GetDefaultSchema()
+            .Should()
+            .Be(
+                expected: "test",
+                because: "HasDefaultSchema vit dans la base, pas dans une ligne à recopier par module"
+            );
+    }
+
+    [Test]
+    public async Task OnModelCreating_ShouldNotRequireConfigureModule_WhenAModuleHasNothingToConfigure()
+    {
+        await using var context = new BareModuleDbContext(
+            options: new DbContextOptionsBuilder<BareModuleDbContext>().UseSqlite(_connection).Options,
+            dispatcher: new RecordingDomainEventDispatcher()
+        );
+
+        context.Model.GetDefaultSchema().Should().Be("bare");
+    }
+
     private TestModuleDbContext CreateContext(IDomainEventDispatcher dispatcher) => new(
         options: new DbContextOptionsBuilder<TestModuleDbContext>().UseSqlite(_connection).Options,
         dispatcher: dispatcher

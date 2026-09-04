@@ -17,10 +17,10 @@ namespace LoreBank.Bank.Infrastructure.Readers;
 // rougir la suite.
 public sealed class BankAccountReader(BankDbContext context) : ModuleReader(context), IBankAccountReader
 {
-    private const string SelectById =
-        """
+    private string SelectById =>
+        $"""
         SELECT id, iban, balance_amount, balance_currency, is_closed
-        FROM bank.bank_accounts
+        FROM {Schema}.bank_accounts
         WHERE id = @id
         """;
 

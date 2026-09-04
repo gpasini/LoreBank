@@ -13,7 +13,8 @@ _Avoid_ : composant, service, bounded context
 
 **ModuleDbContext** :
 Le DbContext d'un module métier. Porte le dispatch des domain events dans la
-transaction de la commande — un module qui n'en dérive pas ne dispatche rien.
+transaction de la commande — un module qui n'en dérive pas ne dispatche rien —
+et le schéma PostgreSQL du module, dérivé de son nom.
 _Avoid_ : DbContext de base, contexte partagé
 
 **DomainAssembly** :
@@ -22,9 +23,9 @@ de domain events.
 _Avoid_ : assembly des handlers
 
 **ModuleReader** :
-La base des readers d'un module métier. Porte l'emprunt de connexion ; un
-reader concret ne fournit que son SQL, ses paramètres et sa lecture de
-colonnes.
+La base des readers d'un module métier. Porte l'emprunt de connexion et le
+schéma du module ; un reader concret ne fournit que son SQL, ses paramètres
+et sa lecture de colonnes.
 _Avoid_ : reader de base, helper SQL
 
 **HostModule** :

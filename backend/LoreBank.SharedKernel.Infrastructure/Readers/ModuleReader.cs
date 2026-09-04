@@ -1,4 +1,5 @@
 using System.Data.Common;
+using LoreBank.SharedKernel.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.SharedKernel.Infrastructure.Readers;
@@ -7,8 +8,12 @@ namespace LoreBank.SharedKernel.Infrastructure.Readers;
 // qu'un reader concret ne fournisse que son SQL, ses paramètres et sa lecture
 // de colonnes. Rien ici n'est spécifique à un provider — c'est ce qui permet
 // de la tester en unitaire sur Sqlite (ModuleReaderTest).
-public abstract class ModuleReader(DbContext context)
+public abstract class ModuleReader(ModuleDbContext context)
 {
+    // Le schéma du module, à interpoler dans le SQL (FROM {Schema}.xxx) : un
+    // fait dérivé de l'identité (ADR 0009) ne se réécrit pas en dur.
+    protected string Schema => context.Schema;
+
     // La connexion est empruntée au DbContext, jamais ouverte en propre : une
     // seconde connexion vers le même PostgreSQL sous le TransactionScope
     // ambiant d'une commande ferait enrôler un second connecteur, et la

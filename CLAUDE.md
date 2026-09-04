@@ -225,7 +225,9 @@ Le module `Bank` sert d'exemple de référence.
 - Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
   **SQL écrit à la main** : aucun agrégat n'est matérialisé, le `SELECT` ne
   ramène que les colonnes du DTO. Un reader dérive de `ModuleReader`
-  (`LoreBank.SharedKernel.Infrastructure`) et ne fournit que son SQL, ses
+  (`LoreBank.SharedKernel.Infrastructure`) et ne fournit que son SQL (le
+  schéma s'y interpole via la propriété `Schema` de la base — `FROM
+  {Schema}.bank_accounts` — plutôt que réécrit en dur), ses
   paramètres (dictionnaire à clés nues — le `@` ne vit que dans le SQL) et sa
   lecture de colonnes ; c'est la base qui porte l'emprunt de connexion au
   `DbContext` (`Database.OpenConnectionAsync` puis `GetDbConnection()`,
@@ -237,10 +239,15 @@ Le module `Bank` sert d'exemple de référence.
   aucun compilateur, chaque reader doit avoir un test qui relit tous ses
   champs (voir `GetBankAccountByIdTest`).
 - Le `DbContext` d'un nouveau module dérive de `ModuleDbContext`
-  (`LoreBank.SharedKernel.Infrastructure`) et implémente `ConfigureModule`
-  (schéma, configurations — voir `BankDbContext.cs`) : le dispatch des events
-  vit dans la base, qui interdit la famille synchrone `SaveChanges` (elle
-  perdrait les events en silence). Rien d'autre à câbler — les handlers sont
+  (`LoreBank.SharedKernel.Infrastructure`) — et c'est tout (voir
+  `BankDbContext.cs` : un constructeur, un `DbSet`) : la base dérive le schéma
+  de l'identité (le nom du module en minuscules — `bank` ; scellé, renommer un
+  schéma = renommer le module — ADR 0009), applique les
+  `IEntityTypeConfiguration` de l'assembly du DbContext concret, et porte le
+  dispatch des events en interdisant la famille synchrone `SaveChanges` (elle
+  perdrait les events en silence). `ConfigureModule` reste comme hook
+  optionnel pour une configuration hors `IEntityTypeConfiguration`.
+  Rien d'autre à câbler — les handlers sont
   scannés par l'hôte via `DomainAssembly`, la contrainte générique de
   `HostModule<TDbContext>` rend incompilable un `DbContext` monté qui ne
   dériverait pas de la base, et `ModuleCompositionTest` rougit si un handler
