@@ -53,9 +53,14 @@ Le module `Bank` sert d'exemple de référence.
   qui préfixe les codes d'erreur), qu'aucune migration ne manque, et que les
   migrations de données sont bien formées — `[DataMigration]` à 14 chiffres,
   ids uniques, rangées dans l'assembly du DbContext, toutes journalisées après
-  la migration du harnais (ADR 0013). Ajouter un module = écrire son adapter et
+  la migration du harnais (ADR 0013). Ses voisins `DomainConventionTest` et
+  `ApplicationConventionTest` épinglent de la même façon les conventions du
+  domaine (constructeurs d'agrégats privés, VO immuables, `sealed` sur les
+  familles fermées) et de l'Application (une query sans repository d'agrégat).
+  Ajouter un module = écrire son adapter et
   l'ajouter à `HostModules.All` — rien d'autre côté hôte (décision et
-  alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`).
+  alternatives écartées : `docs/adr/0001-montage-de-module-via-ihostmodule.md`),
+  procédure : skill `nouveau-module`.
 - Les blocs de base partagés vivent dans `LoreBank.SharedKernel.Domain` (dossier
   de solution `SharedKernel`) : `Entity`, `AggregateRoot`, `ValueObject`,
   `SimpleValueObject`, `IDomainEvent`, `IDomainEventHandler`, `DomainException`,
@@ -93,14 +98,15 @@ Le module `Bank` sert d'exemple de référence.
 - `Exception.Message` est fabriqué automatiquement à partir du code et des
   paramètres, en culture invariante : il sert aux logs, jamais au client.
   Les exceptions « introuvable » héritent de `NotFoundException`.
-- Les value objects sont des classes, pas des records — choix délibéré. `sealed`,
-  normalisation puis validation dans le constructeur (aucune instance invalide
-  ne peut exister), propriétés `get`-only, regex via `[GeneratedRegex]`.
-- Un agrégat a un constructeur privé et une factory statique qui émet l'event de
-  naissance. Les invariants vivent dans les méthodes de transition ; les VO
-  portent les leurs (on ne revérifie pas dans l'agrégat ce qu'un VO garantit).
-- Un domain event par transition d'état : `record sealed`, nommé au passé,
-  portant l'id de l'agrégat et les données utiles.
+- Les value objects sont des classes, pas des records — choix délibéré :
+  l'égalité vient de `ValueObject`. Immuables, validés à la construction —
+  aucune instance invalide ne peut exister. Procédure et pièges : skill
+  `nouveau-value-object`.
+- Un agrégat naît par sa factory statique (constructeur privé), garde ses
+  invariants dans ses méthodes de transition — les VO portent les leurs, on ne
+  revérifie pas ce qu'un VO garantit — et émet un domain event par transition
+  (`record sealed`, nommé au passé). Procédure : skills `nouvel-agregat` et
+  `nouveau-domain-event-handler`.
 - Les handlers de domain events vivent dans le Domain (`EventHandlers/`) ; leurs
   dépendances sont des ports — interfaces dans `Services/`, implémentées par
   l'Infrastructure. Ils sont dispatchés par le `SaveChangesAsync` de `ModuleDbContext`
@@ -195,15 +201,12 @@ Le module `Bank` sert d'exemple de référence.
   transforme en `NotFoundException`. Conséquence : `LoreBank.Bank.Infrastructure`
   référence `LoreBank.Bank.Application`, et un Result ne dépend plus
   du tout du modèle d'écriture.
-- Un dossier par use case dans `Commands/` ou `Queries/`
-  (`Commands/OpenBankAccount/`), le `record` de la requête et son handler dans
-  des fichiers séparés, le handler nommé d'après la requête complète suffixée
-  de `Handler` (`OpenBankAccountCommand.cs` →
-  `OpenBankAccountCommandHandler.cs`), namespaces alignés sur les dossiers.
-  Le dossier d'une query colocalise aussi son Result
-  (`Queries/GetBankAccountById/BankAccountResult.cs`) : depuis l'ADR 0012 un
-  Result appartient à exactement une query. Ce qui est partagé entre use cases
-  reste dans un dossier transverse (`Readers/`, `Exceptions/`).
+- Un dossier par use case dans `Commands/` ou `Queries/`, le Result d'une
+  query colocalisé dans son dossier (ADR 0012 : un Result appartient à
+  exactement une query) ; ce qui est partagé entre use cases reste dans un
+  dossier transverse (`Readers/`, `Exceptions/`). Procédure complète — record,
+  handler, action, tests, contrat : skills `nouvelle-commande` et
+  `nouvelle-query`.
 - Les controllers dérivent de `ModuleController` (`LoreBank.SharedKernel.Api`,
   ADR 0011), ne parlent qu'à `ISender`, et tiennent le CQS jusqu'au bord
   HTTP : **une action qui mute ne renvoie aucune représentation**, une action qui
@@ -241,7 +244,8 @@ Le module `Bank` sert d'exemple de référence.
   `IHostModule`), invoqué par le verbe `migrate` de l'hôte — `dotnet
   LoreBank.Host migrate`, enveloppé par `mise run migrate` — qui compose les
   modules comme l'API puis sort sans servir de HTTP, et par le harnais
-  d'intégration pour son Testcontainer.
+  d'intégration pour son Testcontainer. Une migration se génère par la
+  commande EF, jamais à la main : skill `nouvelle-migration-schema`.
 - Les migrations de **données** s'écrivent en code, jamais en SQL (ADR 0013) :
   une classe `[DataMigration("<timestamp>")]` (14 chiffres, la forme des ids
   EF) dérivant de `DataMigration`, dans `Persistence/DataMigrations/` de
@@ -253,21 +257,18 @@ Le module `Bank` sert d'exemple de référence.
   en une release. La logique vit dans le code vivant (les VO d'aujourd'hui,
   jamais leur copie SQL), avec deux corollaires assumés : une migration
   appliquée sur tous les environnements est un artefact mort, supprimable avec
-  sa ligne de journal ; et le SQL de bordure — les helpers
-  `QueryAsync`/`ExecuteSqlAsync` de la base : connexion empruntée, `{Schema}`
-  interpolé, commande enrôlée dans la transaction du runner — reste permis
-  pour les formes intermédiaires que le modèle vivant ne matérialise plus.
+  sa ligne de journal ; et le SQL de bordure reste permis pour les formes
+  intermédiaires que le modèle vivant ne matérialise plus.
   `DataMigrationRunner` applique chaque migration dans sa propre transaction,
   ligne de journal incluse (`<schéma>.__data_migrations_history`, créé
   paresseusement) : halte à l'échec sur un état cohérent, reprise au run
   suivant, et le dispatcher d'events de son scope est neutre — une migration
   ne produit aucun fait métier, ses events ont déjà eu lieu. Pas de `Down` —
   revenir en arrière est une restauration de sauvegarde. Chaque migration de
-  données a un test qui la rejoue sur des données arrangées en SQL brut
-  (`NormalizeLegacyIbansTest`, dans un dossier `Persistence/DataMigrations/`
-  du Test.Infrastructure du module, sur `BaseHostTest` — le runner ouvre ses
-  propres transactions), et `DataMigrationRunnerTest` épingle côté socle le
-  tout-ou-rien et la neutralisation des events.
+  données a un test qui la rejoue sur des données arrangées en SQL brut, et
+  `DataMigrationRunnerTest` épingle côté socle le tout-ou-rien et la
+  neutralisation des events. Procédure — classe, helpers, timestamp, test de
+  rejeu : skill `nouvelle-data-migration`.
 - Pas de classes d'entités de persistance : les agrégats du Domain sont mappés
   directement via `IEntityTypeConfiguration` — `HasConversion` pour les VO
   mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
@@ -407,6 +408,14 @@ Avant de considérer un changement terminé : build de la solution sans warning,
 et comportement démontré à l'exécution (tests, ou programme de vérification).
 
 ## Agent skills
+
+### Skills du repo
+
+Les procédures de construction vivent dans `.claude/skills/` : huit briques
+(value object, agrégat, event handler, commande, query, migration de schéma,
+data migration, module) et un chapeau, `ajouter-fonctionnalite`, qui déroule
+une issue `ready-for-agent` de bout en bout. Chaque skill nomme ses
+garde-fous — les tests du socle qui rougissent si sa règle casse.
 
 ### Issue tracker
 
