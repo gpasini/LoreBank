@@ -14,6 +14,8 @@ Le module `Bank` sert d'exemple de référence.
   `ImplicitUsings`, `TreatWarningsAsErrors` — la doctrine « build sans
   warning » est tenue par le compilateur) vivent dans
   `backend/Directory.Build.props` — ne pas les dupliquer dans les csproj.
+- La CI (`.github/workflows/ci.yml`) rejoue build + suite complète sur push
+  vers `master` et sur PR, avec le SDK installé par mise comme sur le poste.
 - Les versions de packages sont centralisées dans
   `backend/Directory.Packages.props` (central package management) : un csproj
   référence sans attribut `Version`, et les pins — licence (FluentAssertions

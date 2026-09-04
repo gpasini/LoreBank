@@ -1,0 +1,31 @@
+# Le quality gate du repo : rien ne se merge sans build sans warning
+# (TreatWarningsAsErrors le rend bloquant) ni suite complète — les tests
+# d'architecture du socle y jouent le rôle de relecture. Le SDK vient de mise,
+# comme sur le poste : backend/mise.toml + global.json restent la source
+# unique de la toolchain.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+        with:
+          working_directory: backend
+
+      - name: Build
+        run: mise exec -- dotnet build LoreBank.slnx
+
+      # Testcontainers démarre son PostgreSQL sur le Docker du runner.
+      - name: Test
+        run: mise exec -- dotnet test LoreBank.slnx --no-build
