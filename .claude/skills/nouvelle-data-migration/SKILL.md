@@ -1,0 +1,75 @@
+---
+name: nouvelle-data-migration
+description: À utiliser avant de transformer des données existantes en base — backfill d'une colonne, normalisation de lignes historiques, recodage — ou quand une telle transformation s'apprête à s'écrire en SQL dans une migration de schéma.
+---
+
+# Nouvelle data migration
+
+## Principe
+
+Une migration de données s'écrit **en code, jamais en SQL** (ADR 0013) : la
+logique vit dans le code vivant — les VO d'aujourd'hui, jamais leur copie
+SQL — et la classe devient un artefact mort une fois appliquée partout,
+supprimable avec sa ligne de journal. `ModuleMigrator` fusionne migrations de
+schéma et de données en une seule timeline triée par id : une data migration
+s'intercale entre deux migrations de schéma, le triptyque ajouter /
+backfiller / resserrer tient en une release.
+
+## Recette
+
+1. La classe dans `Persistence/DataMigrations/` de l'Infrastructure du
+   module : `[DataMigration("<timestamp>")] public sealed class Xxx(XxxDbContext
+   context) : DataMigration(context)` — timestamp UTC à 14 chiffres
+   (`yyyyMMddHHmmss`, la forme des ids EF), choisi pour placer la migration
+   **au bon endroit de la timeline** par rapport aux migrations de schéma
+   qu'elle doit suivre ou précéder.
+2. `ExecuteAsync` : lire par `QueryAsync` (le SQL de bordure est permis pour
+   les formes intermédiaires que le modèle vivant ne matérialise plus —
+   `{Schema}` s'interpole via la base), transformer par le code vivant (le VO
+   normalise, calcule, valide), réécrire par `ExecuteSqlAsync` — et seulement
+   les lignes qui changent.
+3. Pas de `Down` : revenir en arrière est une restauration de sauvegarde.
+4. Le test de rejeu (`Persistence/DataMigrations/XxxTest.cs` du
+   Test.Infrastructure du module, sur `BaseHostTest`) : arranger des lignes en
+   SQL brut — elles ne peuvent pas passer par les use cases, c'est la raison
+   d'être de la migration —, exécuter la migration, relire. Deux cas au
+   minimum : la ligne transformée, et la ligne témoin laissée intacte.
+   Nettoyage des lignes arrangées au SetUp **et** au TearDown.
+5. Appliquer : `mise run migrate` — chaque migration passe dans sa propre
+   transaction, ligne de journal comprise (`<schéma>.__data_migrations_history`) :
+   halte à l'échec sur un état cohérent, reprise au run suivant.
+
+## Exemple de référence
+
+`backend/LoreBank.Bank.Infrastructure/Persistence/DataMigrations/20260904060000_NormalizeLegacyIbans.cs`
+et son test `NormalizeLegacyIbansTest` — la forme brute relue, le VO `Iban`
+qui normalise, la réécriture des seules lignes qui changent.
+
+## Garde-fous
+
+| Règle | Ce qui rougit si elle casse |
+|---|---|
+| `[DataMigration]` à 14 chiffres, ids uniques | `ModuleCompositionTest` |
+| La classe vit dans l'assembly du DbContext — ailleurs, elle échappe au scan | `ModuleCompositionTest` |
+| Journalisée après la migration du harnais | `ModuleCompositionTest` |
+| Tout-ou-rien par migration, events neutralisés pendant le run | `DataMigrationRunnerTest` (socle) |
+| Entrelacement schéma/données par timestamp | `MigrationTimelineTest` (socle) |
+| La transformation fait ce qu'elle dit | le test de rejeu — étape 4, son seul garde-fou |
+
+## Pièges
+
+- La règle métier ne se recopie pas en SQL : un `UPDATE … SET iban =
+  upper(replace(…))` divergerait du VO le jour où il change — c'est le VO qui
+  transforme, le SQL ne fait que lire et écrire.
+- Une migration ne produit aucun fait métier : ses events ont déjà eu lieu —
+  le dispatcher de son scope est neutre, inutile d'émettre quoi que ce soit.
+- Un effet appliqué partout est un artefact mort : la classe et sa ligne de
+  journal se suppriment, elles ne s'accumulent pas.
+- Le test hérite de `BaseHostTest`, pas de `BaseIntegrationTest` : le runner
+  ouvre ses propres transactions, un scope ambiant les ferait dérailler.
+
+## Avant de terminer
+
+Build sans warning, le test de rejeu de l'étape 4 vert (transformation et
+témoin), et `ModuleCompositionTest` vert — il prouve le timestamp, le
+rangement et la journalisation de bout en bout.
