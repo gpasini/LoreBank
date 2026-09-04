@@ -1,6 +1,6 @@
 ---
 name: nouveau-value-object
-description: À utiliser avant de créer ou modifier un value object (VO) du domaine — donnée typée sans identité comme un IBAN, un montant, une référence, un code — ou quand un primitif (string, decimal, Guid) circule nu dans le domaine avec sa validation éparpillée.
+description: À utiliser avant de créer ou modifier un value object du domaine — donnée typée sans identité (IBAN, montant, référence, code) — ou quand un primitif (string, decimal, Guid) circule nu dans le domaine avec sa validation éparpillée.
 ---
 
 # Nouveau value object
@@ -8,47 +8,62 @@ description: À utiliser avant de créer ou modifier un value object (VO) du dom
 ## Principe
 
 Un value object est défini par ses valeurs, immuable, et **invalide ne peut pas
-exister** : toute la normalisation et la validation vivent dans le constructeur.
+exister** : normalisation puis validation dans le constructeur, rien à
+revérifier en aval. Les VO du socle sont des **classes, pas des records**
+(choix délibéré) : l'égalité vient de `ValueObject`.
 
-Ici les VO sont des **classes, pas des records** (choix délibéré du socle :
-l'égalité vient de `ValueObject`, et les records ont été écartés).
-
-## Choisir la classe de base
+## Choisir la base
 
 | Cas | Base | Exemple |
 |---|---|---|
 | Une seule valeur enveloppée | `SimpleValueObject<T>` | `Iban`, `BankAccountId` |
 | Plusieurs champs | `ValueObject` + `GetEqualityComponents()` | `Money` |
+| Restreindre un VO existant | envelopper (propriété `Value`), déléguer sa validation | `PositiveMoney` |
 
 ## Recette
 
-1. Classe `sealed` dans `ValueObjects/` du projet Domain concerné
-   (`SharedKernel.Domain` seulement si plusieurs modules le partagent).
+1. Classe `sealed` dans `ValueObjects/` du Domain concerné —
+   `SharedKernel.Domain` seulement si plusieurs modules la partagent.
 2. Constructeur : **normaliser d'abord** (espaces, casse), **valider ensuite**,
-   lever une exception dédiée sinon.
-3. Propriétés `get`-only. Pas de setter, pas d'`init`.
-4. Une exception `sealed` héritant de `DomainException`, dans `Exceptions/`,
-   dont le message contient la valeur fautive.
+   lever l'exception dédiée sinon.
+3. Propriétés `get`-only ; une opération retourne une **nouvelle instance**
+   (`Money.Add`), et son invariant lève une exception dédiée
+   (`CurrencyMismatchException`).
+4. L'exception : `sealed`, héritant de `DomainException`, dans `Exceptions/`.
+   Elle ne porte aucun texte : elle passe à sa base un dictionnaire de
+   **primitives** à clés camelCase (`["currency"] = currency`) — jamais un VO,
+   le front reçoit le code dérivé du type (`INVALID_IBAN`) et internationalise.
 5. Regex de validation via `[GeneratedRegex]` (classe `partial`).
-6. Les opérations qui retournent un VO retournent une **nouvelle instance**
-   (cf. `Money.Add`) ; un invariant d'opération lève une exception dédiée
-   (cf. `CurrencyMismatchException`).
+6. Le test unitaire du VO (`ValueObjects/XxxTest.cs`) : égalité par valeur,
+   normalisation, chaque règle de validation rejetée avec son exception.
 
-## Exemple de référence
+## Exemples de référence
 
-`backend/LoreBank.SharedKernel.Domain/ValueObjects/Iban.cs` (mono-valeur,
-normalisation + regex) et `Money.cs` (multi-champs, opérations, invariant de
-devise).
+- `backend/LoreBank.SharedKernel.Domain/ValueObjects/Iban.cs` — mono-valeur,
+  normalisation + regex.
+- `Money.cs` — multi-champs, opérations, invariant de devise.
+- `PositiveMoney.cs` — restriction par enveloppement, validation déléguée.
+
+## Garde-fous
+
+| Règle | Ce qui rougit si elle casse |
+|---|---|
+| `sealed`, propriétés get-only | `DomainConventionTest` (SharedKernel.Test.Infrastructure) |
+| Code d'erreur dérivé du type, préfixé du module par le namespace | `DomainExceptionTest`, `ExceptionCodesTest` du module, `ModuleCompositionTest` |
+| Invalide ne peut pas exister | le test unitaire du VO — c'est l'étape 6, pas une option |
 
 ## Pièges
 
-- Valider avant de normaliser — `"fr76 …"` serait rejeté à tort.
-- Exposer un `implicit operator` vers le primitif : il annule le typage.
-- Revalider dans l'agrégat ce que le VO garantit déjà.
-- Oublier l'exception dédiée et lever `ArgumentException` : les erreurs métier
-  héritent de `DomainException`.
+- Normaliser **avant** de valider — sinon `"fr76 …"` est rejeté à tort.
+- Garder le typage de bout en bout : un `implicit operator` vers le primitif
+  l'annule.
+- Faire confiance au VO en aval : l'agrégat ne revérifie pas ce que le
+  constructeur garantit.
+- L'exception hérite de `DomainException` — une `ArgumentException` sortirait
+  en 500 anonyme au lieu d'un 422 codé.
 
 ## Avant de terminer
 
-Build sans warning + comportement démontré à l'exécution : égalité par valeur,
-normalisation, chaque rejet avec son exception.
+Build sans warning, et le test de l'étape 6 vert. Si le VO vit dans un module,
+son exception a sa ligne dans l'`ExceptionCodesTest` du module — le code est
+un contrat public, le test épingle le renommage.
