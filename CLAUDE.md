@@ -244,13 +244,16 @@ Le module `Bank` sert d'exemple de référence.
   un scope `Required` qui rejoint un ambiant d'un niveau différent lève une
   `ArgumentException`), scope DI, `Sender` — pour les tests qui parlent à
   `ISender` ; et `BaseHostTest<TFactory>` — hôte partagé sans transaction —
-  pour le dossier `Apis/` (le `TransactionScope` ambiant ne traverse pas la
-  frontière HTTP : `ErrorContractTest` épingle le contrat d'erreur — statuts,
-  type de média, `code`, absence de `detail` — et `CqsContractTest` le fait
-  qu'une commande ne serve aucune représentation ; ils écrivent pour de vrai,
-  avec des IBAN qui leur sont propres) et pour les tests qui observent un
-  rollback réel, comme `TransactionRollbackTest` (un scope interne non complété
-  condamne l'ambiant).
+  pour les dossiers `Apis/` (le `TransactionScope` ambiant ne traverse pas la
+  frontière HTTP : `ErrorContractTest`, côté SharedKernel, épingle le contrat
+  d'erreur — statuts, type de média, `code`, absence de `detail` — via le
+  `ProbeController`, un controller-sonde monté par `SharedKernelWebAppFactory`
+  seulement ; `CqsContractTest`, côté Bank, le fait qu'une commande ne serve
+  aucune représentation — discipline écrite dans chaque controller, pas
+  plomberie du socle, donc sa preuve reste dans le module de référence — en
+  écrivant pour de vrai, avec des IBAN qui lui sont propres) et pour les tests
+  qui observent un rollback réel, comme `TransactionRollbackTest` (un scope
+  interne non complété condamne l'ambiant).
 - Un module fournit trois petites classes (voir Bank) : une factory scellée
   (`BankWebAppFactory`) qui enregistre ses fakes dans `ConfigureModuleContainer`
   — la substitution d'un service inscrit par un `Module` Autofac ne peut pas se

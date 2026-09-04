@@ -420,14 +420,19 @@ locale de l'utilisateur. C'est tout l'intérêt de ne pas recevoir `"0.00 EUR"`.
 
 ## Ce que les tests garantissent
 
-`LoreBank.Bank.Test.Infrastructure/Apis/` est le seul dossier de la suite qui
-parle vraiment HTTP — partout ailleurs, les tests d'intégration passent par
-`ISender`. C'est donc `ErrorContractTest`, et lui seul, qui épingle ce document :
-statuts, type de média, présence du `code`, absence du `detail`, et le fait
-qu'aucun nom de type .NET ni aucun message d'exception n'atteint le client.
-(`CqsContractTest`, à côté, épingle le versant nominal : une commande ne sert
-aucune représentation.)
+C'est `ErrorContractTest`
+(`LoreBank.SharedKernel.Test.Infrastructure/Apis/`), et lui seul, qui épingle
+ce document : statuts, type de média, présence du `code`, absence du `detail`,
+et le fait qu'aucun nom de type .NET ni aucun message d'exception n'atteint le
+client. Il vit dans le SharedKernel, comme la plomberie qu'il prouve — pas dans
+un module métier qu'un cloneur du template supprimera — et se déclenche via le
+`ProbeController`, un controller-sonde monté par `SharedKernelWebAppFactory`
+seulement, avec une action par porte de sortie. (`CqsContractTest`, dans
+`LoreBank.Bank.Test.Infrastructure/Apis/`, épingle le versant nominal — une
+commande ne sert aucune représentation : c'est une discipline écrite dans
+chaque controller, pas une plomberie du socle, donc sa preuve reste dans le
+module de référence.)
 
-Il n'hérite pas de `BaseIntegrationTest` : le `TransactionScope` ambiant de
-celui-ci ne traverse pas la frontière HTTP, et une requête servie par l'hôte
-écrirait donc hors du rollback.
+Ces fixtures n'héritent pas de `BaseIntegrationTest` : le `TransactionScope`
+ambiant de celui-ci ne traverse pas la frontière HTTP, et une requête servie
+par l'hôte écrirait donc hors du rollback.
