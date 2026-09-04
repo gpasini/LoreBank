@@ -1,4 +1,3 @@
-using LoreBank.Bank.Application.Exceptions;
 using LoreBank.Bank.Domain.Aggregates;
 using LoreBank.Bank.Domain.Repositories;
 using LoreBank.SharedKernel.Application;
@@ -18,10 +17,10 @@ public sealed class CloseBankAccountCommandHandler(IBankAccountRepository reposi
     {
         var accountId = new BankAccountId(request.AccountId);
 
-        var account = await repository.GetByIdAsync(
+        var account = await repository.GetRequiredByIdAsync(
             id: accountId,
             cancellationToken: cancellationToken
-        ) ?? throw new BankAccountNotFoundException(accountId);
+        );
 
         account.Close();
 

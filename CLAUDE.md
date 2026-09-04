@@ -117,7 +117,10 @@ Le module `Bank` sert d'exemple de référence.
   le rattraper. Un effet de bord externe irréversible veut une outbox, pas ce
   mécanisme.
 - Les repositories d'agrégats sont des ports du Domain (`Repositories/`),
-  implémentés par l'Infrastructure. Côté Api, les erreurs métier
+  implémentés par l'Infrastructure. Le port expose `GetRequiredByIdAsync`
+  (non nullable — l'absence lève la `NotFoundException` du module, le handler
+  n'a pas de `?? throw` à écrire) et `SaveAsync` ; pas de variante nullable,
+  une sonde d'existence n'est pas un usage. Côté Api, les erreurs métier
   (`DomainException`) deviennent des ProblemDetails via le `DomainExceptionFilter`
   de `LoreBank.SharedKernel.Api`, enregistré une fois par l'hôte : 422, ou 404
   pour une `NotFoundException`. La réponse porte `code` et `parameters` en
@@ -223,7 +226,15 @@ Le module `Bank` sert d'exemple de référence.
   mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
 - Seule concession à EF dans le Domain : un constructeur privé sans paramètre
   réservé à la matérialisation.
-- Le repository implémente le port du Domain ; chaque Infrastructure expose son
+- Le repository implémente le port du Domain en dérivant de
+  `ModuleRepository<TAggregate, TId>` (`LoreBank.SharedKernel.Infrastructure`,
+  ADR 0010) et ne fournit que sa fabrique de `NotFoundException` : le
+  chargement (`FindAsync` — tracker puis clé primaire), le mini-unit-of-work
+  (Detached → Add) et le passage par le `SaveChangesAsync` qui dispatche les
+  events (ADR 0003) vivent dans la base — un repository écrit sans elle qui
+  n'appellerait pas `SaveChangesAsync` casserait le dispatch en silence
+  (`ModuleRepositoryTest` épingle ces invariants sur Sqlite). Chaque
+  Infrastructure expose son
   `Module` Autofac, enregistré par l'hôte via l'adapter `IHostModule` du module.
 - Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
   **SQL écrit à la main** : aucun agrégat n'est matérialisé, le `SELECT` ne
