@@ -194,15 +194,19 @@ Le module `Bank` sert d'exemple de référence.
 - Le repository implémente le port du Domain ; chaque Infrastructure expose son
   `Module` Autofac, enregistré par l'hôte via l'adapter `IHostModule` du module.
 - Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
-  **SQL écrit à la main** (ADO.NET brut, `NpgsqlCommand` + `DbDataReader`) :
-  aucun agrégat n'est matérialisé, le `SELECT` ne ramène que les colonnes du DTO.
-  La connexion est **empruntée au `DbContext`** (`Database.OpenConnectionAsync`
-  puis `GetDbConnection()`, refermée dans un `finally` — EF compte les
-  ouvertures), jamais ouverte en propre : une seconde connexion vers le même
-  PostgreSQL sous le `TransactionScope` ambiant d'une commande ferait enrôler un
-  second connecteur, et la transaction escaladerait en distribué. Le lien colonne
-  → propriété n'étant vérifié par aucun compilateur, chaque reader doit avoir un
-  test qui relit tous ses champs (voir `GetBankAccountByIdTest`).
+  **SQL écrit à la main** : aucun agrégat n'est matérialisé, le `SELECT` ne
+  ramène que les colonnes du DTO. Un reader dérive de `ModuleReader`
+  (`LoreBank.SharedKernel.Infrastructure`) et ne fournit que son SQL, ses
+  paramètres (dictionnaire à clés nues — le `@` ne vit que dans le SQL) et sa
+  lecture de colonnes ; c'est la base qui porte l'emprunt de connexion au
+  `DbContext` (`Database.OpenConnectionAsync` puis `GetDbConnection()`,
+  refermée dans un `finally` — EF compte les ouvertures), jamais ouverte en
+  propre : une seconde connexion vers le même PostgreSQL sous le
+  `TransactionScope` ambiant d'une commande ferait enrôler un second
+  connecteur, et la transaction escaladerait en distribué (`ModuleReaderTest`
+  épingle ces invariants). Le lien colonne → propriété n'étant vérifié par
+  aucun compilateur, chaque reader doit avoir un test qui relit tous ses
+  champs (voir `GetBankAccountByIdTest`).
 - Le `DbContext` d'un nouveau module dérive de `ModuleDbContext`
   (`LoreBank.SharedKernel.Infrastructure`) et implémente `ConfigureModule`
   (schéma, configurations — voir `BankDbContext.cs`) : le dispatch des events

@@ -20,3 +20,9 @@ _Avoid_ : DbContext de base, contexte partagé
 L'assembly Domain qu'un module déclare à l'hôte, celle où vivent ses handlers
 de domain events.
 _Avoid_ : assembly des handlers
+
+**ModuleReader** :
+La base des readers d'un module métier. Porte l'emprunt de connexion ; un
+reader concret ne fournit que son SQL, ses paramètres et sa lecture de
+colonnes.
+_Avoid_ : reader de base, helper SQL
