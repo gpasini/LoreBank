@@ -26,7 +26,11 @@ Le module `Bank` sert d'exemple de référence.
 
 - Un module = 6 projets `LoreBank.<Module>.{Domain, Application, Infrastructure,
   Api, Test.Unit, Test.Infrastructure}`, à plat dans `backend/`, regroupés dans
-  la solution sous le dossier `Modules/<Module>`.
+  la solution sous le dossier `Modules/<Module>` — +1 `Contracts` si le module
+  publie (ADR 0015) : son langage publié — integration events et ports de
+  lecture publics — la **seule** surface qu'un autre module a le droit de
+  référencer, et dont la seule dépendance est `SharedKernel.Contracts` (aucun
+  VO possible : primitives seulement, matériellement).
 - Les projets `Api` des modules sont des classlibs de controllers MVC (pas de
   minimal API). L'hôte unique `LoreBank.Host` (dossier de solution `Host`)
   porte la composition (DI, filtres) et monte les modules à travers le seam
@@ -78,7 +82,31 @@ Le module `Bank` sert d'exemple de référence.
   `Handlers/UnhandledExceptionHandler` (tout le reste, en 500).
   `LoreBank.SharedKernel.Infrastructure` complète la paire côté plomberie : ce
   que tous les modules partagent en implémentation — le `DomainEventDispatcher`,
-  la base `ModuleDbContext` et le seam de montage `IHostModule`.
+  la base `ModuleDbContext`, le seam de montage `IHostModule` et la machinerie
+  des integration events (`IntegrationEvents/` : outbox, inbox, dispatcher).
+  `LoreBank.SharedKernel.Contracts` (projet volontairement sans aucune
+  référence) porte les marqueurs du langage publié : `IIntegrationEvent`,
+  `[IntegrationEvent]`, `IIntegrationEventHandler<T>` et le port
+  `IIntegrationEventPublisher`.
+- La communication inter-modules a deux canaux, jamais une commande qui
+  traverse (le scope ambiant escaladerait en distribué). **Asynchrone** :
+  un domain event handler du module publieur mappe le fait interne vers son
+  jumeau plat suffixé `IntegrationEvent` (types distincts, primitives — ADR
+  0015) et le confie à `IIntegrationEventPublisher` — la ligne d'outbox part
+  dans la transaction de la commande ou pas du tout ; la publication est
+  opt-in, seuls les faits mappés sortent. Un hosted service unique dépile
+  toutes les outbox ; chaque handler consommateur (`IIntegrationEventHandler`,
+  découvert par scan Domain+Application) tourne dans son propre
+  `TransactionScope`, ligne d'inbox incluse — at-least-once, rejeu inoffensif,
+  backoff puis poison (ADR 0014). Le discriminant (`bank.money-deposited`,
+  premier segment = module publieur) est un nom stable choisi, jamais un nom
+  de type .NET. Les tables `__outbox`/`__inbox` naissent via `ModuleMigrator`.
+  **Synchrone** : un port de lecture publié dans les Contrats
+  (`IBankAccountsContract`), implémenté chez le propriétaire comme un reader —
+  DTOs plats, `null` pour l'absence, lecture pure in-process. Garde-fous :
+  `OutboxPublisherTest`, `OutboxProcessorTest` (socle) et
+  `IntegrationEventPublicationTest` (le module de référence emprunte vraiment
+  le chemin).
 
 ## Conventions du domaine
 

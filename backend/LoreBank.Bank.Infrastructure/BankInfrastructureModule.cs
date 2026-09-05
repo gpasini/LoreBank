@@ -1,5 +1,6 @@
 using Autofac;
 using LoreBank.Bank.Application.Readers;
+using LoreBank.Bank.Contracts.Readers;
 using LoreBank.Bank.Domain.Repositories;
 using LoreBank.Bank.Domain.Services;
 using LoreBank.Bank.Infrastructure.Readers;
@@ -25,6 +26,13 @@ public sealed class BankInfrastructureModule : Module
         builder
             .RegisterType<LoggingWelcomeLetterSender>()
             .As<IWelcomeLetterSender>()
+            .InstancePerLifetimeScope();
+
+        // Le port de lecture publié (Bank.Contracts) : c'est cette inscription
+        // qui le rend injectable par les modules consommateurs.
+        builder
+            .RegisterType<BankAccountsContractReader>()
+            .As<IBankAccountsContract>()
             .InstancePerLifetimeScope();
     }
 }

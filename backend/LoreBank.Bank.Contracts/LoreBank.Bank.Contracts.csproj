@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Le langage publié du module : la seule surface qu'un autre module a le
+         droit de référencer. Sa seule dépendance est le Contracts du socle —
+         pas de SharedKernel.Domain : un integration event ne peut porter que
+         des primitives, matériellement. -->
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Contracts\LoreBank.SharedKernel.Contracts.csproj"/>
+    </ItemGroup>
+
+</Project>

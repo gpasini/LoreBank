@@ -6,6 +6,7 @@
   <Folder Name="/Modules/Bank/">
     <Project Path="LoreBank.Bank.Api/LoreBank.Bank.Api.csproj" />
     <Project Path="LoreBank.Bank.Application/LoreBank.Bank.Application.csproj" />
+    <Project Path="LoreBank.Bank.Contracts/LoreBank.Bank.Contracts.csproj" />
     <Project Path="LoreBank.Bank.Domain/LoreBank.Bank.Domain.csproj" />
     <Project Path="LoreBank.Bank.Infrastructure/LoreBank.Bank.Infrastructure.csproj" />
     <Project Path="LoreBank.Bank.Test.Infrastructure/LoreBank.Bank.Test.Infrastructure.csproj" />

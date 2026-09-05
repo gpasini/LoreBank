@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <!-- Le Domain voit ses propres Contrats : les handlers de mapping y
+             traduisent les faits internes en langage publié. -->
+        <ProjectReference Include="..\LoreBank.Bank.Contracts\LoreBank.Bank.Contracts.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>
 
