@@ -46,3 +46,30 @@ La base des adapters `IHostModule`. Dérive l'identité du module — ses trois
 assemblies, son nom et sa persistance par défaut — du DbContext ancré en
 paramètre générique ; un adapter ne déclare plus que son `Module` Autofac.
 _Avoid_ : ModuleIdentity, adapter d'hôte
+
+**Contrats (de module)** :
+Le langage publié d'un module métier : l'assembly `<Module>.Contracts` qui
+porte ses integration events et ses ports de lecture publics — la seule
+surface qu'un autre module a le droit de référencer.
+_Avoid_ : API publique, shared kernel du module
+
+**Integration event** :
+Un fait métier qu'un module publie hors de ses frontières, suffixé
+`IntegrationEvent` : type distinct du domain event qui l'origine, primitives
+plates, vivant dans les Contrats du module publieur. Publié opt-in par un
+domain event handler, livré at-least-once.
+_Avoid_ : domain event publié, message, notification
+
+**Outbox** :
+La table d'un module publieur où ses integration events s'écrivent dans la
+transaction de la commande, identifiés par un discriminant stable choisi
+(jamais un nom de type .NET). Un dispatcher de l'hôte la dépile hors
+transaction.
+_Avoid_ : file d'attente, bus
+
+**Inbox** :
+La table d'un module consommateur où le socle journalise les integration
+events traités, dans la transaction du handler consommateur — c'est elle qui
+rend la livraison at-least-once idempotente et porte le marquage poison après
+épuisement des retries.
+_Avoid_ : dédup maison, journal de consommation
