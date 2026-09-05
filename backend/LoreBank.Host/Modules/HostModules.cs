@@ -7,5 +7,5 @@ namespace LoreBank.Host.Modules;
 // forcément monté et testé, un module absent n'est ni l'un ni l'autre.
 public static class HostModules
 {
-    public static readonly IHostModule[] All = [new BankModule()];
+    public static readonly IHostModule[] All = [new BankModule(), new LedgerModule()];
 }

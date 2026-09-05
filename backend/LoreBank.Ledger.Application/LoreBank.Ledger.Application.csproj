@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <!-- Bank.Contracts est la seule surface de Bank que Ledger a le droit
+             de voir (ADR 0015) : ses integration events, consommés ici, et
+             son port de lecture. La dépendance est à sens unique — Bank ne
+             connaît pas Ledger. -->
+        <ProjectReference Include="..\LoreBank.Bank.Contracts\LoreBank.Bank.Contracts.csproj"/>
+        <ProjectReference Include="..\LoreBank.Ledger.Domain\LoreBank.Ledger.Domain.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Application\LoreBank.SharedKernel.Application.csproj"/>
+    </ItemGroup>
+
+</Project>

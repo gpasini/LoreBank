@@ -12,6 +12,14 @@
     <Project Path="LoreBank.Bank.Test.Infrastructure/LoreBank.Bank.Test.Infrastructure.csproj" />
     <Project Path="LoreBank.Bank.Test.Unit/LoreBank.Bank.Test.Unit.csproj" />
   </Folder>
+  <Folder Name="/Modules/Ledger/">
+    <Project Path="LoreBank.Ledger.Api/LoreBank.Ledger.Api.csproj" />
+    <Project Path="LoreBank.Ledger.Application/LoreBank.Ledger.Application.csproj" />
+    <Project Path="LoreBank.Ledger.Domain/LoreBank.Ledger.Domain.csproj" />
+    <Project Path="LoreBank.Ledger.Infrastructure/LoreBank.Ledger.Infrastructure.csproj" />
+    <Project Path="LoreBank.Ledger.Test.Infrastructure/LoreBank.Ledger.Test.Infrastructure.csproj" />
+    <Project Path="LoreBank.Ledger.Test.Unit/LoreBank.Ledger.Test.Unit.csproj" />
+  </Folder>
   <Folder Name="/SharedKernel/">
     <Project Path="LoreBank.SharedKernel.Api/LoreBank.SharedKernel.Api.csproj" />
     <Project Path="LoreBank.SharedKernel.Application/LoreBank.SharedKernel.Application.csproj" />

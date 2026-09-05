@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.Ledger.Application\LoreBank.Ledger.Application.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Api\LoreBank.SharedKernel.Api.csproj"/>
+    </ItemGroup>
+
+</Project>

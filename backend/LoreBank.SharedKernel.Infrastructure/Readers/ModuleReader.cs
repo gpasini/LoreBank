@@ -31,19 +31,10 @@ public abstract class ModuleReader(ModuleDbContext context)
         await context.Database.OpenConnectionAsync(cancellationToken);
 
         try {
-            await using var command = context.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = sql;
-
-            // Le SQL nomme ses paramètres @xxx ; ici la clé est nue («id»,
-            // pas «@id») — l'asymétrie vit dans cette boucle, pas dans les
-            // readers.
-            foreach (var (name, value) in parameters) {
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = name;
-                parameter.Value = value;
-                command.Parameters.Add(parameter);
-            }
+            await using var command = CreateCommand(
+                sql: sql,
+                parameters: parameters
+            );
 
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
@@ -54,5 +45,59 @@ public abstract class ModuleReader(ModuleDbContext context)
         finally {
             await context.Database.CloseConnectionAsync();
         }
+    }
+
+    // La variante liste : mêmes invariants d'emprunt, une ligne du Result par
+    // ligne SQL — une liste vide est un résultat normal, jamais null.
+    protected async Task<IReadOnlyList<TRow>> QueryAsync<TRow>(
+        string sql,
+        Dictionary<string, object> parameters,
+        Func<DbDataReader, TRow> map,
+        CancellationToken cancellationToken
+    )
+    {
+        await context.Database.OpenConnectionAsync(cancellationToken);
+
+        try {
+            await using var command = CreateCommand(
+                sql: sql,
+                parameters: parameters
+            );
+
+            var rows = new List<TRow>();
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken)) {
+                rows.Add(map(reader));
+            }
+
+            return rows;
+        }
+        finally {
+            await context.Database.CloseConnectionAsync();
+        }
+    }
+
+    private DbCommand CreateCommand(
+        string sql,
+        Dictionary<string, object> parameters
+    )
+    {
+        var command = context.Database.GetDbConnection().CreateCommand();
+
+        command.CommandText = sql;
+
+        // Le SQL nomme ses paramètres @xxx ; ici la clé est nue («id»,
+        // pas «@id») — l'asymétrie vit dans cette boucle, pas dans les
+        // readers.
+        foreach (var (name, value) in parameters) {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value;
+            command.Parameters.Add(parameter);
+        }
+
+        return command;
     }
 }

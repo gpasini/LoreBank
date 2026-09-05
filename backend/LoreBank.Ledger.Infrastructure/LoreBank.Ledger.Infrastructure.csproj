@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Autofac"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.Ledger.Application\LoreBank.Ledger.Application.csproj"/>
+        <ProjectReference Include="..\LoreBank.Ledger.Domain\LoreBank.Ledger.Domain.csproj"/>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Infrastructure\LoreBank.SharedKernel.Infrastructure.csproj"/>
+    </ItemGroup>
+
+</Project>

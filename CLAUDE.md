@@ -2,7 +2,9 @@
 
 Monolithe modulaire .NET en Clean Architecture / DDD. Ce repo est une base de
 départ : clone-le, renomme, et construis tes modules métier sur ce socle.
-Le module `Bank` sert d'exemple de référence.
+Le module `Bank` sert d'exemple de référence pour construire un module ;
+`Ledger` (la comptabilité, nourrie par les events de `Bank`) pour la
+communication inter-modules.
 
 ## Build & toolchain
 

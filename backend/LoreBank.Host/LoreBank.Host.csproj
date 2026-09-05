@@ -11,6 +11,8 @@
     <ItemGroup>
         <ProjectReference Include="..\LoreBank.Bank.Api\LoreBank.Bank.Api.csproj"/>
         <ProjectReference Include="..\LoreBank.Bank.Infrastructure\LoreBank.Bank.Infrastructure.csproj"/>
+        <ProjectReference Include="..\LoreBank.Ledger.Api\LoreBank.Ledger.Api.csproj"/>
+        <ProjectReference Include="..\LoreBank.Ledger.Infrastructure\LoreBank.Ledger.Infrastructure.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Api\LoreBank.SharedKernel.Api.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Infrastructure\LoreBank.SharedKernel.Infrastructure.csproj"/>
     </ItemGroup>
