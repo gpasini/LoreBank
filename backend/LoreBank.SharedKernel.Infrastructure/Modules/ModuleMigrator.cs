@@ -1,3 +1,4 @@
+using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -49,6 +50,14 @@ public static class ModuleMigrator
                         .MigrateAsync(targetMigration: step.Id);
                 }
             }
+
+            // L'outbox et l'inbox du module, tables du socle créées ici comme
+            // le journal des data migrations : aucune migration EF à générer
+            // par module, et le démarrage de l'API ne crée toujours rien.
+            await IntegrationEventTables.EnsureAsync(
+                dbContext: runner.DbContext,
+                cancellationToken: CancellationToken.None
+            );
         }
     }
 }

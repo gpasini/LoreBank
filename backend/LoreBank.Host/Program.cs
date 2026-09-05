@@ -7,6 +7,7 @@ using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
+using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,6 +34,18 @@ builder.Host.ConfigureContainer<ContainerBuilder>(container => {
                 .RegisterAssemblyTypes(module.DomainAssembly)
                 .AsClosedTypesOf(typeof(IDomainEventHandler<>))
                 .InstancePerLifetimeScope();
+
+            // Le seam lui-même est exposé au conteneur : l'outbox (publisher et
+            // dispatcher) retrouve le DbContext d'un module par son nom.
+            container.RegisterInstance(module).As<IHostModule>();
+
+            // Les handlers d'integration events, découverts comme les
+            // IDomainEventHandler<> — et déclarés au dispatcher avec leur
+            // module, celui dont l'inbox journalisera leurs traitements.
+            foreach (var registration in IntegrationEventHandlers.DiscoverIn(module)) {
+                container.RegisterInstance(registration);
+                container.RegisterType(registration.HandlerType).AsSelf().InstancePerLifetimeScope();
+            }
         }
     }
 );
@@ -70,6 +83,13 @@ foreach (var module in modules) {
         configuration: builder.Configuration
     );
 }
+
+// La livraison des integration events : un seul dépileur pour toutes les
+// outbox, cadencé par OutboxOptions. Le verbe migrate sort avant app.Run(),
+// donc sans jamais démarrer le hosted service.
+builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(OutboxOptions.SectionName));
+builder.Services.AddSingleton<OutboxProcessor>();
+builder.Services.AddHostedService<OutboxDispatcher>();
 
 var app = builder.Build();
 

@@ -6,12 +6,15 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <!-- BackgroundService, pour le dépileur d'outbox de l'hôte. -->
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
         <!-- Le provider est une décision du socle (ADR 0008) : les modules
              l'héritent en transitif, aucun PackageReference à recopier. -->
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Contracts\LoreBank.SharedKernel.Contracts.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>
 

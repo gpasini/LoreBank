@@ -46,6 +46,15 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
                     );
 
                 configuration.AddInMemoryCollection(redirected);
+
+                // La cadence de fond est neutralisée dans tous les hôtes de
+                // test : les tests d'outbox pilotent OutboxProcessor
+                // eux-mêmes, une passe concurrente du hosted service rendrait
+                // leurs compteurs flaky.
+                configuration.AddInMemoryCollection(new Dictionary<string, string?> {
+                        ["IntegrationEvents:PollingSeconds"] = "3600",
+                    }
+                );
             }
         );
     }

@@ -14,6 +14,7 @@
   <Folder Name="/SharedKernel/">
     <Project Path="LoreBank.SharedKernel.Api/LoreBank.SharedKernel.Api.csproj" />
     <Project Path="LoreBank.SharedKernel.Application/LoreBank.SharedKernel.Application.csproj" />
+    <Project Path="LoreBank.SharedKernel.Contracts/LoreBank.SharedKernel.Contracts.csproj" />
     <Project Path="LoreBank.SharedKernel.Domain/LoreBank.SharedKernel.Domain.csproj" />
     <Project Path="LoreBank.SharedKernel.Infrastructure/LoreBank.SharedKernel.Infrastructure.csproj" />
     <Project Path="LoreBank.SharedKernel.Test.Infrastructure/LoreBank.SharedKernel.Test.Infrastructure.csproj" />

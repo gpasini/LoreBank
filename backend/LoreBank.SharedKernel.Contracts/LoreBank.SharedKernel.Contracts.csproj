@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Volontairement sans aucune référence : ce projet est ce que les
+         Contracts des modules ont le droit de voir. Zéro dépendance encode
+         « primitives seulement » matériellement — un integration event ne
+         peut pas porter un VO qu'il ne voit pas. -->
+
+</Project>
