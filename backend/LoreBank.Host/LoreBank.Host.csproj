@@ -2,6 +2,11 @@
 
     <ItemGroup>
         <PackageReference Include="Autofac.Extensions.DependencyInjection"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <!-- Référence directe pour appliquer le pin de sécurité de
+             Directory.Packages.props à la transitive de Microsoft.AspNetCore.OpenApi. -->
+        <PackageReference Include="Microsoft.OpenApi"/>
+        <PackageReference Include="Scalar.AspNetCore"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -10,6 +10,7 @@ using LoreBank.SharedKernel.Infrastructure;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using Microsoft.AspNetCore.Mvc;
+using Scalar.AspNetCore;
 
 var modules = HostModules.All;
 
@@ -69,6 +70,14 @@ builder.Services.Configure<ApiBehaviorOptions>(
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
+// Le document OpenAPI et Scalar sont réservés au Development : la surface de
+// prod ne publie pas sa propre description. L'enregistrement du service est
+// gardé lui aussi — MapOpenApi sans AddOpenApi échouerait au démarrage, le
+// couple vit et meurt ensemble.
+if (builder.Environment.IsDevelopment()) {
+    builder.Services.AddOpenApi();
+}
+
 builder.Services.AddMediatR(configuration => {
         configuration.RegisterServicesFromAssemblies(
             modules.Select(module => module.ApplicationAssembly).ToArray()
@@ -111,6 +120,12 @@ if (migrateOnly) {
 app.UseExceptionHandler();
 
 app.MapControllers();
+
+// /openapi/v1.json et /scalar, en Development seulement.
+if (app.Environment.IsDevelopment()) {
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.Run();
 // Rend la classe Program générée par les top-level statements visible de WebApplicationFactory.
