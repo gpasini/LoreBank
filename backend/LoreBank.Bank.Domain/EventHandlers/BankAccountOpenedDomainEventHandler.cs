@@ -5,10 +5,10 @@ using LoreBank.SharedKernel.Domain.Events;
 namespace LoreBank.Bank.Domain.EventHandlers;
 
 public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender welcomeLetterSender)
-    : IDomainEventHandler<BankAccountOpened>
+    : IDomainEventHandler<BankAccountOpenedDomainEvent>
 {
     public Task HandleAsync(
-        BankAccountOpened domainEvent,
+        BankAccountOpenedDomainEvent domainEvent,
         CancellationToken cancellationToken
     ) => welcomeLetterSender.SendAsync(
         iban: domainEvent.Iban,

@@ -30,7 +30,8 @@ obtenir un sans passer par la factory.
    `PositiveMoney`, pas un `Money` nu — un montant négatif qui inverserait le
    sens de l'opération devient inexprimable. Un primitif qui arrive nu passe
    par la skill `nouveau-value-object`.
-6. **Events** : `sealed record` nommé au passé (`BankAccountOpened`),
+6. **Events** : `sealed record` nommé au passé et suffixé `DomainEvent`
+   (`BankAccountOpenedDomainEvent`),
    implémentant `IDomainEvent`, dans `Events/`, portant l'id de l'agrégat et
    les données utiles au consommateur.
 7. **Exceptions** : une classe `sealed : DomainException` par invariant, dans
@@ -67,8 +68,9 @@ exceptions et id typé dans le même projet.
 ## Pièges
 
 - L'event décrit un fait accompli : muter l'état, **puis** émettre.
-- Un event se nomme au passé (`BankAccountOpened`) — l'impératif
-  (`OpenAccount`) décrit une intention, pas un fait.
+- Un event se nomme au passé (`BankAccountOpenedDomainEvent`) — l'impératif
+  (`OpenAccount`) décrit une intention, pas un fait. Le suffixe `DomainEvent`
+  le distingue de son éventuel jumeau publié (`…IntegrationEvent`).
 - L'agrégat porte l'état qui décide, pas celui qui s'affiche — une donnée de
   lecture pure vient d'un reader, elle n'a rien à faire ici.
 - La réaction à un event vit dans un handler, jamais dans l'agrégat émetteur.

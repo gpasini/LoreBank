@@ -19,7 +19,7 @@ public sealed class BankAccountOpenedDomainEventHandlerTest
         var handler = new BankAccountOpenedDomainEventHandler(welcomeLetterSender);
         var iban = new Iban("FR7630006000011234567890189");
 
-        var domainEvent = new BankAccountOpened(
+        var domainEvent = new BankAccountOpenedDomainEvent(
             AccountId: BankAccountId.New(),
             Iban: iban
         );

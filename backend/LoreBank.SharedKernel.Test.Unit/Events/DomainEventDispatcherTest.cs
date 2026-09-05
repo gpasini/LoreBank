@@ -16,7 +16,7 @@ public sealed class DomainEventDispatcherTest
         var first = new RecordingDomainEventHandler();
         var second = new RecordingDomainEventHandler();
         var serviceProvider = new FakeServiceProvider();
-        serviceProvider.Register<IDomainEventHandler<SomethingHappened>>(
+        serviceProvider.Register<IDomainEventHandler<SomethingHappenedDomainEvent>>(
             first,
             second
         );
@@ -24,7 +24,7 @@ public sealed class DomainEventDispatcherTest
         // Act
 
         await new DomainEventDispatcher(serviceProvider).DispatchAsync(
-            domainEvents: [new SomethingHappened()],
+            domainEvents: [new SomethingHappenedDomainEvent()],
             cancellationToken: CancellationToken.None
         );
 
@@ -44,7 +44,7 @@ public sealed class DomainEventDispatcherTest
         // Act
 
         var act = async () => await new DomainEventDispatcher(serviceProvider).DispatchAsync(
-            domainEvents: [new SomethingElseHappened()],
+            domainEvents: [new SomethingElseHappenedDomainEvent()],
             cancellationToken: CancellationToken.None
         );
 
@@ -59,12 +59,12 @@ public sealed class DomainEventDispatcherTest
         // Arrange
 
         var serviceProvider = new FakeServiceProvider();
-        serviceProvider.Register<IDomainEventHandler<SomethingHappened>>(new ThrowingDomainEventHandler());
+        serviceProvider.Register<IDomainEventHandler<SomethingHappenedDomainEvent>>(new ThrowingDomainEventHandler());
 
         // Act
 
         var act = async () => await new DomainEventDispatcher(serviceProvider).DispatchAsync(
-            domainEvents: [new SomethingHappened()],
+            domainEvents: [new SomethingHappenedDomainEvent()],
             cancellationToken: CancellationToken.None
         );
 
@@ -83,12 +83,12 @@ public sealed class DomainEventDispatcherTest
         // await fait échouer (fault) la Task retournée, et await la relève
         // directement, sans passer par le catch du dispatcher.
         var serviceProvider = new FakeServiceProvider();
-        serviceProvider.Register<IDomainEventHandler<SomethingHappened>>(new ThrowingAfterAwaitDomainEventHandler());
+        serviceProvider.Register<IDomainEventHandler<SomethingHappenedDomainEvent>>(new ThrowingAfterAwaitDomainEventHandler());
 
         // Act
 
         var act = async () => await new DomainEventDispatcher(serviceProvider).DispatchAsync(
-            domainEvents: [new SomethingHappened()],
+            domainEvents: [new SomethingHappenedDomainEvent()],
             cancellationToken: CancellationToken.None
         );
 
@@ -104,12 +104,12 @@ public sealed class DomainEventDispatcherTest
 
         var handler = new RecordingDomainEventHandler();
         var serviceProvider = new FakeServiceProvider();
-        serviceProvider.Register<IDomainEventHandler<SomethingHappened>>(handler);
+        serviceProvider.Register<IDomainEventHandler<SomethingHappenedDomainEvent>>(handler);
 
         // Act
 
         await new DomainEventDispatcher(serviceProvider).DispatchAsync(
-            domainEvents: [new SomethingHappened(), new SomethingElseHappened(), new SomethingHappened()],
+            domainEvents: [new SomethingHappenedDomainEvent(), new SomethingElseHappenedDomainEvent(), new SomethingHappenedDomainEvent()],
             cancellationToken: CancellationToken.None
         );
 

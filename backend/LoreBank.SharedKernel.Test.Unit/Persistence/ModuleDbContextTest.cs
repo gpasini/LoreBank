@@ -48,7 +48,7 @@ public sealed class ModuleDbContextTest
 
         // Assert
 
-        dispatcher.Dispatched.Should().ContainSingle().Which.Should().BeOfType<SomethingHappened>();
+        dispatcher.Dispatched.Should().ContainSingle().Which.Should().BeOfType<SomethingHappenedDomainEvent>();
     }
 
     [Test]

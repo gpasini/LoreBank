@@ -107,8 +107,8 @@ Le module `Bank` sert d'exemple de référence.
 - Un agrégat naît par sa factory statique (constructeur privé), garde ses
   invariants dans ses méthodes de transition — les VO portent les leurs, on ne
   revérifie pas ce qu'un VO garantit — et émet un domain event par transition
-  (`record sealed`, nommé au passé). Procédure : skills `nouvel-agregat` et
-  `nouveau-domain-event-handler`.
+  (`record sealed`, nommé au passé et suffixé `DomainEvent`). Procédure :
+  skills `nouvel-agregat` et `nouveau-domain-event-handler`.
 - Les handlers de domain events vivent dans le Domain (`EventHandlers/`) ; leurs
   dépendances sont des ports — interfaces dans `Services/`, implémentées par
   l'Infrastructure. Ils sont dispatchés par le `SaveChangesAsync` de `ModuleDbContext`

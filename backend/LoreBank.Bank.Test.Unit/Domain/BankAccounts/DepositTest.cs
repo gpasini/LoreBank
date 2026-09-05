@@ -32,7 +32,7 @@ public sealed class DepositTest
         // Assert
 
         account.Balance.Amount.Should().Be(150m);
-        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is MoneyDeposited);
+        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is MoneyDepositedDomainEvent);
     }
 
     [Test]

@@ -2,10 +2,10 @@ using LoreBank.SharedKernel.Domain.Events;
 
 namespace LoreBank.SharedKernel.Test.Unit.Fakes;
 
-public sealed class ThrowingAfterAwaitDomainEventHandler : IDomainEventHandler<SomethingHappened>
+public sealed class ThrowingAfterAwaitDomainEventHandler : IDomainEventHandler<SomethingHappenedDomainEvent>
 {
     public async Task HandleAsync(
-        SomethingHappened domainEvent,
+        SomethingHappenedDomainEvent domainEvent,
         CancellationToken cancellationToken
     )
     {

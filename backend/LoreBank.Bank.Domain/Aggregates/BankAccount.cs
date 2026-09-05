@@ -45,7 +45,7 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         );
 
         account.AddDomainEvent(
-            new BankAccountOpened(
+            new BankAccountOpenedDomainEvent(
                 AccountId: account.Id,
                 Iban: iban
             )
@@ -61,7 +61,7 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         EnsureIsOpen();
         Balance += amount.Value;
         AddDomainEvent(
-            new MoneyDeposited(
+            new MoneyDepositedDomainEvent(
                 AccountId: Id,
                 Amount: amount.Value,
                 NewBalance: Balance
@@ -82,7 +82,7 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
 
         Balance -= amount.Value;
         AddDomainEvent(
-            new MoneyWithdrawn(
+            new MoneyWithdrawnDomainEvent(
                 AccountId: Id,
                 Amount: amount.Value,
                 NewBalance: Balance
@@ -102,7 +102,7 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         }
 
         IsClosed = true;
-        AddDomainEvent(new BankAccountClosed(Id));
+        AddDomainEvent(new BankAccountClosedDomainEvent(Id));
     }
 
     private void EnsureIsOpen()

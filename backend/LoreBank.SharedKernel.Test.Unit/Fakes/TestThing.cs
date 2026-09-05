@@ -6,6 +6,6 @@ public sealed class TestThing(Guid id) : AggregateRoot<Guid>(id)
 {
     public void Happen()
     {
-        AddDomainEvent(new SomethingHappened());
+        AddDomainEvent(new SomethingHappenedDomainEvent());
     }
 }

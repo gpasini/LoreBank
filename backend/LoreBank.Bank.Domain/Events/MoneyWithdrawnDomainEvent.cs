@@ -4,7 +4,8 @@ using LoreBank.SharedKernel.Domain.ValueObjects;
 
 namespace LoreBank.Bank.Domain.Events;
 
-public sealed record BankAccountOpened(
+public sealed record MoneyWithdrawnDomainEvent(
     BankAccountId AccountId,
-    Iban Iban
+    Money Amount,
+    Money NewBalance
 ) : IDomainEvent;

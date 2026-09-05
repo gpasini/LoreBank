@@ -19,10 +19,10 @@ dans des handlers du Domain (`EventHandlers/`) qui ne dépendent que de
 
 ```csharp
 public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender welcomeLetterSender)
-    : IDomainEventHandler<BankAccountOpened>
+    : IDomainEventHandler<BankAccountOpenedDomainEvent>
 {
     public Task HandleAsync(
-        BankAccountOpened domainEvent,
+        BankAccountOpenedDomainEvent domainEvent,
         CancellationToken cancellationToken
     ) => welcomeLetterSender.SendAsync(
         iban: domainEvent.Iban,

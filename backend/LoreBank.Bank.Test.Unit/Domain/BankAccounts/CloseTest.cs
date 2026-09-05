@@ -23,7 +23,7 @@ public sealed class CloseTest
         // Assert
 
         account.IsClosed.Should().BeTrue();
-        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is BankAccountClosed);
+        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is BankAccountClosedDomainEvent);
     }
 
     [Test]

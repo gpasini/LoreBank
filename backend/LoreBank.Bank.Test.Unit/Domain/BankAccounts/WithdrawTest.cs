@@ -31,7 +31,7 @@ public sealed class WithdrawTest
         // Assert
 
         account.Balance.Amount.Should().Be(70m);
-        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is MoneyWithdrawn);
+        account.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is MoneyWithdrawnDomainEvent);
     }
 
     [Test]
