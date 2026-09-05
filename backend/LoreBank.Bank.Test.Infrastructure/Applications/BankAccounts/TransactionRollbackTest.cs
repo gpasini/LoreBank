@@ -54,7 +54,7 @@ public sealed class TransactionRollbackTest : BaseHostTest<BankWebAppFactory>
         using var readScope = Factory.Services.CreateScope();
         var context = readScope.ServiceProvider.GetRequiredService<BankDbContext>();
 
-        (await context.BankAccounts.AnyAsync(account => account.Iban == new Iban(RollbackAttemptIban)))
+        (await context.BankAccounts.AnyAsync(account => account.Iban == Iban.Parse(RollbackAttemptIban)))
             .Should().BeFalse();
     }
 
@@ -79,7 +79,7 @@ public sealed class TransactionRollbackTest : BaseHostTest<BankWebAppFactory>
         using var readScope = Factory.Services.CreateScope();
         var context = readScope.ServiceProvider.GetRequiredService<BankDbContext>();
 
-        (await context.BankAccounts.AnyAsync(account => account.Id == new BankAccountId(accountId)))
+        (await context.BankAccounts.AnyAsync(account => account.Id == BankAccountId.Hydrate(accountId)))
             .Should().BeTrue();
     }
 }

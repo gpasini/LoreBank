@@ -5,12 +5,27 @@ namespace LoreBank.SharedKernel.Domain.ValueObjects;
 
 public sealed partial class Iban : SimpleValueObject<string>
 {
-    public Iban(string value) : base(Normalize(value))
+    private Iban(string value) : base(value)
     {
-        if (!Format().IsMatch(Value)) {
+    }
+
+    // Création : l'entrée vient d'une frontière — normaliser d'abord, valider
+    // ensuite, aucune instance invalide ne peut être créée.
+    public static Iban Parse(string value)
+    {
+        var normalized = Normalize(value);
+
+        if (!Format().IsMatch(normalized)) {
             throw new InvalidIbanException(value);
         }
+
+        return new Iban(normalized);
     }
+
+    // Réhydratation : la valeur vient de la base, écrite par Parse et
+    // maintenue par les data migrations — relire n'est pas re-décider
+    // (ADR 0016). Jamais appelé depuis du code métier.
+    public static Iban Hydrate(string value) => new(value);
 
     private static string Normalize(string value) => value
         .Replace(

@@ -8,11 +8,11 @@ namespace LoreBank.SharedKernel.Test.Unit.ValueObjects;
 public sealed class IbanTest
 {
     [Test]
-    public void Constructor_ShouldNormalize_WhenValueContainsSpacesAndLowercase()
+    public void Parse_ShouldNormalize_WhenValueContainsSpacesAndLowercase()
     {
         // Act
 
-        var iban = new Iban("fr76 3000 6000 0112 3456 7890 189");
+        var iban = Iban.Parse("fr76 3000 6000 0112 3456 7890 189");
 
         // Assert
 
@@ -20,9 +20,9 @@ public sealed class IbanTest
     }
 
     [Test]
-    public void Constructor_ShouldSucceed_WhenValueIsValid()
+    public void Parse_ShouldSucceed_WhenValueIsValid()
     {
-        var act = () => new Iban("DE89370400440532013000");
+        var act = () => Iban.Parse("DE89370400440532013000");
 
         act.Should().NotThrow();
     }
@@ -31,9 +31,9 @@ public sealed class IbanTest
     [TestCase("FR76")]
     [TestCase("7676300060000112345678901")]
     [TestCase("FRXX300060000112345678901")]
-    public void Constructor_ShouldThrow_WhenValueIsInvalid(string value)
+    public void Parse_ShouldThrow_WhenValueIsInvalid(string value)
     {
-        var act = () => new Iban(value);
+        var act = () => Iban.Parse(value);
 
         act.Should().Throw<InvalidIbanException>();
     }
@@ -41,6 +41,15 @@ public sealed class IbanTest
     [Test]
     public void Equals_ShouldBeTrue_WhenNormalizedValuesMatch()
     {
-        new Iban("FR7630006000011234567890189").Should().Be(new Iban("fr76 3000 6000 0112 3456 7890 189"));
+        Iban.Parse("FR7630006000011234567890189").Should().Be(Iban.Parse("fr76 3000 6000 0112 3456 7890 189"));
+    }
+
+    // La réhydratation truste la base (ADR 0016) : ni normalisation ni
+    // validation — la valeur stockée est reprise telle quelle, même si elle
+    // ne passerait plus Parse.
+    [Test]
+    public void Hydrate_ShouldAcceptTheStoredValueAsIs()
+    {
+        Iban.Hydrate("pas un iban").Value.Should().Be("pas un iban");
     }
 }

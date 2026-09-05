@@ -131,9 +131,15 @@ communication inter-modules.
   paramètres, en culture invariante : il sert aux logs, jamais au client.
   Les exceptions « introuvable » héritent de `NotFoundException`.
 - Les value objects sont des classes, pas des records — choix délibéré :
-  l'égalité vient de `ValueObject`. Immuables, validés à la construction —
-  aucune instance invalide ne peut exister. Procédure et pièges : skill
-  `nouveau-value-object`.
+  l'égalité vient de `ValueObject`. Immuables, et **validés à la création** —
+  aucune instance invalide ne peut être créée : constructeur privé, une
+  factory nommée qui normalise puis valide (`Iban.Parse`, `Money.Of`,
+  `XxxId.New`), et `Hydrate` — non validant, réservé aux conversions EF —
+  pour la réhydratation, qui truste la base (ADR 0016 : la validation vit aux
+  frontières, ce sont les data migrations qui maintiennent le stock ; jamais
+  de `Hydrate` depuis du code métier, ni de `Hydrate` sans appelant).
+  `DomainConventionTest` interdit tout constructeur public sur un VO.
+  Procédure et pièges : skill `nouveau-value-object`.
 - Un agrégat naît par sa factory statique (constructeur privé), garde ses
   invariants dans ses méthodes de transition — les VO portent les leurs, on ne
   revérifie pas ce qu'un VO garantit — et émet un domain event par transition
@@ -305,7 +311,10 @@ communication inter-modules.
   directement via `IEntityTypeConfiguration` — `HasConversion` pour les VO
   mono-valeur, `OwnsOne` pour les VO multi-champs éclatés en colonnes.
 - Seule concession à EF dans le Domain : un constructeur privé sans paramètre
-  réservé à la matérialisation.
+  réservé à la matérialisation. C'est assumé au-delà de la mécanique
+  (ADR 0016) : réhydrater un agrégat re-représente un fait établi — aucune
+  factory rejouée, aucun invariant revérifié, aucun event réémis — les
+  invariants gardent les *transitions*, pas les lectures.
 - Le repository implémente le port du Domain en dérivant de
   `ModuleRepository<TAggregate, TId>` (`LoreBank.SharedKernel.Infrastructure`,
   ADR 0010) et ne fournit que sa fabrique de `NotFoundException` : le

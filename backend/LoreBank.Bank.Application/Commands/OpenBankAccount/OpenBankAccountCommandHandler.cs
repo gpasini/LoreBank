@@ -14,7 +14,7 @@ public sealed class OpenBankAccountCommandHandler(IBankAccountRepository reposit
     )
     {
         var account = BankAccount.Open(
-            iban: new Iban(request.Iban),
+            iban: Iban.Parse(request.Iban),
             currency: request.Currency
         );
 

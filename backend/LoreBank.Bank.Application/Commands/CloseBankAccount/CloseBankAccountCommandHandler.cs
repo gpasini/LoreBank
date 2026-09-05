@@ -12,7 +12,7 @@ public sealed class CloseBankAccountCommandHandler(IBankAccountRepository reposi
         CancellationToken cancellationToken
     )
     {
-        var accountId = new BankAccountId(request.AccountId);
+        var accountId = BankAccountId.Hydrate(request.AccountId);
 
         var account = await repository.GetRequiredByIdAsync(
             id: accountId,

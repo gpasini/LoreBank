@@ -24,6 +24,6 @@ public sealed class GetBankAccountByIdQueryHandler(IBankAccountReader reader)
             cancellationToken: cancellationToken
         );
 
-        return result ?? throw new BankAccountNotFoundException(new BankAccountId(request.AccountId));
+        return result ?? throw new BankAccountNotFoundException(BankAccountId.Hydrate(request.AccountId));
     }
 }

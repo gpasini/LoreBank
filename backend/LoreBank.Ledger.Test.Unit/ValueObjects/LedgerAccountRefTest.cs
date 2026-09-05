@@ -26,20 +26,28 @@ public sealed class LedgerAccountRefTest
     }
 
     [Test]
-    public void Constructor_ShouldNormalizeBeforeValidating()
+    public void Parse_ShouldNormalizeBeforeValidating()
     {
-        new LedgerAccountRef("  cash ").Should().Be(LedgerAccountRef.Cash);
+        LedgerAccountRef.Parse("  cash ").Should().Be(LedgerAccountRef.Cash);
     }
 
     [TestCase("")]
     [TestCase("CAISSE")]
     [TestCase("BANK:")]
     [TestCase("BANK:pas-un-guid")]
-    public void Constructor_ShouldReject_WhenTheFormIsUnknown(string value)
+    public void Parse_ShouldReject_WhenTheFormIsUnknown(string value)
     {
-        var act = () => new LedgerAccountRef(value);
+        var act = () => LedgerAccountRef.Parse(value);
 
         act.Should().Throw<InvalidLedgerAccountRefException>();
+    }
+
+    // La réhydratation truste la base (ADR 0016) : la valeur stockée est
+    // reprise telle quelle, même si elle ne passerait plus Parse.
+    [Test]
+    public void Hydrate_ShouldAcceptTheStoredValueAsIs()
+    {
+        LedgerAccountRef.Hydrate("CAISSE").Value.Should().Be("CAISSE");
     }
 
     [Test]

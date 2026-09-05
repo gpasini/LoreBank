@@ -67,6 +67,13 @@ transaction de la commande, identifiés par un discriminant stable choisi
 transaction.
 _Avoid_ : file d'attente, bus
 
+**Hydrate** :
+La factory de réhydratation d'un value object : reprend la valeur stockée
+telle quelle, sans normaliser ni valider — la validation vit dans les
+factories de création (`Parse`, `Of`, `New`…), la base est trustée. Réservé
+aux conversions EF, jamais appelé depuis du code métier.
+_Avoid_ : constructeur de lecture, FromDatabase, désérialisation
+
 **Inbox** :
 La table d'un module consommateur où le socle journalise les integration
 events traités, dans la transaction du handler consommateur — c'est elle qui

@@ -5,7 +5,7 @@ namespace LoreBank.Bank.Test.Unit.Builders;
 
 public sealed class BankAccountBuilder
 {
-    private Iban _iban = new("FR7630006000011234567890189");
+    private Iban _iban = Iban.Parse("FR7630006000011234567890189");
     private string _currency = "EUR";
     private decimal _balance;
     private bool _isClosed;
@@ -43,7 +43,7 @@ public sealed class BankAccountBuilder
 
         if (_balance > 0m) {
             account.Deposit(
-                new PositiveMoney(
+                PositiveMoney.Of(
                     amount: _balance,
                     currency: _currency
                 )
@@ -53,7 +53,7 @@ public sealed class BankAccountBuilder
         if (_isClosed) {
             if (_balance > 0m) {
                 account.Withdraw(
-                    new PositiveMoney(
+                    PositiveMoney.Of(
                         amount: _balance,
                         currency: _currency
                     )

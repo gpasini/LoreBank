@@ -10,9 +10,9 @@ public sealed class BicTest
     [TestCase("BNPAFRPP")]
     [TestCase("BNPAFRPPXXX")]
     [TestCase("bnpafrpp")]
-    public void Constructor_ShouldSucceed_WhenValueIsValid(string value)
+    public void Parse_ShouldSucceed_WhenValueIsValid(string value)
     {
-        var act = () => new Bic(value);
+        var act = () => Bic.Parse(value);
 
         act.Should().NotThrow();
     }
@@ -21,10 +21,16 @@ public sealed class BicTest
     [TestCase("BNPAFRPPX")]
     [TestCase("1NPAFRPP")]
     [TestCase("BNPAFRPPXXXX")]
-    public void Constructor_ShouldThrow_WhenValueIsInvalid(string value)
+    public void Parse_ShouldThrow_WhenValueIsInvalid(string value)
     {
-        var act = () => new Bic(value);
+        var act = () => Bic.Parse(value);
 
         act.Should().Throw<InvalidBicException>();
+    }
+
+    [Test]
+    public void Hydrate_ShouldAcceptTheStoredValueAsIs()
+    {
+        Bic.Hydrate("pas un bic").Value.Should().Be("pas un bic");
     }
 }

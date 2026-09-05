@@ -18,7 +18,7 @@ public sealed class JournalEntryConfiguration : IEntityTypeConfiguration<Journal
             .HasColumnName("id")
             .HasConversion(
                 convertToProviderExpression: id => id.Value,
-                convertFromProviderExpression: value => new JournalEntryId(value)
+                convertFromProviderExpression: value => JournalEntryId.Hydrate(value)
             )
             .ValueGeneratedNever();
 
@@ -42,7 +42,7 @@ public sealed class JournalEntryConfiguration : IEntityTypeConfiguration<Journal
                     .HasMaxLength(42)
                     .HasConversion(
                         convertToProviderExpression: account => account.Value,
-                        convertFromProviderExpression: value => new LedgerAccountRef(value)
+                        convertFromProviderExpression: value => LedgerAccountRef.Hydrate(value)
                     );
 
                 lines

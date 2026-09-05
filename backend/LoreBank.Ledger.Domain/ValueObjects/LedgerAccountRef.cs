@@ -14,7 +14,22 @@ public sealed partial class LedgerAccountRef : ValueObject
 {
     private const string BankAccountPrefix = "BANK:";
 
-    public LedgerAccountRef(string value)
+    private LedgerAccountRef(string value)
+    {
+        Value = value;
+    }
+
+    // La trésorerie : le compte technique en contrepartie de tout mouvement.
+    public static LedgerAccountRef Cash { get; } = new("CASH");
+
+    // Correct par construction : la forme canonique est fabriquée ici, rien à
+    // valider.
+    public static LedgerAccountRef ForBankAccount(Guid bankAccountId) =>
+        new($"{BankAccountPrefix}{bankAccountId:D}".ToUpperInvariant());
+
+    // Création depuis une chaîne venue d'une frontière : normalise puis
+    // valide — c'est le gardien publié de la forme canonique.
+    public static LedgerAccountRef Parse(string value)
     {
         var normalized = value.Trim().ToUpperInvariant();
 
@@ -22,14 +37,12 @@ public sealed partial class LedgerAccountRef : ValueObject
             throw new InvalidLedgerAccountRefException(value);
         }
 
-        Value = normalized;
+        return new LedgerAccountRef(normalized);
     }
 
-    // La trésorerie : le compte technique en contrepartie de tout mouvement.
-    public static LedgerAccountRef Cash { get; } = new("CASH");
-
-    public static LedgerAccountRef ForBankAccount(Guid bankAccountId) =>
-        new($"{BankAccountPrefix}{bankAccountId:D}");
+    // Réhydratation : truste la base (ADR 0016). Jamais appelé depuis du
+    // code métier.
+    public static LedgerAccountRef Hydrate(string value) => new(value);
 
     public string Value { get; }
 

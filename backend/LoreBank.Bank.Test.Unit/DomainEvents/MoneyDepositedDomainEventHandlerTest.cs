@@ -22,11 +22,11 @@ public sealed class MoneyDepositedDomainEventHandlerTest
 
         var domainEvent = new MoneyDepositedDomainEvent(
             AccountId: accountId,
-            Amount: new Money(
+            Amount: Money.Of(
                 amount: 25.50m,
                 currency: "EUR"
             ),
-            NewBalance: new Money(
+            NewBalance: Money.Of(
                 amount: 70m,
                 currency: "EUR"
             )

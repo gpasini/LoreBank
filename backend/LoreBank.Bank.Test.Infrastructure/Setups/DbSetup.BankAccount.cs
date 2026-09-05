@@ -31,7 +31,7 @@ public partial class DbSetup
             );
         }
 
-        _bankAccountIds.Add(new BankAccountId(accountId));
+        _bankAccountIds.Add(BankAccountId.Hydrate(accountId));
     }
 
     public BankAccountId GetLastBankAccountId() => _bankAccountIds.Last();

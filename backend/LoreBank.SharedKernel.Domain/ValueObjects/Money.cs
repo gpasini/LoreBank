@@ -5,7 +5,21 @@ namespace LoreBank.SharedKernel.Domain.ValueObjects;
 
 public sealed partial class Money : ValueObject
 {
-    public Money(
+    // Brut, sans validation : c'est lui la réhydratation — EF le lie pour les
+    // colonnes owned (amount, currency), et les opérations internes le
+    // réutilisent, la devise étant déjà prouvée (ADR 0016).
+    private Money(
+        decimal amount,
+        string currency
+    )
+    {
+        Amount = amount;
+        Currency = currency;
+    }
+
+    // Création : la devise vient d'une frontière, elle se valide ici — aucune
+    // instance invalide ne peut être créée.
+    public static Money Of(
         decimal amount,
         string currency
     )
@@ -14,8 +28,10 @@ public sealed partial class Money : ValueObject
             throw new InvalidCurrencyException(currency);
         }
 
-        Amount = amount;
-        Currency = currency;
+        return new Money(
+            amount: amount,
+            currency: currency
+        );
     }
 
     public decimal Amount { get; }

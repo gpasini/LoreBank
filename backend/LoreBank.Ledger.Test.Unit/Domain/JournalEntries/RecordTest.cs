@@ -78,10 +78,10 @@ public sealed class RecordTest
                 direction: JournalDirection.Debit,
                 amount: 10m
             ),
-            new JournalLine(
+            JournalLine.Of(
                 account: LedgerAccountRef.Cash,
                 direction: JournalDirection.Credit,
-                amount: new PositiveMoney(
+                amount: PositiveMoney.Of(
                     amount: 10m,
                     currency: "USD"
                 )
@@ -105,12 +105,12 @@ public sealed class RecordTest
     private static JournalLine Line(
         JournalDirection direction,
         decimal amount
-    ) => new(
+    ) => JournalLine.Of(
         account: direction == JournalDirection.Debit
             ? LedgerAccountRef.Cash
             : LedgerAccountRef.ForBankAccount(Guid.NewGuid()),
         direction: direction,
-        amount: new PositiveMoney(
+        amount: PositiveMoney.Of(
             amount: amount,
             currency: "EUR"
         )

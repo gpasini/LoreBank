@@ -18,7 +18,7 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
             .HasColumnName("id")
             .HasConversion(
                 convertToProviderExpression: id => id.Value,
-                convertFromProviderExpression: value => new BankAccountId(value)
+                convertFromProviderExpression: value => BankAccountId.Hydrate(value)
             )
             .ValueGeneratedNever();
 
@@ -28,7 +28,7 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
             .HasMaxLength(34)
             .HasConversion(
                 convertToProviderExpression: iban => iban.Value,
-                convertFromProviderExpression: value => new Iban(value)
+                convertFromProviderExpression: value => Iban.Hydrate(value)
             );
 
         builder.OwnsOne(

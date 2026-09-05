@@ -71,7 +71,7 @@ public sealed class JournalEntry : AggregateRoot<JournalEntryId>
     ) => lines
         .Where(line => line.Direction == direction)
         .Aggregate(
-            seed: new Money(
+            seed: Money.Of(
                 amount: 0m,
                 currency: lines[0].Amount.Currency
             ),

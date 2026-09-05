@@ -19,19 +19,19 @@ public sealed class MoneyDepositedIntegrationEventHandler(IJournalEntryRepositor
         CancellationToken cancellationToken
     )
     {
-        var amount = new PositiveMoney(
+        var amount = PositiveMoney.Of(
             amount: integrationEvent.Amount,
             currency: integrationEvent.Currency
         );
 
         return repository.SaveAsync(
             entry: JournalEntry.Record([
-                new JournalLine(
+                JournalLine.Of(
                     account: LedgerAccountRef.Cash,
                     direction: JournalDirection.Debit,
                     amount: amount
                 ),
-                new JournalLine(
+                JournalLine.Of(
                     account: LedgerAccountRef.ForBankAccount(integrationEvent.AccountId),
                     direction: JournalDirection.Credit,
                     amount: amount

@@ -13,7 +13,7 @@ public sealed class DepositMoneyCommandHandler(IBankAccountRepository repository
         CancellationToken cancellationToken
     )
     {
-        var accountId = new BankAccountId(request.AccountId);
+        var accountId = BankAccountId.Hydrate(request.AccountId);
 
         var account = await repository.GetRequiredByIdAsync(
             id: accountId,
@@ -21,7 +21,7 @@ public sealed class DepositMoneyCommandHandler(IBankAccountRepository repository
         );
 
         account.Deposit(
-            new PositiveMoney(
+            PositiveMoney.Of(
                 amount: request.Amount,
                 currency: request.Currency
             )

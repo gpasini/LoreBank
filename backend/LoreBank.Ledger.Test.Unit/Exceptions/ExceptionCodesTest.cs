@@ -16,11 +16,11 @@ public sealed class ExceptionCodesTest
     public void Code_ShouldBeLedgerUnbalancedJournalEntry_WhenExceptionIsUnbalancedJournalEntryException()
     {
         var exception = new UnbalancedJournalEntryException(
-            debits: new Money(
+            debits: Money.Of(
                 amount: 25.50m,
                 currency: "EUR"
             ),
-            credits: new Money(
+            credits: Money.Of(
                 amount: 20m,
                 currency: "EUR"
             )

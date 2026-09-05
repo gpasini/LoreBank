@@ -38,7 +38,7 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         var account = new BankAccount(
             id: BankAccountId.New(),
             iban: iban,
-            balance: new Money(
+            balance: Money.Of(
                 amount: 0m,
                 currency: currency
             )

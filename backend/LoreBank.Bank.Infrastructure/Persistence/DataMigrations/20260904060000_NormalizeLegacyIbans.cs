@@ -26,7 +26,7 @@ public sealed class NormalizeLegacyIbans(BankDbContext context) : DataMigration(
         );
 
         foreach (var account in accounts) {
-            var canonicalIban = new Iban(account.RawIban).Value;
+            var canonicalIban = Iban.Parse(account.RawIban).Value;
 
             if (canonicalIban == account.RawIban) {
                 continue;

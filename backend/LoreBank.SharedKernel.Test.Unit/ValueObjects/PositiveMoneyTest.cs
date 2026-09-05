@@ -8,15 +8,15 @@ namespace LoreBank.SharedKernel.Test.Unit.ValueObjects;
 public sealed class PositiveMoneyTest
 {
     [Test]
-    public void Constructor_ShouldExposeTheMoney_WhenAmountIsPositive()
+    public void Of_ShouldExposeTheMoney_WhenAmountIsPositive()
     {
-        var amount = new PositiveMoney(
+        var amount = PositiveMoney.Of(
             amount: 100m,
             currency: "EUR"
         );
 
         amount.Value.Should().Be(
-            new Money(
+            Money.Of(
                 amount: 100m,
                 currency: "EUR"
             )
@@ -24,9 +24,9 @@ public sealed class PositiveMoneyTest
     }
 
     [Test]
-    public void Constructor_ShouldThrow_WhenAmountIsNegative()
+    public void Of_ShouldThrow_WhenAmountIsNegative()
     {
-        var act = () => new PositiveMoney(
+        var act = () => PositiveMoney.Of(
             amount: -100m,
             currency: "EUR"
         );
@@ -35,11 +35,11 @@ public sealed class PositiveMoneyTest
     }
 
     [Test]
-    public void Constructor_ShouldThrow_WhenAmountIsZero()
+    public void Of_ShouldThrow_WhenAmountIsZero()
     {
         // Un dépôt ou un retrait de zéro n'est pas une opération : strictement
         // positif, pas seulement non négatif.
-        var act = () => new PositiveMoney(
+        var act = () => PositiveMoney.Of(
             amount: 0m,
             currency: "EUR"
         );
@@ -48,10 +48,10 @@ public sealed class PositiveMoneyTest
     }
 
     [Test]
-    public void Constructor_ShouldThrow_WhenCurrencyIsInvalid()
+    public void Of_ShouldThrow_WhenCurrencyIsInvalid()
     {
         // La devise est déléguée à Money : même exception, pas de seconde règle.
-        var act = () => new PositiveMoney(
+        var act = () => PositiveMoney.Of(
             amount: 10m,
             currency: "eur"
         );
@@ -62,11 +62,11 @@ public sealed class PositiveMoneyTest
     [Test]
     public void Equals_ShouldBeTrue_WhenAmountAndCurrencyMatch()
     {
-        var left = new PositiveMoney(
+        var left = PositiveMoney.Of(
             amount: 10m,
             currency: "EUR"
         );
-        var right = new PositiveMoney(
+        var right = PositiveMoney.Of(
             amount: 10m,
             currency: "EUR"
         );

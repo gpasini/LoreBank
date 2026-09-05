@@ -5,12 +5,24 @@ namespace LoreBank.SharedKernel.Domain.ValueObjects;
 
 public sealed partial class Bic : SimpleValueObject<string>
 {
-    public Bic(string value) : base(Normalize(value))
+    private Bic(string value) : base(value)
     {
-        if (!Format().IsMatch(Value)) {
+    }
+
+    public static Bic Parse(string value)
+    {
+        var normalized = Normalize(value);
+
+        if (!Format().IsMatch(normalized)) {
             throw new InvalidBicException(value);
         }
+
+        return new Bic(normalized);
     }
+
+    // Réhydratation : truste la base (ADR 0016). Jamais appelé depuis du
+    // code métier.
+    public static Bic Hydrate(string value) => new(value);
 
     private static string Normalize(string value) => value
         .Replace(

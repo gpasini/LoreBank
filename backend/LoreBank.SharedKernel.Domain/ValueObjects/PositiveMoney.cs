@@ -7,10 +7,16 @@ namespace LoreBank.SharedKernel.Domain.ValueObjects;
 // transition qui prend un Money nu accepte un dépôt négatif qui débite en
 // contournant les contrôles de retrait. Prendre ce type en paramètre rend le
 // cas inexprimable. La devise est déléguée au Money interne : pas de seconde
-// règle de validation.
+// règle de validation. Pas de Hydrate : jamais persisté tel quel — un VO
+// n'expose pas de geste sans appelant.
 public sealed class PositiveMoney : ValueObject
 {
-    public PositiveMoney(
+    private PositiveMoney(Money value)
+    {
+        Value = value;
+    }
+
+    public static PositiveMoney Of(
         decimal amount,
         string currency
     )
@@ -22,10 +28,10 @@ public sealed class PositiveMoney : ValueObject
             );
         }
 
-        Value = new Money(
+        return new PositiveMoney(Money.Of(
             amount: amount,
             currency: currency
-        );
+        ));
     }
 
     public Money Value { get; }

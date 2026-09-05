@@ -16,11 +16,11 @@ public sealed class ExceptionCodesTest
     public void Code_ShouldBeBankInsufficientBalance_WhenExceptionIsInsufficientBalanceException()
     {
         var exception = new InsufficientBalanceException(
-            balance: new Money(
+            balance: Money.Of(
                 amount: 10m,
                 currency: "EUR"
             ),
-            requested: new Money(
+            requested: Money.Of(
                 amount: 20m,
                 currency: "EUR"
             )
@@ -44,7 +44,7 @@ public sealed class ExceptionCodesTest
     {
         var exception = new NonEmptyAccountClosureException(
             accountId: BankAccountId.New(),
-            balance: new Money(
+            balance: Money.Of(
                 amount: 10m,
                 currency: "EUR"
             )

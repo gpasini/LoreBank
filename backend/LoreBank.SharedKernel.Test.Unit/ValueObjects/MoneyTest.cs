@@ -12,12 +12,12 @@ public sealed class MoneyTest
     {
         // Arrange
 
-        var left = new Money(
+        var left = Money.Of(
             amount: 10.50m,
             currency: "EUR"
         );
 
-        var right = new Money(
+        var right = Money.Of(
             amount: 4.50m,
             currency: "EUR"
         );
@@ -29,7 +29,7 @@ public sealed class MoneyTest
         // Assert
 
         sum.Should().Be(
-            new Money(
+            Money.Of(
                 amount: 15m,
                 currency: "EUR"
             )
@@ -41,10 +41,10 @@ public sealed class MoneyTest
     {
         // Act
 
-        var result = new Money(
+        var result = Money.Of(
             amount: 10m,
             currency: "EUR"
-        ) - new Money(
+        ) - Money.Of(
             amount: 15m,
             currency: "EUR"
         );
@@ -59,12 +59,12 @@ public sealed class MoneyTest
     {
         // Arrange
 
-        var euros = new Money(
+        var euros = Money.Of(
             amount: 10m,
             currency: "EUR"
         );
 
-        var dollars = new Money(
+        var dollars = Money.Of(
             amount: 5m,
             currency: "USD"
         );
@@ -80,9 +80,9 @@ public sealed class MoneyTest
     [TestCase("EU")]
     [TestCase("EURO")]
     [TestCase("")]
-    public void Constructor_ShouldThrow_WhenCurrencyIsInvalid(string currency)
+    public void Of_ShouldThrow_WhenCurrencyIsInvalid(string currency)
     {
-        var act = () => new Money(
+        var act = () => Money.Of(
             amount: 1m,
             currency: currency
         );
@@ -93,11 +93,11 @@ public sealed class MoneyTest
     [Test]
     public void Equals_ShouldIgnoreTrailingZeros()
     {
-        new Money(
+        Money.Of(
             amount: 10m,
             currency: "EUR"
         ).Should().Be(
-            new Money(
+            Money.Of(
                 amount: 10.00m,
                 currency: "EUR"
             )

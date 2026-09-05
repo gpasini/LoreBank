@@ -36,11 +36,26 @@ public sealed class DomainConventionTest
     }
 
     [TestCaseSource(nameof(DomainAssemblies))]
+    public void All_ShouldKeepEveryValueObjectConstructorNonPublic_WhenTheAssemblyIsADomainAssembly(Assembly assembly)
+    {
+        // La création passe par une factory nommée qui valide et normalise ;
+        // la réhydratation par Hydrate, qui truste la base (ADR 0016). Un
+        // constructeur public rendrait le geste ambigu — et le prochain VO
+        // cloné réintroduirait l'ancien monde en silence.
+        foreach (var valueObjectType in TypesOf(assembly).Where(type => type.IsAssignableTo(typeof(ValueObject)))) {
+            valueObjectType
+                .GetConstructors()
+                .Should()
+                .BeEmpty($"{valueObjectType.Name} doit s'instancier par ses factories — création nommée qui valide, Hydrate qui truste la base");
+        }
+    }
+
+    [TestCaseSource(nameof(DomainAssemblies))]
     public void All_ShouldKeepEveryValueObjectImmutable_WhenTheAssemblyIsADomainAssembly(Assembly assembly)
     {
         // Un setter — même private ou init — sur un VO casse la garantie
-        // « invalide ne peut pas exister » : toute la validation vit dans le
-        // constructeur, une mutation la contournerait.
+        // « invalide ne peut pas être créé » : toute la validation vit dans la
+        // factory de création, une mutation la contournerait.
         foreach (var valueObjectType in TypesOf(assembly).Where(type => type.IsAssignableTo(typeof(ValueObject)))) {
             foreach (var property in valueObjectType.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
                 property.SetMethod
