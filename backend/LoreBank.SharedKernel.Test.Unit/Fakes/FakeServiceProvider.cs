@@ -11,10 +11,19 @@ public sealed class FakeServiceProvider : IServiceProvider
         _services[typeof(IEnumerable<TService>)] = instances.Cast<object>().ToList();
     }
 
+    // Une résolution par type concret (celle de GetRequiredService(Type)) : la
+    // clé est le type exact de l'instance.
+    public void RegisterInstance<TService>(TService instance) where TService : notnull
+    {
+        _services[typeof(TService)] = instance;
+    }
+
     public object? GetService(Type serviceType) => _services.TryGetValue(
         key: serviceType,
         value: out var service
     )
         ? service
-        : Activator.CreateInstance(typeof(List<>).MakeGenericType(serviceType.GetGenericArguments()));
+        : serviceType.IsGenericType
+            ? Activator.CreateInstance(typeof(List<>).MakeGenericType(serviceType.GetGenericArguments()))
+            : null;
 }

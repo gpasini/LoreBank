@@ -40,22 +40,12 @@ public sealed class OutboxPublisher(
         );
     }
 
-    private ModuleDbContext PublisherDbContextFor(string discriminant)
-    {
-        var moduleName = IntegrationEventDiscriminant.ModuleOf(discriminant);
-        var module = modules.SingleOrDefault(candidate => candidate.ModuleName.Equals(
-            value: moduleName,
-            comparisonType: StringComparison.OrdinalIgnoreCase
-        ));
-
-        if (module is null) {
-            throw new InvalidOperationException(
-                $"Le discriminant « {discriminant} » désigne le module « {moduleName} », qui n'est monté par "
-                + "aucun IHostModule : un integration event se publie depuis l'outbox de son module — le "
-                + "premier segment du discriminant doit nommer un module de HostModules.All."
-            );
-        }
-
-        return (ModuleDbContext)serviceProvider.GetRequiredService(module.DbContextType);
-    }
+    private ModuleDbContext PublisherDbContextFor(string discriminant) =>
+        ModuleDbContexts.Resolve(
+            modules: modules,
+            services: serviceProvider,
+            moduleName: IntegrationEventDiscriminant.ModuleOf(discriminant),
+            purpose: "un integration event se publie depuis l'outbox de son module, désigné par le premier "
+            + $"segment du discriminant « {discriminant} »"
+        );
 }

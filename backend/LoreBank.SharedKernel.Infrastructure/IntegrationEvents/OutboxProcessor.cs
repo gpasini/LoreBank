@@ -157,20 +157,13 @@ public sealed class OutboxProcessor(
     private ModuleDbContext ConsumerDbContextFor(
         IntegrationEventHandlerRegistration registration,
         IServiceProvider scope
-    )
-    {
-        var module = modules.SingleOrDefault(candidate => candidate.ModuleName == registration.ModuleName);
-
-        if (module is null) {
-            throw new InvalidOperationException(
-                $"La registration de {registration.HandlerType.Name} désigne le module "
-                + $"« {registration.ModuleName} », qui n'est monté par aucun IHostModule : l'inbox du "
-                + "consommateur vit dans le schéma de son module."
-            );
-        }
-
-        return (ModuleDbContext)scope.GetRequiredService(module.DbContextType);
-    }
+    ) => ModuleDbContexts.Resolve(
+        modules: modules,
+        services: scope,
+        moduleName: registration.ModuleName,
+        purpose: "l'inbox du consommateur vit dans le schéma de son module, désigné par la registration "
+        + $"de {registration.HandlerType.Name}"
+    );
 
     private static Task<bool> IsAlreadyHandledAsync(
         ModuleDbContext dbContext,
@@ -228,7 +221,10 @@ public sealed class OutboxProcessor(
     {
         await using var scope = serviceProvider.CreateAsyncScope();
 
-        var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
+        var dbContext = ModuleDbContexts.Resolve(
+            services: scope.ServiceProvider,
+            module: module
+        );
 
         return await ModuleSql.ExecuteAsync(
             dbContext: dbContext,
@@ -270,7 +266,10 @@ public sealed class OutboxProcessor(
     {
         await using var scope = serviceProvider.CreateAsyncScope();
 
-        var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(publisherModule.DbContextType);
+        var dbContext = ModuleDbContexts.Resolve(
+            services: scope.ServiceProvider,
+            module: publisherModule
+        );
 
         await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
@@ -304,7 +303,10 @@ public sealed class OutboxProcessor(
 
         await using var scope = serviceProvider.CreateAsyncScope();
 
-        var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(publisherModule.DbContextType);
+        var dbContext = ModuleDbContexts.Resolve(
+            services: scope.ServiceProvider,
+            module: publisherModule
+        );
 
         await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,

@@ -73,6 +73,13 @@ transaction de la commande, identifiés par un discriminant stable choisi
 transaction.
 _Avoid_ : file d'attente, bus
 
+**ModuleDbContexts** :
+La résolution « nom de module → DbContext » du socle, écrite une fois :
+correspondance insensible à la casse (le discriminant est en minuscules,
+ModuleName en Pascal), échec qui nomme le module absent et pointe
+HostModules.All. Publisher et processor d'outbox sont ses appelants.
+_Avoid_ : lookup de module, registre de DbContexts
+
 **ModuleSql** :
 Le geste SQL unique du socle : connexion empruntée au DbContext du module —
 jamais ouverte en propre — refermée dans un finally compté par EF, clés de
