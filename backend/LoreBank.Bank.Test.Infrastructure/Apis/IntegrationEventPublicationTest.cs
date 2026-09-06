@@ -4,7 +4,6 @@ using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LoreBank.Bank.Test.Infrastructure.Apis;
@@ -21,18 +20,21 @@ public sealed class IntegrationEventPublicationTest : BaseHostTest<BankWebAppFac
 
     private HttpClient _client = null!;
 
+    // Les autres fixtures HTTP (CqsContractTest) déposent pour de vrai elles
+    // aussi : l'outbox du conteneur partagé se nettoie avant ET après, pour
+    // que ce test ne compte que ses propres lignes.
     [SetUp]
     public async Task SetUp()
     {
         _client = Factory.CreateClient();
-        await CleanOutboxAsync();
+        await OutboxProbe.CleanAsync<BankDbContext>(Factory);
     }
 
     [TearDown]
     public async Task TearDown()
     {
         _client.Dispose();
-        await CleanOutboxAsync();
+        await OutboxProbe.CleanAsync<BankDbContext>(Factory);
     }
 
     [Test]
@@ -71,7 +73,7 @@ public sealed class IntegrationEventPublicationTest : BaseHostTest<BankWebAppFac
 
         // Assert — les deux jumeaux publiés sont dans l'outbox, payload camelCase.
 
-        var rows = await ReadOutboxAsync();
+        var rows = await OutboxProbe.ReadRowsAsync<BankDbContext>(Factory);
 
         rows.Should().HaveCount(2);
 
@@ -95,68 +97,6 @@ public sealed class IntegrationEventPublicationTest : BaseHostTest<BankWebAppFac
 
         // Assert
 
-        (await ReadOutboxAsync()).Should().OnlyContain(row => row.Dispatched);
-    }
-
-    private sealed record OutboxRow(
-        string Discriminant,
-        string Payload,
-        bool Dispatched
-    );
-
-    private static async Task<IReadOnlyList<OutboxRow>> ReadOutboxAsync()
-    {
-        using var scope = Factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText =
-                $"SELECT discriminant, payload, dispatched_at IS NOT NULL FROM {dbContext.Schema}.__outbox";
-
-            var rows = new List<OutboxRow>();
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync()) {
-                rows.Add(new OutboxRow(
-                    Discriminant: reader.GetString(0),
-                    Payload: reader.GetString(1),
-                    Dispatched: reader.GetBoolean(2)
-                ));
-            }
-
-            return rows;
-        }
-        finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
-
-    // Les autres fixtures HTTP (CqsContractTest) déposent pour de vrai elles
-    // aussi : l'outbox du conteneur partagé se nettoie avant ET après, pour
-    // que ce test ne compte que ses propres lignes.
-    private static async Task CleanOutboxAsync()
-    {
-        using var scope = Factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = $"DELETE FROM {dbContext.Schema}.__outbox";
-
-            await command.ExecuteNonQueryAsync();
-        }
-        finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
+        (await OutboxProbe.ReadRowsAsync<BankDbContext>(Factory)).Should().OnlyContain(row => row.Dispatched);
     }
 }

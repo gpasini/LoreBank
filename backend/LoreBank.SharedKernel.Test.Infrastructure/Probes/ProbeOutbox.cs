@@ -1,14 +1,14 @@
 using LoreBank.Probe.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 
-// L'accès SQL brut des tests d'outbox : mêmes gestes que DataMigrationRunnerTest
-// — scope, ProbeDbContext, connexion empruntée. Les sondes écrivent pour de
-// vrai dans probe.__outbox / probe.__inbox, d'où le nettoyage ciblé sur les
-// discriminants de sonde.
+// Les gestes étendus des tests d'outbox du socle — rejeu, inbox, poison —
+// bâtis sur le cœur d'emprunt de connexion d'OutboxProbe. Étendus et
+// internes à dessein : un module publieur n'a que la surface publique
+// d'OutboxProbe, ces gestes-ci re-prouveraient des invariants du socle. Les
+// sondes écrivent pour de vrai dans probe.__outbox / probe.__inbox, d'où le
+// nettoyage ciblé sur les discriminants de sonde.
 internal static class ProbeOutbox
 {
     internal sealed record Row(
@@ -123,27 +123,11 @@ internal static class ProbeOutbox
             }
         );
 
-    private static async Task<T> ExecuteAsync<T>(
+    private static Task<T> ExecuteAsync<T>(
         IntegrationTestWebAppFactory factory,
         Func<ProbeDbContext, System.Data.Common.DbCommand, Task<T>> action
-    )
-    {
-        using var scope = factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            return await action(
-                arg1: dbContext,
-                arg2: command
-            );
-        }
-        finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
+    ) => OutboxProbe.ExecuteAsync(
+        factory: factory,
+        action: action
+    );
 }

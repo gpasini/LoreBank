@@ -73,6 +73,13 @@ transaction de la commande, identifiés par un discriminant stable choisi
 transaction.
 _Avoid_ : file d'attente, bus
 
+**OutboxProbe** :
+La surface d'observation d'outbox du harnais : lit les lignes (discriminant,
+payload, livré) et vide l'outbox d'un module désigné par son DbContext — le
+garde-fou de publication d'un module se réduit à agir puis affirmer. N'expose
+ni retries, ni poison, ni inbox : des invariants du socle, pas d'un module.
+_Avoid_ : helper SQL d'outbox, lecteur d'outbox
+
 **Hydrate** :
 La factory de réhydratation d'un value object : reprend la valeur stockée
 telle quelle, sans normaliser ni valider — la validation vit dans les

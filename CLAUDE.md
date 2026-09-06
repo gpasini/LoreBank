@@ -108,7 +108,10 @@ communication inter-modules.
   DTOs plats, `null` pour l'absence, lecture pure in-process. Garde-fous :
   `OutboxPublisherTest`, `OutboxProcessorTest` (socle) et
   `IntegrationEventPublicationTest` (le module de référence emprunte vraiment
-  le chemin).
+  le chemin) — ce dernier écrit sur `OutboxProbe`, la surface d'observation
+  d'outbox du harnais (`ReadRowsAsync<TDbContext>`/`CleanAsync<TDbContext>`) :
+  le test de publication d'un module se réduit à agir en HTTP puis affirmer
+  discriminant et payload.
 
 ## Conventions du domaine
 
