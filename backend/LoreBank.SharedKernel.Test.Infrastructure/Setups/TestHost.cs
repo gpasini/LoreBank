@@ -18,10 +18,12 @@ public static class TestHost<TFactory> where TFactory : IntegrationTestWebAppFac
 
         // L'API ne migre plus à son démarrage (ADR 0006) : c'est le harnais
         // qui prépare le schéma du Testcontainer, par la même routine que le
-        // verbe `migrate` de l'hôte.
+        // verbe `migrate` de l'hôte — modules additionnels de la factory
+        // compris (le ProbeModule du socle, ADR 0017), que l'hôte réel ne
+        // migrera jamais.
         ModuleMigrator.MigrateAsync(
                 services: Factory.Services,
-                modules: HostModules.All
+                modules: [.. HostModules.All, .. Factory.AdditionalModules]
             )
             .GetAwaiter()
             .GetResult();

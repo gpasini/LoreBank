@@ -44,7 +44,7 @@ public sealed class OutboxPublisherTest : BaseHostTest<SharedKernelWebAppFactory
         // toute la promesse de l'outbox tient dans cette ligne absente.
         (await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         )).Should().BeNull();
     }
 
@@ -70,7 +70,7 @@ public sealed class OutboxPublisherTest : BaseHostTest<SharedKernelWebAppFactory
 
         var row = await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         );
 
         row.Should().NotBeNull();

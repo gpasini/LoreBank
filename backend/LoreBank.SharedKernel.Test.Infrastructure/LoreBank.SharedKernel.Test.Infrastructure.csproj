@@ -7,6 +7,18 @@
         </PackageReference>
         <PackageReference Include="FluentAssertions" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <!-- Startup project de dotnet-ef pour les migrations du ProbeModule
+             (ADR 0017) : l'hôte ne le connaît pas, c'est le harnais qui le
+             monte — et qui porte donc le paquet Design à sa place. -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <!-- Référence directe pour appliquer le pin de sécurité de
+             Directory.Packages.props à la transitive du paquet Design. -->
+        <PackageReference Include="System.Security.Cryptography.Xml">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="NUnit" />
         <PackageReference Include="NUnit3TestAdapter" />
@@ -19,6 +31,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\LoreBank.Host\LoreBank.Host.csproj" />
+        <ProjectReference Include="..\LoreBank.Probe.Infrastructure\LoreBank.Probe.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using LoreBank.Bank.Infrastructure.Persistence;
+using LoreBank.Probe.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Infrastructure.Events;
 using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 using LoreBank.SharedKernel.Test.Infrastructure.Probes;
@@ -33,7 +33,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
 
         await using var runner = DataMigrationRunner.Create(
             services: Factory.Services,
-            dbContextType: typeof(BankDbContext)
+            dbContextType: typeof(ProbeDbContext)
         );
 
         // Act
@@ -45,7 +45,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
 
         // Assert
 
-        (await CountRowsWithIbanAsync(ProbeRecordingDataMigration.ProbeIban)).Should().Be(1);
+        (await CountRowsWithLabelAsync(ProbeRecordingDataMigration.ProbeLabel)).Should().Be(1);
 
         var applied = await runner.GetAppliedIdsAsync(CancellationToken.None);
 
@@ -59,7 +59,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
 
         await using var runner = DataMigrationRunner.Create(
             services: Factory.Services,
-            dbContextType: typeof(BankDbContext)
+            dbContextType: typeof(ProbeDbContext)
         );
 
         // Act
@@ -77,7 +77,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
         // la migration entière — SQL de bordure compris — vit dans la
         // transaction du runner, et le journal vierge que la reprise rejouera
         // cette migration au prochain run.
-        (await CountRowsWithIbanAsync(ProbeFailingDataMigration.ProbeIban)).Should().Be(0);
+        (await CountRowsWithLabelAsync(ProbeFailingDataMigration.ProbeLabel)).Should().Be(0);
 
         var applied = await runner.GetAppliedIdsAsync(CancellationToken.None);
 
@@ -91,7 +91,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
 
         await using var runner = DataMigrationRunner.Create(
             services: Factory.Services,
-            dbContextType: typeof(BankDbContext)
+            dbContextType: typeof(ProbeDbContext)
         );
 
         // Act
@@ -109,22 +109,22 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
         ProbeRecordingDataMigration.LastDispatcherType.Should().Be(typeof(NoOpDomainEventDispatcher));
     }
 
-    private static async Task<long> CountRowsWithIbanAsync(string iban)
+    private static async Task<long> CountRowsWithLabelAsync(string label)
     {
         using var scope = Factory.Services.CreateScope();
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
 
         await dbContext.Database.OpenConnectionAsync();
 
         try {
             await using var command = dbContext.Database.GetDbConnection().CreateCommand();
 
-            command.CommandText = $"SELECT count(*) FROM {dbContext.Schema}.bank_accounts WHERE iban = @iban";
+            command.CommandText = $"SELECT count(*) FROM {dbContext.Schema}.probe_things WHERE label = @label";
 
             var parameter = command.CreateParameter();
-            parameter.ParameterName = "iban";
-            parameter.Value = iban;
+            parameter.ParameterName = "label";
+            parameter.Value = label;
             command.Parameters.Add(parameter);
 
             return (long)(await command.ExecuteScalarAsync())!;
@@ -138,7 +138,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
     {
         using var scope = Factory.Services.CreateScope();
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
 
         await dbContext.Database.OpenConnectionAsync();
 
@@ -147,7 +147,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
 
             command.CommandText =
                 $"""
-                 DELETE FROM {dbContext.Schema}.bank_accounts WHERE iban LIKE 'ZZ00PROBEDATAMIGRATION%';
+                 DELETE FROM {dbContext.Schema}.probe_things WHERE label LIKE 'probe-data-migration%';
                  DELETE FROM {dbContext.Schema}.__data_migrations_history WHERE migration_id LIKE '999999999999%';
                  """;
 

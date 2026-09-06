@@ -385,7 +385,15 @@ communication inter-modules.
   `ConnectionRedirectTest` épingle cette garantie, et `ModuleCompositionTest`
   itère `HostModules.All` (voir « Architecture »). `TestHost<TFactory>` porte
   l'hôte et le conteneur, partagés par toutes les fixtures d'un assembly, et
-  migre le conteneur lui-même — l'API ne le fait plus à son démarrage.
+  migre le conteneur lui-même — l'API ne le fait plus à son démarrage. Les
+  garde-fous du socle (outbox, data migrations) s'ancrent sur le
+  **ProbeModule** (`LoreBank.Probe.Infrastructure`, ADR 0017) : le
+  module-terrain du harnais — schéma `probe`, adapter `IHostModule` écrit à
+  la main — absent de `HostModules.All`, monté par `SharedKernelWebAppFactory`
+  seule via le hook `AdditionalModules` de la factory de base, migré par
+  `TestHost` avec les autres. Le socle se prouve ainsi sans dépendre des
+  modules d'exemple ; `IntegrationEventPublicationTest`, lui, reste ancré sur
+  Bank — le module de référence prouve qu'il emprunte le chemin.
 - Deux bases dans ce socle : `BaseIntegrationTest<TFactory>` — `TransactionScope`
   rollbacké par test (niveau `ReadCommitted`, celui du `TransactionBehavior` :
   un scope `Required` qui rejoint un ambiant d'un niveau différent lève une

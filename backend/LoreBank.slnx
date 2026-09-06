@@ -21,6 +21,7 @@
     <Project Path="LoreBank.Ledger.Test.Unit/LoreBank.Ledger.Test.Unit.csproj" />
   </Folder>
   <Folder Name="/SharedKernel/">
+    <Project Path="LoreBank.Probe.Infrastructure/LoreBank.Probe.Infrastructure.csproj" />
     <Project Path="LoreBank.SharedKernel.Api/LoreBank.SharedKernel.Api.csproj" />
     <Project Path="LoreBank.SharedKernel.Application/LoreBank.SharedKernel.Application.csproj" />
     <Project Path="LoreBank.SharedKernel.Contracts/LoreBank.SharedKernel.Contracts.csproj" />

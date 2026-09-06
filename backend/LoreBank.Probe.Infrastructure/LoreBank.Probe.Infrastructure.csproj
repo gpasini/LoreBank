@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Autofac"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\LoreBank.SharedKernel.Infrastructure\LoreBank.SharedKernel.Infrastructure.csproj"/>
+    </ItemGroup>
+
+</Project>

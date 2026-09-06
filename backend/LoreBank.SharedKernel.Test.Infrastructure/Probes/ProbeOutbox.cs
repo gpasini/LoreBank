@@ -1,4 +1,4 @@
-using LoreBank.Bank.Infrastructure.Persistence;
+using LoreBank.Probe.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,8 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 
 // L'accès SQL brut des tests d'outbox : mêmes gestes que DataMigrationRunnerTest
-// — scope, BankDbContext, connexion empruntée. Les sondes écrivent pour de
-// vrai dans bank.__outbox / bank.__inbox, d'où le nettoyage ciblé sur les
+// — scope, ProbeDbContext, connexion empruntée. Les sondes écrivent pour de
+// vrai dans probe.__outbox / probe.__inbox, d'où le nettoyage ciblé sur les
 // discriminants de sonde.
 internal static class ProbeOutbox
 {
@@ -125,12 +125,12 @@ internal static class ProbeOutbox
 
     private static async Task<T> ExecuteAsync<T>(
         IntegrationTestWebAppFactory factory,
-        Func<BankDbContext, System.Data.Common.DbCommand, Task<T>> action
+        Func<ProbeDbContext, System.Data.Common.DbCommand, Task<T>> action
     )
     {
         using var scope = factory.Services.CreateScope();
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
 
         await dbContext.Database.OpenConnectionAsync();
 

@@ -49,7 +49,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         var row = await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         );
 
         row!.Dispatched.Should().BeTrue();
@@ -77,7 +77,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         var row = await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         );
 
         // Un crash entre le commit des handlers et le marquage de l'outbox
@@ -100,7 +100,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         (await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         ))!.Dispatched.Should().BeTrue();
     }
 
@@ -122,7 +122,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         var row = await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         );
 
         row!.Dispatched.Should().BeFalse();
@@ -149,7 +149,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         (await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         ))!.Dispatched.Should().BeTrue();
     }
 
@@ -172,7 +172,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
         var row = await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-happened"
+            discriminant: "probe.probe-happened"
         );
 
         row!.Poisoned.Should().BeTrue();
@@ -206,7 +206,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
         // ne doit pas rester pending pour toujours.
         (await ProbeOutbox.FindRowAsync(
             factory: Factory,
-            discriminant: "bank.probe-unhandled"
+            discriminant: "probe.probe-unhandled"
         ))!.Dispatched.Should().BeTrue();
     }
 

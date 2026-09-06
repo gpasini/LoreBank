@@ -47,6 +47,12 @@ assemblies, son nom et sa persistance par défaut — du DbContext ancré en
 paramètre générique ; un adapter ne déclare plus que son `Module` Autofac.
 _Avoid_ : ModuleIdentity, adapter d'hôte
 
+**ProbeModule** :
+Le module-terrain du harnais du socle : un module minimal monté uniquement
+par les factories de test — jamais par l'hôte — sur lequel le socle prouve
+ses propres invariants sans dépendre d'un module d'exemple supprimable.
+_Avoid_ : module de test, module d'exemple, fake de module
+
 **Contrats (de module)** :
 Le langage publié d'un module métier : l'assembly `<Module>.Contracts` qui
 porte ses integration events et ses ports de lecture publics — la seule

@@ -1,4 +1,5 @@
 using Autofac;
+using LoreBank.SharedKernel.Infrastructure.Modules;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,14 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
         .Build();
 
     public string ContainerConnectionString => _dbContainer.GetConnectionString();
+
+    // Les modules que cette factory monte en plus de HostModules.All — le
+    // ProbeModule du harnais du socle (ADR 0017), jamais un module métier.
+    // La base fait pour eux ce que Program.cs fait pour la liste de l'hôte :
+    // chaîne de connexion vers le conteneur, DbContext par leur
+    // ConfigureDbContext, instance sur le seam au conteneur — et TestHost
+    // les ajoute à sa passe de migration.
+    public virtual IReadOnlyCollection<IHostModule> AdditionalModules => [];
 
     // Redirige TOUTES les chaînes de connexion vers le conteneur : chaque
     // ConfigureDbContext de module lit la sienne via IConfiguration, et un
@@ -47,6 +56,16 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
 
                 configuration.AddInMemoryCollection(redirected);
 
+                // Les modules additionnels n'ont pas de clé dans appsettings :
+                // leur chaîne naît ici, sur la clé par défaut de leur
+                // ConfigureDbContext, avec la même destination que la
+                // redirection ci-dessus.
+                configuration.AddInMemoryCollection(AdditionalModules.ToDictionary(
+                        keySelector: module => $"ConnectionStrings:{module.ModuleName}Db",
+                        elementSelector: _ => (string?)ContainerConnectionString
+                    )
+                );
+
                 // La cadence de fond est neutralisée dans tous les hôtes de
                 // test : les tests d'outbox pilotent OutboxProcessor
                 // eux-mêmes, une passe concurrente du hosted service rendrait
@@ -55,6 +74,23 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
                         ["IntegrationEvents:PollingSeconds"] = "3600",
                     }
                 );
+            }
+        );
+
+        // Le geste que Program.cs fait pour chaque module de HostModules.All,
+        // fait ici pour les modules additionnels : leur DbContext se monte par
+        // le même membre du seam.
+        builder.ConfigureServices((
+                context,
+                services
+            ) =>
+            {
+                foreach (var module in AdditionalModules) {
+                    module.ConfigureDbContext(
+                        services: services,
+                        configuration: context.Configuration
+                    );
+                }
             }
         );
     }
@@ -68,6 +104,16 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // leur tour.
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        // Les modules additionnels rejoignent le seam au conteneur :
+        // OutboxPublisher et OutboxProcessor consomment
+        // l'IEnumerable<IHostModule> résolu, pas HostModules.All.
+        builder.ConfigureContainer<ContainerBuilder>(container => {
+                foreach (var module in AdditionalModules) {
+                    container.RegisterInstance(module).As<IHostModule>();
+                }
+            }
+        );
+
         builder.ConfigureContainer<ContainerBuilder>(ConfigureModuleContainer);
 
         return base.CreateHost(builder);
