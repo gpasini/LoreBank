@@ -91,7 +91,8 @@ _Avoid_ : helper SQL d'outbox, lecteur d'outbox
 La factory de réhydratation d'un value object : reprend la valeur stockée
 telle quelle, sans normaliser ni valider — la validation vit dans les
 factories de création (`Parse`, `Of`, `New`…), la base est trustée. Réservé
-aux conversions EF, jamais appelé depuis du code métier.
+aux conversions EF pour un VO porteur de règles ; un id sans invariant
+réhydrate aussi l'id reçu du fil — il n'y a rien à re-décider.
 _Avoid_ : constructeur de lecture, FromDatabase, désérialisation
 
 **Inbox** :

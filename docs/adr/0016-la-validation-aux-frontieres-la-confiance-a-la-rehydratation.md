@@ -14,8 +14,12 @@ multi-champs owned (`Money`) se réhydrate par son constructeur privé brut,
 que EF lie par noms de paramètres et que les opérations internes réutilisent.
 Deux règles de sobriété : pas de `Hydrate` sans appelant (`PositiveMoney`,
 jamais persisté tel quel, n'en a pas), et jamais de `Hydrate` depuis du code
-métier. `DomainConventionTest` interdit tout constructeur public sur un
-`ValueObject`.
+métier **pour un VO porteur de règles** — un id (`SimpleValueObject<Guid>`,
+aucun invariant) réhydrate aussi l'id reçu du fil : il n'y a rien à
+re-décider, et le fait qu'il re-représente — l'id existe — est établi par le
+repository juste derrière (voir `BankAccountId`, dont les handlers
+d'Application consomment `Hydrate` à dessein). `DomainConventionTest`
+interdit tout constructeur public sur un `ValueObject`.
 
 Le trade-off est assumé : avant, chaque lecture revalidait chaque VO — une
 donnée corrompue explosait bruyamment au premier `SELECT`, vertu diagnostique

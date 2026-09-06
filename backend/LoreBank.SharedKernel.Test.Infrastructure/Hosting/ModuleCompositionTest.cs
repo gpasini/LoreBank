@@ -1,6 +1,9 @@
+using System.Reflection;
 using LoreBank.Host.Modules;
+using LoreBank.SharedKernel.Contracts;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Domain.Exceptions;
+using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
@@ -222,6 +225,116 @@ public sealed class ModuleCompositionTest
                 because: $"{migrationType.Name} doit avoir été appliquée et journalisée par la migration du harnais"
             );
         }
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldKeepEveryIntegrationEventHandlerInScannedAssemblies_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // La jumelle de la garde sur les IDomainEventHandler : un
+        // IIntegrationEventHandler<> n'est découvert que dans Domain et
+        // Application (IntegrationEventHandlers.DiscoverIn). Rangé dans Api ou
+        // Infrastructure, il échapperait au scan — et le mode d'échec est le
+        // pire du socle : ses events seraient marqués « livrés à personne =
+        // livrés », sans erreur ni retry.
+        var misplacedHandlers = new[] {
+                module.ControllerAssembly,
+                module.DbContextType.Assembly
+            }
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .Where(type => type
+                .GetInterfaces()
+                .Any(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IIntegrationEventHandler<>))
+            )
+            .ToList();
+
+        misplacedHandlers.Should().BeEmpty("un IIntegrationEventHandler<> n'est scanné que dans Domain et Application — rangé ailleurs, ses events partiraient en « livré à personne » en silence");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldResolveEveryIntegrationEventHandler_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
+
+        // Un constructeur aux dépendances non résolubles ne se verrait qu'à la
+        // première livraison — en backoff puis poison, jamais en rouge de
+        // build. Pas de NotBeEmpty : un module qui ne consomme rien est
+        // légitime, et la garde de rangement ci-dessus tient l'inventaire.
+        foreach (var registration in IntegrationEventHandlers.DiscoverIn(module)) {
+            var act = () => scope.ServiceProvider.GetRequiredService(registration.HandlerType);
+
+            act.Should().NotThrow($"le handler {registration.HandlerType.Name} doit se résoudre avec toutes ses dépendances depuis le conteneur de l'hôte");
+        }
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldOnlyReferenceContractsOfOtherModules_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        // Le compilateur garde la frontière des références existantes (ADR
+        // 0015), mais rien n'empêchait d'ajouter un <ProjectReference> vers
+        // l'Application du voisin. Limite assumée : les références inutilisées
+        // sont élaguées des métadonnées — le sweep ne voit un lien illégal
+        // qu'au premier usage. C'est le bon moment : c'est l'usage qui abolit
+        // la frontière, pas la ligne de csproj.
+        var root = module.DbContextType.Assembly.GetName().Name!.Split('.')[0];
+        var otherModules = HostModules.All
+            .Where(other => other.ModuleName != module.ModuleName)
+            .Select(other => other.ModuleName)
+            .ToHashSet();
+
+        var illegalReferences = new[] {
+                module.ControllerAssembly,
+                module.ApplicationAssembly,
+                module.DomainAssembly,
+                module.DbContextType.Assembly
+            }
+            .SelectMany(assembly => assembly.GetReferencedAssemblies())
+            .Select(reference => reference.Name!)
+            .Where(name => name.Split('.') is [var referencedRoot, var segment, ..]
+                && referencedRoot == root
+                && otherModules.Contains(segment)
+            )
+            .Where(name => !name.EndsWith(
+                value: ".Contracts",
+                comparisonType: StringComparison.Ordinal
+            ))
+            .Distinct()
+            .ToList();
+
+        illegalReferences.Should().BeEmpty("les Contrats sont la seule surface d'un autre module qu'on a le droit de référencer (ADR 0015)");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldKeepContractsFreeOfInternalReferences_WhenTheModulePublishes(IHostModule module)
+    {
+        var root = module.DbContextType.Assembly.GetName().Name!.Split('.')[0];
+
+        Assembly contracts;
+
+        try {
+            contracts = Assembly.Load($"{root}.{module.ModuleName}.Contracts");
+        }
+        catch (FileNotFoundException) {
+            // Un module qui ne publie rien n'a pas de projet Contracts — la
+            // doctrine « 6, +1 si le module publie » rend l'absence légitime.
+            return;
+        }
+
+        // « Primitives seulement, matériellement » (ADR 0015) : la seule
+        // dépendance admise d'un Contracts est SharedKernel.Contracts — pas de
+        // SharedKernel.Domain, donc pas de VO possible dans un integration
+        // event ou un DTO publié.
+        var illegalReferences = contracts
+            .GetReferencedAssemblies()
+            .Select(reference => reference.Name!)
+            .Where(name => name.StartsWith(
+                value: $"{root}.",
+                comparisonType: StringComparison.Ordinal
+            ))
+            .Where(name => name != $"{root}.SharedKernel.Contracts")
+            .ToList();
+
+        illegalReferences.Should().BeEmpty("un projet Contracts ne dépend que de SharedKernel.Contracts — toute autre référence ferait fuir des types internes dans le langage publié (ADR 0015)");
     }
 
     [TestCaseSource(nameof(Modules))]

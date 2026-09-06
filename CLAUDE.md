@@ -140,7 +140,9 @@ communication inter-modules.
   `XxxId.New`), et `Hydrate` — non validant, réservé aux conversions EF —
   pour la réhydratation, qui truste la base (ADR 0016 : la validation vit aux
   frontières, ce sont les data migrations qui maintiennent le stock ; jamais
-  de `Hydrate` depuis du code métier, ni de `Hydrate` sans appelant).
+  de `Hydrate` depuis du code métier pour un VO porteur de règles — un id
+  `SimpleValueObject<Guid>` sans invariant réhydrate aussi l'id reçu du fil,
+  voir `BankAccountId` — ni de `Hydrate` sans appelant).
   `DomainConventionTest` interdit tout constructeur public sur un VO.
   Procédure et pièges : skill `nouveau-value-object`.
 - Un agrégat naît par sa factory statique (constructeur privé), garde ses
