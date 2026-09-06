@@ -138,7 +138,7 @@ public sealed class OutboxProcessor(
             cancellationToken: cancellationToken
         );
 
-        await OutboxSql.ExecuteNonQueryAsync(
+        await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"""
                   INSERT INTO {IntegrationEventTables.InboxTable(dbContext)} (event_id, handler, handled_at)
@@ -178,7 +178,7 @@ public sealed class OutboxProcessor(
         OutboxRow row,
         CancellationToken cancellationToken
     ) =>
-        OutboxSql.ExecuteAsync(
+        ModuleSql.ExecuteAsync(
             dbContext: dbContext,
             sql: $"""
                   SELECT count(*) FROM {IntegrationEventTables.InboxTable(dbContext)}
@@ -230,7 +230,7 @@ public sealed class OutboxProcessor(
 
         var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
 
-        return await OutboxSql.ExecuteAsync(
+        return await ModuleSql.ExecuteAsync(
             dbContext: dbContext,
             sql: $"""
                   SELECT id, discriminant, payload, attempts FROM {IntegrationEventTables.OutboxTable(dbContext)}
@@ -272,7 +272,7 @@ public sealed class OutboxProcessor(
 
         var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(publisherModule.DbContextType);
 
-        await OutboxSql.ExecuteNonQueryAsync(
+        await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"UPDATE {IntegrationEventTables.OutboxTable(dbContext)} SET dispatched_at = now() WHERE id = @id",
             parameters: new Dictionary<string, object> {
@@ -306,7 +306,7 @@ public sealed class OutboxProcessor(
 
         var dbContext = (ModuleDbContext)scope.ServiceProvider.GetRequiredService(publisherModule.DbContextType);
 
-        await OutboxSql.ExecuteNonQueryAsync(
+        await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"""
                   UPDATE {IntegrationEventTables.OutboxTable(dbContext)}

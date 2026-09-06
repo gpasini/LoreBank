@@ -24,7 +24,7 @@ public sealed class OutboxPublisher(
         var discriminant = IntegrationEventDiscriminant.Of(integrationEvent.GetType());
         var dbContext = PublisherDbContextFor(discriminant);
 
-        await OutboxSql.ExecuteNonQueryAsync(
+        await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"""
                   INSERT INTO {IntegrationEventTables.OutboxTable(dbContext)}

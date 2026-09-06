@@ -71,26 +71,27 @@ public sealed class DataMigrationRunner : IAsyncDisposable
             cancellationToken: cancellationToken
         );
 
-        await DbContext.Database.OpenConnectionAsync(cancellationToken);
+        return await ModuleSql.ExecuteAsync(
+            dbContext: DbContext,
+            sql: $"SELECT migration_id FROM {JournalTable} ORDER BY migration_id",
+            parameters: new Dictionary<string, object>(),
+            execute: async (
+                command,
+                token
+            ) =>
+            {
+                var ids = new List<string>();
 
-        try {
-            await using var command = DbContext.Database.GetDbConnection().CreateCommand();
+                await using var reader = await command.ExecuteReaderAsync(token);
 
-            command.CommandText = $"SELECT migration_id FROM {JournalTable} ORDER BY migration_id";
+                while (await reader.ReadAsync(token)) {
+                    ids.Add(reader.GetString(0));
+                }
 
-            var ids = new List<string>();
-
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-            while (await reader.ReadAsync(cancellationToken)) {
-                ids.Add(reader.GetString(0));
-            }
-
-            return ids;
-        }
-        finally {
-            await DbContext.Database.CloseConnectionAsync();
-        }
+                return (IReadOnlyList<string>)ids;
+            },
+            cancellationToken: cancellationToken
+        );
     }
 
     // Tout-ou-rien : la migration et sa ligne de journal partagent une
@@ -132,34 +133,17 @@ public sealed class DataMigrationRunner : IAsyncDisposable
 
     private string JournalTable => $"{DbContext.Schema}.__data_migrations_history";
 
-    // Le même geste que les helpers de DataMigration : connexion empruntée,
-    // commande enrôlée dans la transaction courante s'il y en a une. Le schéma
-    // interpolé est dérivé de l'identité (ADR 0009), jamais une saisie.
-    private async Task ExecuteSqlAsync(
+    // Le geste SQL — emprunt, finally, paramètres, enrôlement dans la
+    // transaction courante — vit dans ModuleSql. Le schéma interpolé est
+    // dérivé de l'identité (ADR 0009), jamais une saisie.
+    private Task ExecuteSqlAsync(
         string sql,
         Dictionary<string, object> parameters,
         CancellationToken cancellationToken
-    )
-    {
-        await DbContext.Database.OpenConnectionAsync(cancellationToken);
-
-        try {
-            await using var command = DbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = sql;
-            command.Transaction = DbContext.Database.CurrentTransaction?.GetDbTransaction();
-
-            foreach (var (name, value) in parameters) {
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = name;
-                parameter.Value = value;
-                command.Parameters.Add(parameter);
-            }
-
-            await command.ExecuteNonQueryAsync(cancellationToken);
-        }
-        finally {
-            await DbContext.Database.CloseConnectionAsync();
-        }
-    }
+    ) => ModuleSql.ExecuteNonQueryAsync(
+        dbContext: DbContext,
+        sql: sql,
+        parameters: parameters,
+        cancellationToken: cancellationToken
+    );
 }

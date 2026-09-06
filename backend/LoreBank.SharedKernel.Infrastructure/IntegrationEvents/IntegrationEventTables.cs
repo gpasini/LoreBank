@@ -14,7 +14,7 @@ public static class IntegrationEventTables
         ModuleDbContext dbContext,
         CancellationToken cancellationToken
     ) =>
-        OutboxSql.ExecuteNonQueryAsync(
+        ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"""
                   CREATE SCHEMA IF NOT EXISTS {dbContext.Schema};

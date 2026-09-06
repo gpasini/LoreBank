@@ -73,6 +73,13 @@ transaction de la commande, identifiés par un discriminant stable choisi
 transaction.
 _Avoid_ : file d'attente, bus
 
+**ModuleSql** :
+Le geste SQL unique du socle : connexion empruntée au DbContext du module —
+jamais ouverte en propre — refermée dans un finally compté par EF, clés de
+paramètres nues, commande enrôlée dans la transaction EF courante. Readers,
+migrations de données et outbox/inbox sont des façades dessus.
+_Avoid_ : helper ADO, SqlExecutor, copie locale du geste d'emprunt
+
 **OutboxProbe** :
 La surface d'observation d'outbox du harnais : lit les lignes (discriminant,
 payload, livré) et vide l'outbox d'un module désigné par son DbContext — le

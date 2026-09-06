@@ -1,6 +1,4 @@
 using System.Data.Common;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 
@@ -20,80 +18,47 @@ public abstract class DataMigration(ModuleDbContext context)
 
     public abstract Task ExecuteAsync(CancellationToken cancellationToken);
 
-    // Mêmes règles que ModuleReader : la connexion est empruntée au DbContext,
-    // jamais ouverte en propre, et Open/CloseConnectionAsync sont comptés par
-    // EF. La commande est en plus enrôlée dans la transaction ouverte par
-    // DataMigrationRunner — sans quoi elle écrirait hors du tout-ou-rien.
-    protected async Task<List<TRow>> QueryAsync<TRow>(
+    // Le geste SQL vit dans ModuleSql : connexion empruntée, finally compté
+    // par EF, clés de paramètres nues — et l'enrôlement dans la transaction
+    // ouverte par DataMigrationRunner, sans quoi la commande écrirait hors du
+    // tout-ou-rien.
+    protected Task<List<TRow>> QueryAsync<TRow>(
         string sql,
         Dictionary<string, object> parameters,
         Func<DbDataReader, TRow> map,
         CancellationToken cancellationToken
-    )
-    {
-        await context.Database.OpenConnectionAsync(cancellationToken);
+    ) =>
+        ModuleSql.ExecuteAsync(
+            dbContext: context,
+            sql: sql,
+            parameters: parameters,
+            execute: async (
+                command,
+                token
+            ) =>
+            {
+                var rows = new List<TRow>();
 
-        try {
-            await using var command = CreateCommand(
-                sql: sql,
-                parameters: parameters
-            );
+                await using var reader = await command.ExecuteReaderAsync(token);
 
-            var rows = new List<TRow>();
+                while (await reader.ReadAsync(token)) {
+                    rows.Add(map(reader));
+                }
 
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                return rows;
+            },
+            cancellationToken: cancellationToken
+        );
 
-            while (await reader.ReadAsync(cancellationToken)) {
-                rows.Add(map(reader));
-            }
-
-            return rows;
-        }
-        finally {
-            await context.Database.CloseConnectionAsync();
-        }
-    }
-
-    protected async Task<int> ExecuteSqlAsync(
+    protected Task<int> ExecuteSqlAsync(
         string sql,
         Dictionary<string, object> parameters,
         CancellationToken cancellationToken
-    )
-    {
-        await context.Database.OpenConnectionAsync(cancellationToken);
-
-        try {
-            await using var command = CreateCommand(
-                sql: sql,
-                parameters: parameters
-            );
-
-            return await command.ExecuteNonQueryAsync(cancellationToken);
-        }
-        finally {
-            await context.Database.CloseConnectionAsync();
-        }
-    }
-
-    private DbCommand CreateCommand(
-        string sql,
-        Dictionary<string, object> parameters
-    )
-    {
-        var command = context.Database.GetDbConnection().CreateCommand();
-
-        command.CommandText = sql;
-        command.Transaction = context.Database.CurrentTransaction?.GetDbTransaction();
-
-        // Le SQL nomme ses paramètres @xxx ; ici la clé est nue («id», pas
-        // «@id») — l'asymétrie vit dans cette boucle, pas dans les migrations.
-        foreach (var (name, value) in parameters) {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = name;
-            parameter.Value = value;
-            command.Parameters.Add(parameter);
-        }
-
-        return command;
-    }
+    ) =>
+        ModuleSql.ExecuteNonQueryAsync(
+            dbContext: context,
+            sql: sql,
+            parameters: parameters,
+            cancellationToken: cancellationToken
+        );
 }

@@ -1,17 +1,18 @@
 using System.Data.Common;
-using LoreBank.SharedKernel.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
-namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
+namespace LoreBank.SharedKernel.Infrastructure.Persistence;
 
-// Le même geste que ModuleReader et les helpers de DataMigration : connexion
-// empruntée au DbContext du module — jamais ouverte en propre, une seconde
-// connexion sous un TransactionScope ambiant ferait escalader en distribué —
-// refermée dans un finally (EF compte les ouvertures). Ouverte dans le scope
-// ambiant, elle s'y enrôle d'elle-même : c'est ce qui rend l'écriture
-// d'outbox atomique avec la commande, et la ligne d'inbox atomique avec le
-// handler consommateur.
-internal static class OutboxSql
+// LE geste SQL du socle — readers, migrations de données, outbox et inbox
+// passent tous ici : la connexion est empruntée au DbContext du module,
+// jamais ouverte en propre (une seconde connexion sous le TransactionScope
+// ambiant d'une commande ferait enrôler un second connecteur, et la
+// transaction escaladerait en distribué — non supporté hors Windows), et
+// refermée dans un finally — Open/CloseConnectionAsync sont comptés par EF,
+// ils n'ouvrent ni ne ferment rien si EF tient déjà la connexion.
+// ModuleSqlTest épingle ces invariants une fois pour les quatre canaux.
+internal static class ModuleSql
 {
     internal static async Task<T> ExecuteAsync<T>(
         ModuleDbContext dbContext,
@@ -28,6 +29,17 @@ internal static class OutboxSql
 
             command.CommandText = sql;
 
+            // L'enrôlement, fait unique : indispensable sous le
+            // BeginTransaction du DataMigrationRunner — sans lui la commande
+            // écrirait hors du tout-ou-rien — et no-op partout ailleurs
+            // (CurrentTransaction est nul sous le seul TransactionScope
+            // ambiant, où la connexion s'enrôle d'elle-même). Corollaire :
+            // aucun appelant ne peut écrire à côté d'une transaction EF
+            // explicite sans rien pour le signaler.
+            command.Transaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+
+            // Le SQL nomme ses paramètres @xxx ; ici la clé est nue («id»,
+            // pas «@id») — l'asymétrie vit dans cette boucle, une fois.
             foreach (var (name, value) in parameters) {
                 var parameter = command.CreateParameter();
                 parameter.ParameterName = name;
