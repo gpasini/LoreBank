@@ -38,6 +38,16 @@ public sealed partial class Money : ValueObject
 
     public string Currency { get; }
 
+    // Une instance propre du même montant, pour un second propriétaire owned :
+    // EF n'accorde qu'un propriétaire par instance — partagée entre deux, la
+    // persistance ne peut pas être fidèle (OwnedValueObjectAliasingTest
+    // épingle le piège). Construite par le constructeur brut : rien à
+    // re-décider, la devise est déjà prouvée (ADR 0016).
+    public Money Copy() => new(
+        amount: Amount,
+        currency: Currency
+    );
+
     public Money Add(Money other) => new(
         amount: Amount + EnsureSameCurrency(other).Amount,
         currency: Currency
