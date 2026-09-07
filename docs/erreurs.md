@@ -410,10 +410,21 @@ Les paramètres arrivent bruts. `{"balance": 0, "requested": 50, "currency": "EU
 n'est pas un texte : c'est au front d'appliquer `Intl.NumberFormat` avec la
 locale de l'utilisateur. C'est tout l'intérêt de ne pas recevoir `"0.00 EUR"`.
 
+### Les codes sont typés
+
+La Description OpenAPI (`backend/openapi/lorebank.json`, `docs/openapi.md`)
+publie l'ensemble des codes sous un schéma `ErrorCode`, et `ApiProblem.code`
+le référence. Le Client TypeScript en fait une union de chaînes : une table
+de traduction typée `Record<ErrorCode, …>` (voir
+`frontend/src/api/errorMessages.ts`) est complète ou ne compile pas, et
+`openapi-fetch` type l'`error` de chaque appel par `ApiProblem`.
+
 ### Ce qu'il faut prévoir
 
 1. **Un cas par défaut.** Un code inconnu du catalogue ne doit pas afficher le
-   code brut à l'utilisateur — prévoir un message générique par statut.
+   code brut à l'utilisateur — prévoir un message générique par statut. Avec
+   la table typée, ce cas ne concerne plus que le front déployé avant le
+   back qui a ajouté le code.
 2. **Le 500 sans `code`.** C'est le seul cas ; tester la présence de `code`
    avant de chercher une traduction reste plus sûr que de compter dessus.
 3. **Ne pas afficher `parameters.fields` tel quel.** C'est une liste de noms

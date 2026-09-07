@@ -11,12 +11,17 @@ namespace LoreBank.SharedKernel.Api.Controllers;
 // de QueryAsync : ce serait un pass-through, les lectures gardent leur
 // Sender.Send + mapping. [ApiController] est hérité — une annotation de moins
 // à recopier par module.
+//
+// Les deux gestes rendent des types du socle (CommandResult, CreationResult)
+// et non un ActionResult nu : le type de retour de l'action est ce que la
+// Description OpenAPI lit pour dire 204 ou 201 + Location — le module n'a
+// rien à déclarer.
 [ApiController]
 public abstract class ModuleController(ISender sender) : ControllerBase
 {
     protected ISender Sender => sender;
 
-    protected async Task<ActionResult> SendAsync(
+    protected async Task<CommandResult> SendAsync(
         ICommand command,
         CancellationToken cancellationToken
     )
@@ -26,13 +31,13 @@ public abstract class ModuleController(ISender sender) : ControllerBase
             cancellationToken: cancellationToken
         );
 
-        return NoContent();
+        return new CommandResult();
     }
 
     // Le seul retour admis à une commande — l'identifiant créé — sert à
     // construire Location, jamais un corps. Le client qui veut l'état d'après
     // suit Location.
-    protected async Task<ActionResult> CreateAsync(
+    protected async Task<CreationResult> CreateAsync(
         ICreationCommand command,
         string actionName,
         CancellationToken cancellationToken
@@ -43,10 +48,9 @@ public abstract class ModuleController(ISender sender) : ControllerBase
             cancellationToken: cancellationToken
         );
 
-        return CreatedAtAction(
+        return new CreationResult(
             actionName: actionName,
-            routeValues: new { id },
-            value: null
+            routeValues: new { id }
         );
     }
 }

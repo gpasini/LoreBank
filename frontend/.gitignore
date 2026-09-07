@@ -1,0 +1,3 @@
+# Le Client (TypeScript) se régénère depuis backend/openapi/lorebank.json
+# (`npm run generate`, appelé par `prepare`) : jamais commité, jamais édité.
+src/api/schema.d.ts

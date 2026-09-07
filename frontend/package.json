@@ -1,0 +1,27 @@
+{
+  "name": "lorebank-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript ../backend/openapi/lorebank.json -o src/api/schema.d.ts",
+    "prepare": "npm run generate",
+    "typecheck": "tsc --noEmit",
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2"
+  }
+}

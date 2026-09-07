@@ -3,6 +3,7 @@ using Autofac.Extensions.DependencyInjection;
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
+using LoreBank.SharedKernel.Api.OpenApi;
 using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Domain.Events;
@@ -70,13 +71,16 @@ builder.Services.Configure<ApiBehaviorOptions>(
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 
-// Le document OpenAPI et Scalar sont réservés au Development : la surface de
-// prod ne publie pas sa propre description. L'enregistrement du service est
-// gardé lui aussi — MapOpenApi sans AddOpenApi échouerait au démarrage, le
-// couple vit et meurt ensemble.
-if (builder.Environment.IsDevelopment()) {
-    builder.Services.AddOpenApi();
-}
+// La Description OpenAPI (ADR 0019) : convention et transformers du socle,
+// codes d'erreur scannés sur le Domain et l'Application de chaque module
+// monté (les NotFoundException vivent dans l'Application). Le
+// service est inconditionnel — il n'a aucune surface réseau, et l'émission au
+// build (backend/openapi/lorebank.json, via ApiDescription.Server) compose
+// l'hôte hors Development. Seul l'endpoint est gardé, plus bas.
+builder.Services.AddOpenApiDescription(
+    title: "LoreBank",
+    assemblies: modules.SelectMany(module => new[] { module.DomainAssembly, module.ApplicationAssembly })
+);
 
 builder.Services.AddMediatR(configuration => {
         configuration.RegisterServicesFromAssemblies(
@@ -121,7 +125,8 @@ app.UseExceptionHandler();
 
 app.MapControllers();
 
-// /openapi/v1.json et /scalar, en Development seulement.
+// /openapi/v1.json et /scalar, en Development seulement : la surface de prod
+// ne publie pas sa propre Description — le front la lit dans le repo.
 if (app.Environment.IsDevelopment()) {
     app.MapOpenApi();
     app.MapScalarApiReference();

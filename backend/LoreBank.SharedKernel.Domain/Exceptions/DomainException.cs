@@ -12,7 +12,7 @@ public abstract partial class DomainException : Exception
     protected DomainException(Dictionary<string, object> parameters)
     {
         Parameters = parameters;
-        Code = DeriveCode(GetType());
+        Code = CodeOf(GetType());
     }
 
     protected DomainException() : this([])
@@ -31,7 +31,10 @@ public abstract partial class DomainException : Exception
             values: Parameters.Select(Format)
         )})";
 
-    private static string DeriveCode(Type type)
+    // La dérivation par type, exposée pour qui décrit les codes sans lever
+    // d'exception : le scan qui énumère les codes de la Description OpenAPI ne
+    // peut pas instancier des exceptions à paramètres.
+    public static string CodeOf(Type type)
     {
         var violation = ToScreamingSnakeCase(TrimExceptionSuffix(type.Name));
         var module = DeriveModule(type.Namespace);

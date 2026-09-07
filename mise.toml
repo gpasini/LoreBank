@@ -6,4 +6,5 @@ MISE_EXPERIMENTAL = "1"
 [monorepo]
 config_roots = [
     "backend",
+    "frontend",
 ]

@@ -12,8 +12,8 @@ events).
 
 ```
 LoreBank/
-├── backend/     # .NET — solution, SharedKernel, modules
-└── frontend/    # à venir
+├── backend/     # .NET — solution, SharedKernel, modules, Description OpenAPI
+└── frontend/    # Vite + React + TypeScript — le Client généré depuis la Description
 ```
 
 ## Prérequis
@@ -28,6 +28,14 @@ mise run migrate              # l'API ne migre jamais au démarrage
 mise exec -- dotnet run --project LoreBank.Host
 ```
 
+Côté front, les types de l'API se génèrent depuis
+`backend/openapi/lorebank.json`, émis à chaque build de l'hôte et commité :
+
+```bash
+cd frontend && mise exec -- npm ci   # génère src/api/schema.d.ts (prepare)
+mise exec -- npm run dev
+```
+
 ## Conventions
 
 Les conventions d'architecture et de code sont décrites dans
@@ -39,3 +47,6 @@ récurrents dans `.claude/skills/`.
 - [Les erreurs, de bout en bout](docs/erreurs.md) — comment une règle métier
   violée devient un JSON que le front sait traduire, et ce que renvoie l'API
   dans tous les autres cas.
+- [La Description OpenAPI, de l'action au type](docs/openapi.md) — comment
+  la surface HTTP est décrite depuis le code, commitée, et devient le Client
+  TypeScript du front.

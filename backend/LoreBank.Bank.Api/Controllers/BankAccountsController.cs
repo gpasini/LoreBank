@@ -17,12 +17,16 @@ namespace LoreBank.Bank.Api.Controllers;
 // Le contrat HTTP est la surface Application (ADR 0012) : le body se lie
 // directement sur la commande, une lecture sert son Result tel quel. Sur une
 // route mixte, la route est autoritaire — le `with` écrase ce que le body
-// aurait posté.
+// aurait posté, et la propriété écrasée est [RouteBound] sur la commande pour
+// que la Description OpenAPI ne la déclare pas dans le body.
+//
+// Les types de retour (CreationResult, CommandResult) sont l'affirmation que
+// la Description lit — 201 + Location, 204 — sans [ProducesResponseType].
 [Route("api/bank/accounts")]
 public sealed class BankAccountsController(ISender sender) : ModuleController(sender)
 {
     [HttpPost]
-    public Task<ActionResult> Open(
+    public Task<CreationResult> Open(
         OpenBankAccountCommand command,
         CancellationToken cancellationToken
     ) => CreateAsync(
@@ -41,7 +45,7 @@ public sealed class BankAccountsController(ISender sender) : ModuleController(se
     );
 
     [HttpPost("{id:guid}/deposits")]
-    public Task<ActionResult> Deposit(
+    public Task<CommandResult> Deposit(
         Guid id,
         DepositMoneyCommand command,
         CancellationToken cancellationToken
@@ -51,7 +55,7 @@ public sealed class BankAccountsController(ISender sender) : ModuleController(se
     );
 
     [HttpPost("{id:guid}/withdrawals")]
-    public Task<ActionResult> Withdraw(
+    public Task<CommandResult> Withdraw(
         Guid id,
         WithdrawMoneyCommand command,
         CancellationToken cancellationToken
@@ -61,7 +65,7 @@ public sealed class BankAccountsController(ISender sender) : ModuleController(se
     );
 
     [HttpPost("{id:guid}/closure")]
-    public Task<ActionResult> Close(
+    public Task<CommandResult> Close(
         Guid id,
         CancellationToken cancellationToken
     ) => SendAsync(

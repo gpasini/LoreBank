@@ -117,3 +117,17 @@ events traités, dans la transaction du handler consommateur — c'est elle qui
 rend la livraison at-least-once idempotente et porte le marquage poison après
 épuisement des retries.
 _Avoid_ : dédup maison, journal de consommation
+
+**Description (OpenAPI)** :
+La surface Application d'un module, décrite pour le front : les statuts que
+ModuleController garantit, la forme unique d'erreur et ses codes. Dérivée du
+code, jamais déclarée à la main ; un seul document pour tout le monolithe,
+commité dans le repo. Distincte des Contrats (de module), qui s'adressent aux
+autres modules.
+_Avoid_ : contrat front, contrat HTTP, API publique, swagger
+
+**Client (TypeScript)** :
+L'artefact généré depuis la Description pour le front : types des commandes
+et des Results, union des codes d'erreur. Jamais écrit à la main, jamais
+édité — il se régénère.
+_Avoid_ : SDK, client API, types partagés

@@ -10,12 +10,10 @@ TestResults/
 *.coverage
 *.trx
 
-# Front (à venir)
+# Front (le Client généré est ignoré par frontend/.gitignore)
 node_modules/
 dist/
 .vite/
-.nuxt/
-.angular/
 
 # IDE
 .idea/

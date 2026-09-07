@@ -5,6 +5,16 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- La Description OpenAPI (OpenApi/) est de la plomberie du socle :
+             convention et transformers vivent ici, l'hôte ne fait que les
+             monter. -->
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <!-- Référence directe pour appliquer le pin de sécurité de
+             Directory.Packages.props à la transitive de Microsoft.AspNetCore.OpenApi. -->
+        <PackageReference Include="Microsoft.OpenApi"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\LoreBank.SharedKernel.Application\LoreBank.SharedKernel.Application.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>

@@ -26,6 +26,40 @@ jobs:
       - name: Build
         run: mise exec -- dotnet build LoreBank.slnx
 
+      # Le build de l'hôte émet backend/openapi/lorebank.json (ADR 0019) : si
+      # le fichier commité diverge de la surface réelle, la Description est
+      # périmée — rebuild en local et commiter le diff.
+      - name: Description OpenAPI à jour
+        run: |
+          if ! git diff --exit-code -- openapi/; then
+            echo "::error::backend/openapi/lorebank.json diverge du build : relancer dotnet build et commiter le fichier."
+            exit 1
+          fi
+
       # Testcontainers démarre son PostgreSQL sur le Docker du runner.
       - name: Test
         run: mise exec -- dotnet test LoreBank.slnx --no-build
+
+  # Le Client TypeScript se génère depuis le fichier commité et doit compiler :
+  # c'est ce job qui matérialise « le front est complet sur les codes d'erreur
+  # ou ne compile pas » (src/api/errorMessages.ts est typé sur ErrorCode).
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+        with:
+          working_directory: frontend
+
+      - name: Install
+        run: mise exec -- npm ci
+
+      - name: Generate client
+        run: mise exec -- npm run generate
+
+      - name: Typecheck
+        run: mise exec -- npm run typecheck

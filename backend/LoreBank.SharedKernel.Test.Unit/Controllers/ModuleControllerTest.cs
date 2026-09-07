@@ -14,12 +14,12 @@ public sealed class ModuleControllerTest
 {
     private sealed class ProbeController(ISender sender) : ModuleController(sender)
     {
-        public Task<ActionResult> Mutate(TestCommand command) => SendAsync(
+        public Task<CommandResult> Mutate(TestCommand command) => SendAsync(
             command: command,
             cancellationToken: CancellationToken.None
         );
 
-        public Task<ActionResult> Create(TestCreationCommand command) => CreateAsync(
+        public Task<CreationResult> Create(TestCreationCommand command) => CreateAsync(
             command: command,
             actionName: "GetById",
             cancellationToken: CancellationToken.None
@@ -40,7 +40,7 @@ public sealed class ModuleControllerTest
 
         // Assert
 
-        result.Should().BeOfType<NoContentResult>();
+        result.Should().BeAssignableTo<NoContentResult>();
         sender.Sent.Should().ContainSingle().Which.Should().Be(command);
     }
 
@@ -57,7 +57,7 @@ public sealed class ModuleControllerTest
 
         // Assert
 
-        var created = result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        var created = result.Should().BeAssignableTo<CreatedAtActionResult>().Subject;
         created.ActionName.Should().Be("GetById");
         created.RouteValues.Should().ContainKey("id").WhoseValue.Should().Be(sender.CreatedId);
         created.Value.Should().BeNull("une commande ne sert aucune représentation — le client suit Location");

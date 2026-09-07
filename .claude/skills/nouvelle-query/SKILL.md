@@ -37,7 +37,10 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
    `Module` Autofac du module.
 6. L'action `GET` : `Task<ActionResult<XxxResult>>`,
    `await Sender.Send(…)` — le Result part tel quel, aucun cas d'absence à
-   traiter dans le controller.
+   traiter dans le controller. C'est ce type de retour que la Description
+   OpenAPI lit (200 + schéma du Result) ; le nom de l'action est
+   l'`operationId` du Client — `CreatedAtAction` d'une création le cible
+   aussi, le renommer casse les deux.
 7. Le test du use case (`Applications/<Agrégat>/XxxTest.cs`) : **relire chaque
    champ** du Result après une écriture arrangée par `DbSetup` — le mapping
    colonne → propriété de la config keyless est en chaînes que rien ne
@@ -46,6 +49,9 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
    `NotFoundException`.
 8. Une nouvelle route `GET` épingle son contrat : l'ensemble exact de ses clés
    JSON dans le `CqsContractTest` du module.
+9. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
+   diff (l'opération, le schéma du Result) et le commiter avec le changement
+   — la CI échoue s'il manque.
 
 ## Exemple de référence
 
@@ -65,6 +71,7 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
 | La row est dans le snapshot (migration générée) | `ModuleCompositionTest` (`HasPendingModelChanges`) |
 | Le 404 d'une lecture porte un code | `ErrorContractTest`, plus le cas absence de l'étape 7 |
 | L'ensemble exact des clés JSON du `GET` | `CqsContractTest` — étape 8 |
+| La Description dit 200 + le schéma du Result, `decimal` en `number` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
 
 ## Pièges
 
@@ -80,7 +87,9 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
   reader — `ModuleSql` est réservé aux migrations de données et à
   l'outbox/inbox (ADR 0018).
 - Renommer une propriété du Result est un breaking change HTTP : le
-  compilateur n'en dit rien, `CqsContractTest` épingle les clés.
+  compilateur n'en dit rien, `CqsContractTest` épingle les clés et le diff du
+  document commité le montre en PR. Renommer l'action renomme l'`operationId`
+  — le Client casse à la régénération.
 
 ## Avant de terminer
 

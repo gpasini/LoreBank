@@ -23,6 +23,12 @@ communication inter-modules.
   référence sans attribut `Version`, et les pins — licence (FluentAssertions
   7.x, MediatR 12.x), avis de sécurité — y sont des faits uniques, commentés à
   côté de la version.
+- Le front vit dans `frontend/` (Vite + React + TypeScript), Node pinné par
+  mise (`frontend/mise.toml`, racine monorepo déclarée dans `mise.toml`) :
+  `cd frontend && mise exec -- npm ci` génère le Client depuis
+  `backend/openapi/lorebank.json` (`prepare`), `npm run typecheck` est sa
+  vérification. TypeScript est pinné en 5.x — `openapi-typescript` consomme
+  l'API compilateur que la 7 n'expose plus.
 
 ## Architecture
 
@@ -264,12 +270,32 @@ communication inter-modules.
   est écrasé), et une lecture sert le Result de sa query tel quel.
   Renommer une propriété de commande ou de Result est donc un breaking change
   HTTP : le compilateur n'en dit rien, c'est `CqsContractTest` qui épingle
-  l'ensemble exact des clés JSON du `GET`. Un besoin de forme wire divergente
+  l'ensemble exact des clés JSON du `GET` — et le diff de
+  `backend/openapi/lorebank.json` qui le montre en PR. Un besoin de forme wire divergente
   se règle par une autre query avec son propre Result, jamais par un record
   de réponse dans l'Api. Le client qui veut l'état d'après fait un
   `GET`. C'est un aller-retour de plus, assumé : une commande qui renvoie aussi
   la ressource est également une lecture, et la représentation qu'elle sert peut
   diverger de celle du `GET` sans que rien ne le signale.
+- La **Description OpenAPI** (ADR 0019, `docs/openapi.md`) est dérivée du
+  code, jamais déclarée à la main : `SendAsync` rend `Task<CommandResult>`,
+  `CreateAsync` rend `Task<CreationResult>`, et `DescriptionConvention`
+  (`LoreBank.SharedKernel.Api/OpenApi`) lit ce type de retour pour dire 204
+  ou 201 + `Location` — aucun `[ProducesResponseType]` dans un module. Les
+  transformers du socle ajoutent 400/404/422/500 sur toutes les opérations,
+  sur le schéma `ApiProblem` dont `code` est l'enum `ErrorCode` (scan des
+  `DomainException` concrètes du Domain et de l'Application de chaque module
+  monté + SharedKernel + `VALIDATION_FAILED`), l'`operationId`
+  `<Controller>_<Action>`, le tag au nom du module, `decimal` en `number`,
+  `application/json` seul, pas de `servers`. Sur une route mixte, la
+  propriété que la route écrase est `[property: RouteBound]`
+  (`LoreBank.SharedKernel.Application`) — elle sort du schéma du body, le
+  `with` du controller reste. L'hôte monte tout par `AddOpenApiDescription`,
+  inconditionnel ; `/openapi/v1.json` et Scalar restent Development-only.
+  `Microsoft.Extensions.ApiDescription.Server` émet
+  `backend/openapi/lorebank.json` à chaque build de l'hôte, le fichier est
+  commité et la CI échoue s'il diverge. Le front en génère ses types
+  (`openapi-typescript`), jamais commités.
 - Le conteneur racine est Autofac (`UseServiceProviderFactory`) ; les
   dépendances s'enregistrent dans des `Module` Autofac, les handlers MediatR
   par scan d'assembly — l'hôte agrège les `ApplicationAssembly` de tous les
@@ -415,7 +441,11 @@ communication inter-modules.
   frontière HTTP : `ErrorContractTest`, côté SharedKernel, épingle le contrat
   d'erreur — statuts, type de média, `code`, absence de `detail` — via le
   `ProbeController`, un controller-sonde monté par `SharedKernelWebAppFactory`
-  seulement ; `CqsContractTest`, côté Bank, le fait qu'une commande ne serve
+  seulement — `DescriptionContractTest` s'y ancre aussi, avec ses actions
+  commande / création / lecture / route mixte `[RouteBound]`, jamais
+  exécutées, pour épingler que la Description dit ce que `ModuleController`
+  fait, et `ErrorCodesDescriptionTest` que l'enum `ErrorCode` égale le scan
+  de `HostModules.All` ; `CqsContractTest`, côté Bank, le fait qu'une commande ne serve
   aucune représentation de bout en bout — la plomberie 204/201+Location est
   celle de `ModuleController`, prouvée en unitaire côté socle
   (`ModuleControllerTest`), le test E2E prouve que le module de référence
