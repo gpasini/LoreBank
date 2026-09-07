@@ -3,6 +3,7 @@ using LoreBank.Bank.Application.Commands.DepositMoney;
 using LoreBank.Bank.Application.Commands.OpenBankAccount;
 using LoreBank.Bank.Application.Commands.WithdrawMoney;
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
+using LoreBank.Bank.Application.Queries.ListBankAccounts;
 using LoreBank.SharedKernel.Api.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,12 @@ public sealed class BankAccountsController(ISender sender) : ModuleController(se
     ) => CreateAsync(
         command: command,
         actionName: nameof(GetById),
+        cancellationToken: cancellationToken
+    );
+
+    [HttpGet]
+    public async Task<ActionResult<BankAccountsResult>> List(CancellationToken cancellationToken) => await Sender.Send(
+        request: new ListBankAccountsQuery(),
         cancellationToken: cancellationToken
     );
 

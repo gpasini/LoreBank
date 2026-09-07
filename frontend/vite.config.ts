@@ -1,6 +1,18 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
-  plugins: [react()],
+// En dev, le front appelle l'API en même origine : Vite relaie /api vers
+// l'hôte .NET (VITE_API_PROXY). Le back n'ouvre pas de CORS — servir le front
+// sous la même origine que l'API est une décision de déploiement, pas du socle.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return {
+    plugins: [react()],
+    server: {
+      proxy: {
+        "/api": env.VITE_API_PROXY ?? "http://localhost:5103",
+      },
+    },
+  };
 });

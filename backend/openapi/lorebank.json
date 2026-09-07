@@ -76,6 +76,64 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Bank"
+        ],
+        "operationId": "BankAccounts_List",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankAccountsResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/bank/accounts/{id}": {
@@ -482,6 +540,48 @@
         }
       },
       "BankAccountResult": {
+        "required": [
+          "id",
+          "iban",
+          "balance",
+          "currency",
+          "isClosed"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "iban": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "isClosed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BankAccountsResult": {
+        "required": [
+          "accounts"
+        ],
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankAccountSummaryResult"
+            }
+          }
+        }
+      },
+      "BankAccountSummaryResult": {
         "required": [
           "id",
           "iban",

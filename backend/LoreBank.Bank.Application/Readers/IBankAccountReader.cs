@@ -1,4 +1,5 @@
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
+using LoreBank.Bank.Application.Queries.ListBankAccounts;
 
 namespace LoreBank.Bank.Application.Readers;
 
@@ -15,4 +16,7 @@ public interface IBankAccountReader
         Guid id,
         CancellationToken cancellationToken
     );
+
+    // Triée par IBAN ; vide plutôt que null — une liste n'a pas d'absence.
+    Task<IReadOnlyList<BankAccountSummaryResult>> ListAsync(CancellationToken cancellationToken);
 }

@@ -14,6 +14,10 @@ Voir `docs/openapi.md` pour le chemin complet, de l'action au type.
 ```bash
 cd frontend
 mise exec -- npm ci
-cp .env.example .env
+cp .env.example .env          # /api relayé vers l'hôte .NET (proxy Vite)
 mise exec -- npm run dev
 ```
+
+En dev, le front appelle l'API en même origine et Vite relaie `/api` vers
+l'hôte (`VITE_API_PROXY`) : le back n'ouvre pas de CORS. Servir le front sous
+la même origine que l'API en production est une décision de déploiement.

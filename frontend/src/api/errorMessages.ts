@@ -1,4 +1,5 @@
 import type { ErrorCode } from "./client";
+import { money } from "../format";
 
 // La table de traduction des codes d'erreur (docs/erreurs.md, « Côté front »).
 // Typée sur l'union ErrorCode du Client : un code que le back ajoute et que
@@ -9,7 +10,7 @@ export const errorMessages: Record<ErrorCode, (parameters: Record<string, unknow
   "BANK.ACCOUNT_CLOSED": () => "Ce compte est fermé.",
   "BANK.BANK_ACCOUNT_NOT_FOUND": () => "Ce compte est introuvable.",
   "BANK.INSUFFICIENT_BALANCE": ({ balance, requested, currency }) =>
-    `Solde insuffisant : ${money(requested, currency)} demandés pour un solde de ${money(balance, currency)}.`,
+    `Solde insuffisant : ${money(Number(requested), String(currency))} demandés pour un solde de ${money(Number(balance), String(currency))}.`,
   "BANK.NON_EMPTY_ACCOUNT_CLOSURE": () => "Un compte ne se ferme qu'à solde nul.",
   CURRENCY_MISMATCH: ({ left, right }) => `Opération impossible entre ${String(left)} et ${String(right)}.`,
   INVALID_BIC: ({ bic }) => `« ${String(bic)} » n'est pas un BIC valide.`,
@@ -19,11 +20,7 @@ export const errorMessages: Record<ErrorCode, (parameters: Record<string, unknow
   "LEDGER.INVALID_LEDGER_ACCOUNT_REF": ({ value }) => `« ${String(value)} » n'est pas une référence de compte.`,
   "LEDGER.JOURNAL_ENTRY_NOT_FOUND": () => "Cette écriture comptable est introuvable.",
   "LEDGER.UNBALANCED_JOURNAL_ENTRY": () => "L'écriture comptable n'est pas équilibrée.",
-  "LEDGER.UNKNOWN_BANK_ACCOUNT": () => "Ce compte est inconnu de la comptabilité.",
+  "LEDGER.UNKNOWN_BANK_ACCOUNT": () => "Aucune écriture comptable pour ce compte.",
   NON_POSITIVE_AMOUNT: () => "Le montant doit être strictement positif.",
   VALIDATION_FAILED: () => "La requête est mal formée.",
 };
-
-function money(amount: unknown, currency: unknown): string {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: String(currency) }).format(Number(amount));
-}

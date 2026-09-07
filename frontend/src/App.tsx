@@ -1,65 +1,53 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type ApiProblem } from "./api/client";
-import { errorMessages } from "./api/errorMessages";
+import type { components } from "./api/schema";
+import { AccountDetail } from "./components/AccountDetail";
+import { AccountList } from "./components/AccountList";
+import { OpenAccountForm } from "./components/OpenAccountForm";
+import { Problem } from "./components/Problem";
 
-// L'appel de démonstration : un GET typé de bout en bout. `data` est le
-// BankAccountResult de la Description, `error` un ApiProblem — et `translate`
-// ne connaît que des codes que le back peut vraiment servir.
-type Account = NonNullable<Awaited<ReturnType<typeof loadAccount>>["data"]>;
+type Summary = components["schemas"]["BankAccountSummaryResult"];
 
-function loadAccount(id: string) {
-  return api.GET("/api/bank/accounts/{id}", { params: { path: { id } } });
-}
-
-function translate(problem: ApiProblem): string {
-  // Le 500 est la seule réponse sans `code` : un message générique par statut.
-  if (problem.code === undefined) {
-    return `Erreur ${problem.status} — réessayez plus tard.`;
-  }
-
-  return errorMessages[problem.code](problem.parameters ?? {});
-}
-
+// L'écran : la liste des comptes à gauche (avec l'ouverture), le détail du
+// compte choisi à droite. Tout ce qui s'affiche vient du Client généré depuis
+// la Description : aucun type de l'API n'est écrit ici.
 export function App() {
-  const [id, setId] = useState("");
-  const [account, setAccount] = useState<Account | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Summary[]>([]);
+  const [problem, setProblem] = useState<ApiProblem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    const { data, error } = await api.GET("/api/bank/accounts");
+
+    setAccounts(data?.accounts ?? []);
+    setProblem(error ?? null);
+  }, []);
 
   useEffect(() => {
-    if (id.length !== 36) {
-      return;
-    }
-
-    let cancelled = false;
-
-    loadAccount(id).then(({ data, error }) => {
-      if (cancelled) {
-        return;
-      }
-
-      setAccount(data ?? null);
-      setMessage(error ? translate(error) : null);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+    void reload();
+  }, [reload]);
 
   return (
-    <main>
-      <h1>LoreBank</h1>
-      <label>
-        Identifiant du compte{" "}
-        <input value={id} onChange={(event) => setId(event.target.value)} size={40} />
-      </label>
-      {account && (
-        <p>
-          {account.iban} — {account.balance} {account.currency}
-          {account.isClosed ? " (fermé)" : ""}
-        </p>
-      )}
-      {message && <p role="alert">{message}</p>}
+    <main className="layout">
+      <aside>
+        <h1>LoreBank</h1>
+        <OpenAccountForm
+          onOpened={(id) => {
+            setSelectedId(id);
+            void reload();
+          }}
+        />
+        <h2>Comptes</h2>
+        <Problem problem={problem} />
+        <AccountList accounts={accounts} selectedId={selectedId} onSelect={setSelectedId} />
+      </aside>
+      <section className="detail">
+        {selectedId ? (
+          <AccountDetail key={selectedId} accountId={selectedId} onChanged={() => void reload()} />
+        ) : (
+          <p className="muted">Choisissez un compte, ou ouvrez-en un.</p>
+        )}
+      </section>
     </main>
   );
 }
