@@ -24,9 +24,9 @@ le fil est un **discriminant stable choisi** — `[IntegrationEvent(
 "bank.money-deposited")]`, premier segment = module publieur, la grille des
 codes d'erreur — jamais un nom de type .NET : renommer un namespace n'est pas
 une migration de données. Le port de lecture publié (`IBankAccountsContract`)
-suit la discipline des readers : DTOs plats, implémentation SQL chez le
-module propriétaire (`ModuleReader`), `null` pour l'absence, test de relecture
-de chaque colonne — in-process et lecture pure, pas d'escalade de transaction.
+suit la discipline des readers : DTOs plats, implémentation chez le module
+propriétaire (`ModuleReader` — rows keyless, ADR 0018), `null` pour
+l'absence, test de relecture de chaque colonne — in-process et lecture pure.
 La projection locale chez le consommateur reste l'évolution documentée pour le
 jour où le couplage temporel de ce port devient un problème.
 

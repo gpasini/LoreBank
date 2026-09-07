@@ -23,10 +23,18 @@ de domain events.
 _Avoid_ : assembly des handlers
 
 **ModuleReader** :
-La base des readers d'un module métier. Porte l'emprunt de connexion et le
-schéma du module ; un reader concret ne fournit que son SQL, ses paramètres
-et sa lecture de colonnes.
+La base des readers d'un module métier. Son seul geste, `Query<TRow>`, sert
+les rows keyless du module et refuse un type à clé ou hors modèle — une
+lecture ne peut pas matérialiser un agrégat ; un reader concret ne fournit
+que son LINQ et sa projection vers le Result.
 _Avoid_ : reader de base, helper SQL
+
+**Row (de lecture)** :
+Le miroir plat d'une table, réservé à la lecture : une classe de primitives
+par table — jamais par query — enregistrée keyless (`HasNoKey` + `ToView`)
+dans le modèle du module, requêtée par ses readers, jamais suivie ni écrite.
+Son mapping de colonnes n'est vérifié que par les tests de relecture.
+_Avoid_ : read model, projection, entité de lecture, DTO de persistance
 
 **ModuleRepository** :
 La base des repositories d'agrégats d'un module métier. Porte le chargement
@@ -83,8 +91,9 @@ _Avoid_ : lookup de module, registre de DbContexts
 **ModuleSql** :
 Le geste SQL unique du socle : connexion empruntée au DbContext du module —
 jamais ouverte en propre — refermée dans un finally compté par EF, clés de
-paramètres nues, commande enrôlée dans la transaction EF courante. Readers,
-migrations de données et outbox/inbox sont des façades dessus.
+paramètres nues, commande enrôlée dans la transaction EF courante. Migrations
+de données et outbox/inbox sont des façades dessus — pas les readers, qui
+requêtent des rows keyless.
 _Avoid_ : helper ADO, SqlExecutor, copie locale du geste d'emprunt
 
 **OutboxProbe** :

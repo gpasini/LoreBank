@@ -1,44 +1,30 @@
-using System.Data.Common;
-using LoreBank.Bank.Application.Readers;
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
+using LoreBank.Bank.Application.Readers;
 using LoreBank.Bank.Infrastructure.Persistence;
+using LoreBank.Bank.Infrastructure.Persistence.ReadRows;
 using LoreBank.SharedKernel.Infrastructure.Readers;
+using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.Bank.Infrastructure.Readers;
 
-// Lit la table, pas l'agrégat : aucun value object n'est reconstruit, aucune
-// entité n'est suivie par le change tracker, et le SELECT ne ramène que les
-// colonnes du DTO. L'emprunt de connexion vit dans ModuleReader — ici il ne
-// reste que le SQL, les paramètres et la lecture des colonnes.
-//
-// Le SQL est écrit à la main, donc le lien colonne → propriété n'est vérifié par
-// aucun compilateur : c'est `GetBankAccountByIdTest` qui l'épingle, en relisant
-// chaque champ après écriture. Une migration qui renomme une colonne y fait
-// rougir la suite.
+// Lit la row, pas l'agrégat : aucun value object n'est reconstruit, aucune
+// entité n'est suivie, et la projection du Select final ne fait lire à EF que
+// les colonnes du Result. Le lien colonne → propriété vit dans la
+// configuration de BankAccountRow, en chaînes que rien ne compile :
+// GetBankAccountByIdTest l'épingle en relisant chaque champ après écriture.
 public sealed class BankAccountReader(BankDbContext context) : ModuleReader(context), IBankAccountReader
 {
-    private string SelectById =>
-        $"""
-        SELECT id, iban, balance_amount, balance_currency, is_closed
-        FROM {Schema}.bank_accounts
-        WHERE id = @id
-        """;
-
     public Task<BankAccountResult?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken
-    ) => QuerySingleOrDefaultAsync(
-        sql: SelectById,
-        parameters: new() { ["id"] = id },
-        map: Map,
-        cancellationToken: cancellationToken
-    );
-
-    private static BankAccountResult Map(DbDataReader reader) => new(
-        Id: reader.GetGuid(0),
-        Iban: reader.GetString(1),
-        Balance: reader.GetDecimal(2),
-        Currency: reader.GetString(3),
-        IsClosed: reader.GetBoolean(4)
-    );
+    ) => Query<BankAccountRow>()
+        .Where(row => row.Id == id)
+        .Select(row => new BankAccountResult(
+            row.Id,
+            row.Iban,
+            row.BalanceAmount,
+            row.BalanceCurrency,
+            row.IsClosed
+        ))
+        .SingleOrDefaultAsync(cancellationToken);
 }

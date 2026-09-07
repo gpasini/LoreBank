@@ -4,14 +4,15 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace LoreBank.SharedKernel.Infrastructure.Persistence;
 
-// LE geste SQL du socle — readers, migrations de données, outbox et inbox
-// passent tous ici : la connexion est empruntée au DbContext du module,
-// jamais ouverte en propre (une seconde connexion sous le TransactionScope
-// ambiant d'une commande ferait enrôler un second connecteur, et la
-// transaction escaladerait en distribué — non supporté hors Windows), et
-// refermée dans un finally — Open/CloseConnectionAsync sont comptés par EF,
-// ils n'ouvrent ni ne ferment rien si EF tient déjà la connexion.
-// ModuleSqlTest épingle ces invariants une fois pour les quatre canaux.
+// LE geste SQL du socle — migrations de données, outbox et inbox passent
+// tous ici (les readers, eux, requêtent des rows keyless via ModuleReader —
+// ADR 0018) : la connexion est empruntée au DbContext du module, jamais
+// ouverte en propre (une seconde connexion sous le TransactionScope ambiant
+// d'une commande ferait enrôler un second connecteur, et la transaction
+// escaladerait en distribué — non supporté hors Windows), et refermée dans un
+// finally — Open/CloseConnectionAsync sont comptés par EF, ils n'ouvrent ni
+// ne ferment rien si EF tient déjà la connexion. ModuleSqlTest épingle ces
+// invariants une fois pour les trois canaux.
 internal static class ModuleSql
 {
     internal static async Task<T> ExecuteAsync<T>(

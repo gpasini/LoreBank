@@ -42,8 +42,8 @@ public abstract class ModuleDbContext : DbContext
 
     // « bank » pour LoreBank.Bank : le nom du module en minuscules. Un schéma
     // PostgreSQL par module est la précondition du partage d'une même base par
-    // le harnais d'intégration (ADR 0002) ; les readers l'interpolent dans
-    // leur SQL via ModuleReader.
+    // le harnais d'intégration (ADR 0002) ; les migrations de données et
+    // l'outbox/inbox l'interpolent dans leur SQL via ModuleSql.
     public string Schema { get; }
 
     // Les events sont vidés des entités avant l'écriture, pour qu'un handler qui

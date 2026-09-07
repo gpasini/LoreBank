@@ -1,4 +1,3 @@
-using System.Data;
 using LoreBank.SharedKernel.Infrastructure.Readers;
 using LoreBank.SharedKernel.Test.Unit.Fakes;
 using Microsoft.Data.Sqlite;
@@ -38,8 +37,10 @@ public sealed class ModuleReaderTest
         await _connection.DisposeAsync();
     }
 
+    // La row keyless lit la même table que le modèle d'écriture (ToView) : ce
+    // qu'un agrégat écrit, sa row le relit — sans clé, sans tracking.
     [Test]
-    public async Task QuerySingleOrDefaultAsync_ShouldMapTheRow_WhenItExists()
+    public async Task Query_ShouldReadTheRow_WhenItExists()
     {
         // Arrange
 
@@ -60,7 +61,7 @@ public sealed class ModuleReaderTest
     }
 
     [Test]
-    public async Task QuerySingleOrDefaultAsync_ShouldReturnNull_WhenNoRowMatches()
+    public async Task Query_ShouldReturnNull_WhenNoRowMatches()
     {
         // Act
 
@@ -74,52 +75,23 @@ public sealed class ModuleReaderTest
         row.Should().BeNull();
     }
 
-    // L'emprunt est refcompté par EF : la base ne ferme pas une connexion
-    // qu'elle n'a pas ouverte — c'est ce qui la rend sûre sous une commande
-    // dont EF tient déjà la connexion.
+    // La règle « une lecture ne matérialise jamais d'agrégat » est mécanique :
+    // un type à clé est refusé avant toute requête.
     [Test]
-    public async Task QuerySingleOrDefaultAsync_ShouldLeaveTheConnectionOpen_WhenEfAlreadyHeldIt()
+    public void Query_ShouldThrow_WhenTheTypeHasAKey()
     {
-        // Arrange
+        var act = () => _reader.Expose<TestThing>();
 
-        await _context.Database.OpenConnectionAsync();
-
-        // Act
-
-        await _reader.GetByIdAsync(
-            id: Guid.NewGuid(),
-            cancellationToken: CancellationToken.None
-        );
-
-        // Assert
-
-        _context.Database.GetDbConnection().State.Should().Be(ConnectionState.Open);
-
-        await _context.Database.CloseConnectionAsync();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*jamais un agrégat*");
     }
 
-    // Ici la connexion appartient à EF (chaîne de connexion, pas de connexion
-    // fournie) : c'est le seul cas où CloseConnectionAsync ferme réellement —
-    // sur la connexion externe du SetUp, EF ne ferme jamais ce qu'il ne
-    // possède pas, et l'état resterait Open quoi que fasse le finally.
     [Test]
-    public async Task QuerySingleOrDefaultAsync_ShouldReleaseTheBorrowedConnection_WhenTheQueryFails()
+    public void Query_ShouldThrow_WhenTheTypeIsNotInTheModel()
     {
-        // Arrange
+        var act = () => _reader.Expose<UnmappedRow>();
 
-        await using var context = new TestModuleDbContext(
-            options: new DbContextOptionsBuilder<TestModuleDbContext>().UseSqlite("DataSource=:memory:").Options,
-            dispatcher: new RecordingDomainEventDispatcher()
-        );
-        var reader = new TestThingReader(context);
-
-        // Act
-
-        var act = async () => await reader.FailAsync(CancellationToken.None);
-
-        // Assert
-
-        await act.Should().ThrowAsync<SqliteException>();
-        context.Database.GetDbConnection().State.Should().Be(ConnectionState.Closed);
+        act.Should().Throw<InvalidOperationException>().WithMessage("*n'est pas dans le modèle*");
     }
+
+    private sealed record UnmappedRow(Guid Id);
 }

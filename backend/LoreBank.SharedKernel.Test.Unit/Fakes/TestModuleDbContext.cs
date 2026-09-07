@@ -18,5 +18,14 @@ public sealed class TestModuleDbContext(
     protected override void ConfigureModule(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TestThing>().HasKey(thing => thing.Id);
+
+        // La row keyless du fake : la même table que TestThing, lue sans clé —
+        // la forme qu'un module donne à ses rows de lecture (ToView : hors
+        // migrations, la table appartient au modèle d'écriture).
+        modelBuilder.Entity<TestThingRow>(row =>
+        {
+            row.HasNoKey();
+            row.ToView("Things");
+        });
     }
 }

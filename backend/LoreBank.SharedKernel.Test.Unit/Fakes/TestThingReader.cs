@@ -1,4 +1,5 @@
 using LoreBank.SharedKernel.Infrastructure.Readers;
+using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.SharedKernel.Test.Unit.Fakes;
 
@@ -7,17 +8,12 @@ public sealed class TestThingReader(TestModuleDbContext context) : ModuleReader(
     public Task<TestThingRow?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken
-    ) => QuerySingleOrDefaultAsync(
-        sql: """SELECT "Id" FROM "Things" WHERE "Id" = @id""",
-        parameters: new() { ["id"] = id },
-        map: reader => new TestThingRow(reader.GetGuid(0)),
+    ) => Query<TestThingRow>().SingleOrDefaultAsync(
+        predicate: row => row.Id == id,
         cancellationToken: cancellationToken
     );
 
-    public Task<TestThingRow?> FailAsync(CancellationToken cancellationToken) => QuerySingleOrDefaultAsync(
-        sql: "SELECT boom FROM nowhere",
-        parameters: [],
-        map: _ => new TestThingRow(Guid.Empty),
-        cancellationToken: cancellationToken
-    );
+    // Passe-plat vers Query, pour que ModuleReaderTest éprouve la garde
+    // keyless sur des types choisis par le test.
+    public IQueryable<TRow> Expose<TRow>() where TRow : class => Query<TRow>();
 }

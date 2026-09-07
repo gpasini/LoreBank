@@ -60,9 +60,11 @@ ne s'écrit pas à la main.
 - La collection d'events de l'agrégat n'est pas à ignorer dans la
   configuration : EF ne mappe pas une propriété sans setter d'un type non
   mappable (`ModuleDbContextTest` épingle ce contrat).
-- Renommer une colonne casse le SQL manuscrit des readers et des data
-  migrations : les tests de relecture (`GetBankAccountByIdTest`) rougissent —
-  les faire passer fait partie de la migration.
+- Renommer une colonne casse les configs keyless des rows de lecture
+  (`Persistence/ReadRows/`, hors migrations — rien ne signale la dérive) et
+  le SQL de bordure des data migrations : les tests de relecture
+  (`GetBankAccountByIdTest`) rougissent — les faire passer fait partie de la
+  migration.
 - La chaîne de connexion du poste vit dans `appsettings.json` de l'hôte ; le
   harnais de test, lui, redirige tout vers son conteneur — une migration ne se
   teste jamais sur la base du poste.

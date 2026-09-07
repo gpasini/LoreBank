@@ -330,22 +330,25 @@ communication inter-modules.
   (`ModuleRepositoryTest` épingle ces invariants sur Sqlite). Chaque
   Infrastructure expose son
   `Module` Autofac, enregistré par l'hôte via l'adapter `IHostModule` du module.
-- Les readers (`Readers/`) implémentent les ports de lecture de l'Application en
-  **SQL écrit à la main** : aucun agrégat n'est matérialisé, le `SELECT` ne
-  ramène que les colonnes du DTO. Un reader dérive de `ModuleReader`
-  (`LoreBank.SharedKernel.Infrastructure`) et ne fournit que son SQL (le
-  schéma s'y interpole via la propriété `Schema` de la base — `FROM
-  {Schema}.bank_accounts` — plutôt que réécrit en dur), ses
-  paramètres (dictionnaire à clés nues — le `@` ne vit que dans le SQL) et sa
-  lecture de colonnes ; c'est la base qui porte l'emprunt de connexion au
-  `DbContext` (`Database.OpenConnectionAsync` puis `GetDbConnection()`,
-  refermée dans un `finally` — EF compte les ouvertures), jamais ouverte en
-  propre : une seconde connexion vers le même PostgreSQL sous le
-  `TransactionScope` ambiant d'une commande ferait enrôler un second
-  connecteur, et la transaction escaladerait en distribué (`ModuleReaderTest`
-  épingle ces invariants). Le lien colonne → propriété n'étant vérifié par
-  aucun compilateur, chaque reader doit avoir un test qui relit tous ses
-  champs (voir `GetBankAccountByIdTest`).
+- Les readers (`Readers/`) implémentent les ports de lecture de l'Application
+  en **LINQ sur des rows keyless** (ADR 0018) : une row par **table** (pas par
+  query) — classe plate de primitives dans `Persistence/ReadRows/`, miroir de
+  la forme persistée, enregistrée `HasNoKey()` + `ToView("<table>")` dans une
+  `IEntityTypeConfiguration` (requêtable, jamais suivie ni écrite, hors
+  migrations — le schéma par défaut du module s'applique ; le snapshot porte
+  la row, sa création génère une migration vide). Un reader dérive de
+  `ModuleReader` (`LoreBank.SharedKernel.Infrastructure`) et compose son
+  `Where`/`OrderBy` sur la row via `Query<TRow>()`, puis projette vers son
+  Result dans le `Select` final — EF ne lit que les colonnes touchées, aucun
+  agrégat n'est matérialisé : `Query` refuse un type à clé ou hors modèle
+  (`ModuleReaderTest` épingle ce contrat). Les VO restent les gardiens des
+  formats de paramètres (`LedgerAccountRef.ForBankAccount(id).Value` comparé
+  au `string` de la row). Le mapping colonne → propriété d'une config keyless
+  est en chaînes que rien ne compile, et `ToView` étant hors migrations rien
+  ne signale la dérive avec la table : chaque reader doit avoir un test qui
+  relit tous ses champs (voir `GetBankAccountByIdTest`). Pas d'échappatoire
+  SQL dans les readers — `ModuleSql` est réservé aux migrations de données et
+  à l'outbox/inbox.
 - Le `DbContext` d'un nouveau module dérive de `ModuleDbContext`
   (`LoreBank.SharedKernel.Infrastructure`) — et c'est tout (voir
   `BankDbContext.cs` : un constructeur, un `DbSet`) : la base dérive le schéma
