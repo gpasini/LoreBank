@@ -85,6 +85,11 @@ seule forme dans le socle, jamais une liste nue ni une enveloppe maison :
    un filtre sans facette, `OrderBy` obligatoire.
 5. L'action : `List([FromQuery] ListXxxQuery query, ct)` rendant
    `Task<ActionResult<ListPage<XxxItemResult>>>`, `await Sender.Send(query)`.
+   Sous une ressource (`GET …/{id}/movements`) : la query porte
+   `[RouteBound] Guid AccountId` (scalaire, ce n'est pas un filtre), le
+   controller envoie `query with { AccountId = id }`, et le handler vérifie
+   la ressource avant de lire — son absence est le 404 du module, jamais
+   une Page vide (voir `ListLedgerMovements`).
 6. Le test du use case relit chaque champ de l'item par la recherche, et
    affirme les facettes sous le nom des filtres ; la mécanique (bornes,
    jokers, facettes disjonctives) est prouvée par le socle

@@ -186,6 +186,33 @@ public sealed class DescriptionContractTest : BaseHostTest<SharedKernelWebAppFac
         );
     }
 
+    // Une Liste sous une ressource (ADR 0027) : la propriété [RouteBound] de
+    // la query est le paramètre de route, jamais un paramètre de query string
+    // — le Client ne l'enverrait pas en double.
+    [Test]
+    public void OwnedList_ShouldDescribeTheRouteBoundPropertyOnTheRouteOnly()
+    {
+        var parameters = Operation(
+            path: "/api/probe/owners/{ownerId}/listings",
+            verb: "get"
+        ).GetProperty("parameters").EnumerateArray()
+            .Select(parameter => (
+                    Name: parameter.GetProperty("name").GetString(),
+                    In: parameter.GetProperty("in").GetString()
+                )
+            )
+            .ToList();
+
+        parameters.Should().BeEquivalentTo([
+                ("ownerId", "path"),
+                ("page", "query"),
+                ("pageSize", "query"),
+                ("search", "query"),
+                ("kind", "query"),
+            ]
+        );
+    }
+
     [Test]
     public void EveryOperation_ShouldDeclareTheCommonErrorsOnApiProblem_WhateverItsShape()
     {

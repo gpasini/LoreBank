@@ -94,6 +94,21 @@ public sealed class ProbeController(ISender sender) : ModuleController(sender)
         cancellationToken: cancellationToken
     );
 
+    // Une Liste sous une ressource (DescriptionContractTest) : jamais
+    // exécutée, la Description se lit sans appel — la route porte l'id, la
+    // query string le reste.
+    [HttpGet("owners/{ownerId:guid}/listings")]
+    public ActionResult<ListPage<ProbeThingResult>> ListOwnedThings(
+        Guid ownerId,
+        [FromQuery] ProbeOwnedListQuery query
+    ) => new ListPage<ProbeThingResult>(
+        Items: [],
+        Page: query.Page,
+        PageSize: query.PageSize,
+        TotalCount: 0,
+        Facets: []
+    );
+
     [HttpPost("publications")]
     public async Task<IActionResult> Publish(
         [FromServices] IIntegrationEventPublisher publisher,

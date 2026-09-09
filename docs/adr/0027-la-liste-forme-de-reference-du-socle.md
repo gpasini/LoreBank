@@ -46,6 +46,23 @@ fois, avec son moteur, pour qu'un reader n'écrive plus jamais un
   `page=abc` reste le 400 de binding, dont le champ fautif est nommé comme
   la Description le nomme : en camelCase.
 
+## Une Liste sous une ressource
+
+Les mouvements d'un compte, les commandes d'un client : la Liste vit sous
+la ressource qui la possède (`GET api/ledger/bank-accounts/{id}/movements`).
+La query porte alors une propriété `[RouteBound]` (l'`AccountId`) que le
+controller réécrit depuis la route — `query with { AccountId = id }`,
+exactement la route mixte d'une commande (ADR 0012) — et qui n'est pas un
+filtre : la convention la tolère scalaire, la Description ne la décrit
+qu'en paramètre de route (`DescriptionOperationTransformer`), jamais en
+query string. La ressource absente reste un 404 du module, pas une Page
+vide : le handler la vérifie avant de lire — chez le Ledger, par le port
+publié de Bank, le point de rencontre des deux canaux inter-modules.
+
+La recherche est une option de la Liste, pas une obligation : un reader qui
+ne déclare aucun `SearchIn` ignore le `search` reçu — le paramètre existe
+sur toute Liste, le Client le connaît, et il ne coûte rien.
+
 ## Le moteur
 
 `Query<TRow>().List(query)` (`SharedKernel.Infrastructure/Readers`) ouvre la
@@ -78,8 +95,12 @@ tranches, page au-delà, recherche et jokers, OU/ET, facettes disjonctives,
 422, 400 en camelCase), `DescriptionContractTest` (paramètres camelCase et
 typés, `ListPageOf…`), `ApplicationConventionTest` (une query qui rend une
 Page dérive de `ListQuery`, ses filtres sont multi-valeurs),
-`ErrorCodesDescriptionTest` (`INVALID_PAGING` dans l'enum) ; côté Bank,
-`ListBankAccountsTest` et `CqsContractTest` prouvent l'emprunt du chemin.
+`ErrorCodesDescriptionTest` (`INVALID_PAGING` dans l'enum), et la sonde
+d'une Liste sous une ressource (`DescriptionContractTest` : la propriété
+`[RouteBound]` sur la route seulement) ; côté Bank, `ListBankAccountsTest`
+et `CqsContractTest` prouvent l'emprunt du chemin ; côté Ledger,
+`ListLedgerMovementsTest` et son `CqsContractTest` la Liste sous une
+ressource, jusqu'au 404 du compte inconnu.
 
 ## Options écartées
 
@@ -108,5 +129,11 @@ Page dérive de `ListQuery`, ses filtres sont multi-valeurs),
   de binding de toutes les propriétés fait boucler la génération de la
   Description au build. Le transformer renomme les paramètres décrits, le
   binding reste insensible à la casse.
-- **Paginer aussi les mouvements du Ledger** : une liste imbriquée dans un
-  détail devient sa propre query — l'issue 18 du chantier `revue-template`.
+- **Garder le détail du Ledger** (`GetBankAccountLedger`, l'IBAN et les
+  mouvements) à côté de la Liste : réduit à l'IBAN que le front a déjà par
+  Bank, un Result de poids mort. Supprimé (issue 18) ; la Liste sous la
+  ressource le remplace, le handler garde le port publié.
+- **Les mouvements à plat** (`GET api/ledger/movements?bankAccountId=`) :
+  zéro changement de socle, mais un compte inconnu rendrait une Page vide
+  au lieu d'un 404, et « les mouvements d'un compte » cesserait d'être une
+  ressource.

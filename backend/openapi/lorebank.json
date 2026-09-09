@@ -524,12 +524,12 @@
         }
       }
     },
-    "/api/ledger/bank-accounts/{id}": {
+    "/api/ledger/bank-accounts/{id}/movements": {
       "get": {
         "tags": [
           "Ledger"
         ],
-        "operationId": "Ledger_GetByBankAccountId",
+        "operationId": "Ledger_ListMovements",
         "parameters": [
           {
             "name": "id",
@@ -539,6 +539,39 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -547,7 +580,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BankAccountLedgerResult"
+                  "$ref": "#/components/schemas/ListPageOfLedgerMovementResult"
                 }
               }
             }
@@ -714,29 +747,6 @@
           },
           "traceId": {
             "type": "string"
-          }
-        }
-      },
-      "BankAccountLedgerResult": {
-        "required": [
-          "accountId",
-          "iban",
-          "movements"
-        ],
-        "type": "object",
-        "properties": {
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "iban": {
-            "type": "string"
-          },
-          "movements": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LedgerMovementResult"
-            }
           }
         }
       },
@@ -929,6 +939,42 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BankAccountSummaryResult"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Facet"
+            }
+          }
+        }
+      },
+      "ListPageOfLedgerMovementResult": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "facets"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LedgerMovementResult"
             }
           },
           "page": {

@@ -12,9 +12,10 @@ namespace LoreBank.Ledger.Test.Infrastructure.Apis;
 // bord HTTP (BaseHostTest : le TransactionScope ambiant ne traverse pas la
 // frontière HTTP — tout est commité, d'où un IBAN propre) : un dépôt chez
 // Bank → outbox → une passe du dispatcher → écriture équilibrée chez Ledger →
-// GET enrichi par le port de lecture publié. Épingle aussi l'ensemble exact
-// des clés JSON du GET (ADR 0012) : renommer une propriété du Result est un
-// breaking change HTTP, il doit rougir ici.
+// GET de la Liste sous la ressource, gardé par le port de lecture publié.
+// Épingle aussi l'ensemble exact des clés JSON du GET (ADR 0012) — la Page du
+// socle et son item : renommer une propriété est un breaking change HTTP, il
+// doit rougir ici.
 [TestFixture]
 public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
 {
@@ -83,7 +84,7 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
             .GetRequiredService<OutboxProcessor>()
             .ProcessPendingAsync(CancellationToken.None);
 
-        var response = await _client.GetAsync($"api/ledger/bank-accounts/{accountId}");
+        var response = await _client.GetAsync($"api/ledger/bank-accounts/{accountId}/movements");
 
         // Assert
 
@@ -91,19 +92,20 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
 
         var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
 
-        // La forme servie est la surface Application (ADR 0012) : l'ensemble
-        // exact des clés, racine et mouvement.
-        body.EnumerateObject().Select(property => property.Name).Should().BeEquivalentTo(
-            "accountId",
-            "iban",
-            "movements"
+        // La forme servie est la surface Application (ADR 0012) : la Page du
+        // socle (ADR 0027), et l'ensemble exact des clés de l'item.
+        body.EnumerateObject().Select(property => property.Name).Should().Equal(
+            "items",
+            "page",
+            "pageSize",
+            "totalCount",
+            "facets"
         );
+        body.GetProperty("totalCount").GetInt32().Should().Be(1);
+        body.GetProperty("facets").EnumerateArray().Select(facet => facet.GetProperty("name").GetString())
+            .Should().Equal("direction");
 
-        body.GetProperty("accountId").GetGuid().Should().Be(accountId);
-        body.GetProperty("iban").GetString().Should().Be(FlowIban);
-
-        var movements = body.GetProperty("movements").EnumerateArray().ToList();
-        var movement = movements.Should().ContainSingle().Subject;
+        var movement = body.GetProperty("items").EnumerateArray().Should().ContainSingle().Subject;
 
         movement.EnumerateObject().Select(property => property.Name).Should().BeEquivalentTo(
             "entryId",
@@ -124,7 +126,7 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
     [Test]
     public async Task Get_ShouldReturn404WithTheLedgerCode_WhenBankAccountIsUnknown()
     {
-        var response = await _client.GetAsync($"api/ledger/bank-accounts/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"api/ledger/bank-accounts/{Guid.NewGuid()}/movements");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
 

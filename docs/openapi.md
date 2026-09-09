@@ -44,7 +44,9 @@ dossier :
   `NotFoundException` vivent dans l'Application), celles du SharedKernel,
   et `VALIDATION_FAILED`. `ApiProblem.code` le référence.
 - **`[RouteBound]`** : la propriété d'une commande que la route écrase sort
-  du schéma du body — et de ses `required`.
+  du schéma du body — et de ses `required` ; celle d'une `ListQuery` sous
+  une ressource (ADR 0027) sort des paramètres de query string
+  (`DescriptionOperationTransformer`) — elle n'est décrite que sur la route.
 - **`decimal`** → `number`, **`int`/`long`** → `integer`, sans le pattern ni
   le `string` que le générateur ajoute parce que System.Text.Json accepte
   les deux en entrée.
@@ -135,7 +137,8 @@ apparu dans un body.
   `application/json` seul, `decimal` en `number`, la propriété `[RouteBound]`
   absente, `ApiProblem.code` → `ErrorCode`, pas de `servers`, et la Liste —
   paramètres de query string en camelCase et typés, `ListPageOf…` en
-  réponse.
+  réponse, la propriété `[RouteBound]` d'une Liste sous une ressource sur
+  la route seulement.
 - `ErrorCodesDescriptionTest` (`Hosting/`) : l'enum servie égale le scan de
   `HostModules.All` — un module monté dont les codes manqueraient rendrait le
   Client incomplet en silence.

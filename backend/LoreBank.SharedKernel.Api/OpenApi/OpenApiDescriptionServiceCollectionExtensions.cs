@@ -25,6 +25,7 @@ public static class OpenApiDescriptionServiceCollectionExtensions
 
         services.AddOpenApi(options => {
                 options.AddSchemaTransformer(new DescriptionSchemaTransformer());
+                options.AddOperationTransformer(new DescriptionOperationTransformer());
                 options.AddDocumentTransformer(new DescriptionDocumentTransformer(
                         title: title,
                         errorCodes: errorCodes

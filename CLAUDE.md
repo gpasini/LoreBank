@@ -142,7 +142,7 @@ communication inter-modules.
   le test de publication d'un module se réduit à agir en HTTP puis affirmer
   discriminant, payload et ressource de Signal. Le chemin complet entre deux modules d'exemple —
   dépôt HTTP chez Bank, passe du processor, écriture chez Ledger, lecture
-  HTTP du Ledger — est joué par le `CqsContractTest` du Ledger ; la ligne
+  HTTP de la Liste des mouvements du Ledger — est joué par le `CqsContractTest` du Ledger ; la ligne
   d'inbox n'y est pas affirmée, c'est un invariant du socle prouvé sur Probe
   (ADR 0017).
 - Le **Signal** (ADR 0026, `docs/signaux.md`) est le troisième consommateur
@@ -344,7 +344,12 @@ communication inter-modules.
   paramètre ; une page au-delà de la dernière est une Page vide, pas un
   404 ; hors bornes, le moteur lève `InvalidPagingException` (422
   `INVALID_PAGING`), par HTTP comme par `ISender`. Le port de lecture
-  reçoit la query entière. `ApplicationConventionTest` épingle la forme
+  reçoit la query entière. Une Liste **sous une ressource** (les mouvements
+  d'un compte, `GET api/ledger/bank-accounts/{id}/movements`) porte une
+  propriété `[RouteBound]` que le controller réécrit depuis la route — pas
+  un filtre, décrite sur la route seulement — et son handler vérifie la
+  ressource avant de lire (404 du module, jamais une Page vide).
+  `ApplicationConventionTest` épingle la forme
   (une query qui rend une Page dérive de `ListQuery`, ses filtres sont des
   `IReadOnlyList<>`), `ListContractTest` la mécanique sur le Probe.
 - Un dossier par use case dans `Commands/` ou `Queries/`, le Result d'une

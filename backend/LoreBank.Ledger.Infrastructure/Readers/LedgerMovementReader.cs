@@ -1,32 +1,34 @@
-using LoreBank.Ledger.Application.Queries.GetBankAccountLedger;
+using LoreBank.Ledger.Application.Queries.ListLedgerMovements;
 using LoreBank.Ledger.Application.Readers;
 using LoreBank.Ledger.Domain.ValueObjects;
 using LoreBank.Ledger.Infrastructure.Persistence;
 using LoreBank.Ledger.Infrastructure.Persistence.ReadRows;
+using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Infrastructure.Readers;
-using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.Ledger.Infrastructure.Readers;
 
 // Lit les rows des jambes et des écritures, pas l'agrégat : la jointure est
-// composée en LINQ, la projection du Select final ne fait lire que les
-// colonnes du Result. Les mouvements sortent dans l'ordre de comptabilisation
-// (ADR 0024), l'identifiant d'écriture départageant deux Instants égaux. Le
-// lien colonne → propriété vit dans les configurations des rows, en chaînes
-// que rien ne compile : GetBankAccountLedgerTest relit chaque champ.
+// composée en LINQ, puis la Liste se déclare au moteur du socle (ADR 0027)
+// sur le résultat joint — recherche sur l'identifiant d'écriture, sens
+// filtré et facetté, du plus récent au plus ancien (l'identifiant
+// d'écriture départageant deux Instants égaux). La projection finale ne
+// fait lire que les colonnes de l'item. Le lien colonne → propriété vit
+// dans les configurations des rows, en chaînes que rien ne compile :
+// ListLedgerMovementsTest relit chaque champ.
 public sealed class LedgerMovementReader(LedgerDbContext context)
     : ModuleReader(context), ILedgerMovementReader
 {
-    public async Task<IReadOnlyList<LedgerMovementResult>> GetByBankAccountAsync(
-        Guid bankAccountId,
+    public Task<ListPage<LedgerMovementResult>> ListAsync(
+        ListLedgerMovementsQuery query,
         CancellationToken cancellationToken
     )
     {
         // Le VO fabrique la forme canonique de la référence : la requête ne la
         // connaît pas, une évolution du format ne se corrige qu'au VO.
-        var accountRef = LedgerAccountRef.ForBankAccount(bankAccountId).Value;
+        var accountRef = LedgerAccountRef.ForBankAccount(query.AccountId).Value;
 
-        return await Query<JournalLineRow>()
+        return Query<JournalLineRow>()
             .Where(line => line.AccountRef == accountRef)
             .Join(
                 inner: Query<JournalEntryRow>(),
@@ -40,15 +42,24 @@ public sealed class LedgerMovementReader(LedgerDbContext context)
                     Entry = entry,
                 }
             )
-            .OrderBy(movement => movement.Entry.RecordedAt)
-            .ThenBy(movement => movement.Entry.Id)
-            .Select(movement => new LedgerMovementResult(
-                movement.Line.JournalEntryId,
-                movement.Line.Direction,
-                movement.Line.Amount,
-                movement.Line.Currency,
-                movement.Entry.RecordedAt
-            ))
-            .ToListAsync(cancellationToken);
+            .List(query)
+            .SearchIn(movement => movement.Line.JournalEntryId.ToString())
+            .Filter(
+                values: query.Direction,
+                column: movement => movement.Line.Direction,
+                facet: nameof(query.Direction)
+            )
+            .OrderByDescending(movement => movement.Entry.RecordedAt)
+            .ThenByDescending(movement => movement.Entry.Id)
+            .ToPageAsync(
+                projection: movement => new LedgerMovementResult(
+                    movement.Line.JournalEntryId,
+                    movement.Line.Direction,
+                    movement.Line.Amount,
+                    movement.Line.Currency,
+                    movement.Entry.RecordedAt
+                ),
+                cancellationToken: cancellationToken
+            );
     }
 }

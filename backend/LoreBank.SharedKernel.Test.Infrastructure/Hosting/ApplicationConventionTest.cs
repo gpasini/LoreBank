@@ -51,7 +51,9 @@ public sealed class ApplicationConventionTest
     // filtres sont multi-valeurs, des IReadOnlyList<T> : c'est la forme que
     // les facettes impliquent (OU dans un filtre), et celle que le front
     // apprend une fois. Une propriété scalaire compilerait et se lierait sans
-    // que rien d'autre ne le signale.
+    // que rien d'autre ne le signale — sauf la propriété [RouteBound] d'une
+    // Liste sous une ressource, que la route écrase et qui n'est pas un
+    // filtre.
     [TestCaseSource(nameof(Modules))]
     public void All_ShouldShapeEveryListQueryOnTheSocle_WhenTheModuleIsDeclared(IHostModule module)
     {
@@ -69,6 +71,11 @@ public sealed class ApplicationConventionTest
             var scalarFilters = queryType
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Where(property => !IsMultiValued(property.PropertyType))
+                .Where(property => !property.IsDefined(
+                        attributeType: typeof(RouteBoundAttribute),
+                        inherit: true
+                    )
+                )
                 .Select(property => property.Name)
                 .ToList();
 
