@@ -41,7 +41,12 @@ traité que si l'hôte tourne — l'outbox garantit qu'aucun fait publié ne se
 perd, pas qu'il est traité dans un délai. `OutboxPublisherTest` épingle
 l'atomicité et l'échec bruyant d'un discriminant sans module ;
 `OutboxProcessorTest` la livraison, l'inoffensivité du rejeu, la transaction
-par handler, le poison et le « livré à personne ».
+par handler, le poison et le « livré à personne ». Côté modules d'exemple,
+`IntegrationEventPublicationTest` (Bank) prouve que le publieur écrit vraiment
+son jumeau dans l'outbox, et le `CqsContractTest` du Ledger joue le chemin
+complet — dépôt HTTP chez Bank, passe du processor, écriture chez Ledger,
+lecture HTTP — sans affirmer la ligne d'inbox : le socle se prouve sur Probe
+(ADR 0017), un module prouve seulement qu'il emprunte le chemin.
 
 Ce chemin est celui d'un hôte ; ce qui se passe quand plusieurs hôtes le
 parcourent — réservation du lot à bail — et le sort des lignes livrées —

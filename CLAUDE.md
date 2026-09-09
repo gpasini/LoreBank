@@ -135,7 +135,11 @@ communication inter-modules.
   le chemin) — ce dernier écrit sur `OutboxProbe`, la surface d'observation
   d'outbox du harnais (`ReadRowsAsync<TDbContext>`/`CleanAsync<TDbContext>`) :
   le test de publication d'un module se réduit à agir en HTTP puis affirmer
-  discriminant et payload.
+  discriminant et payload. Le chemin complet entre deux modules d'exemple —
+  dépôt HTTP chez Bank, passe du processor, écriture chez Ledger, lecture
+  HTTP du Ledger — est joué par le `CqsContractTest` du Ledger ; la ligne
+  d'inbox n'y est pas affirmée, c'est un invariant du socle prouvé sur Probe
+  (ADR 0017).
 
 ## Conventions du domaine
 
