@@ -69,6 +69,32 @@ public sealed class ErrorContractTest : BaseHostTest<SharedKernelWebAppFactory>
     }
 
     [Test]
+    public async Task Post_ShouldReturn409WithACode_WhenTheAggregateVersionIsStale()
+    {
+        // Arrange
+
+        var thingId = Guid.NewGuid();
+
+        // Act
+
+        var response = await _client.PostAsync(
+            requestUri: $"api/probe/things/{thingId}/concurrent-updates",
+            content: null
+        );
+
+        // Assert
+
+        await Expect(
+            response: response,
+            status: HttpStatusCode.Conflict,
+            code: "CONCURRENT_UPDATE"
+        );
+
+        (await BodyOf(response)).GetProperty("parameters").GetProperty("id").GetString()
+            .Should().Be(thingId.ToString());
+    }
+
+    [Test]
     public async Task Post_ShouldReturn400WithACode_WhenTheBodyDoesNotBind()
     {
         // Act

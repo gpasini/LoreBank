@@ -232,10 +232,16 @@ communication inter-modules.
   pour interdire une commande qui traverse deux modules — c'est une règle
   d'architecture à tenir, pas une contrainte technique.
 - `ReadCommitted` ne protège pas un lire-modifier-écrire : deux dépôts
-  concurrents peuvent lire le même solde et l'une des deux écritures se perd ;
-  le remède est un jeton de concurrence optimiste sur l'agrégat, pas un niveau
-  d'isolation plus strict. `Enlist=false` dans la chaîne de connexion est
-  refusé dès la composition par `AddModuleDbContext` (ADR 0008) : sans ce
+  concurrents peuvent lire le même solde. Le remède est la **Version
+  d'agrégat** (ADR 0020), pas un niveau d'isolation plus strict :
+  `ModuleDbContext` pose par convention une propriété shadow `version`, jeton
+  de concurrence, sur tout `AggregateRoot`, l'incrémente à chaque sauvegarde
+  qui touche l'agrégat (racine ou VO owned) et traduit l'échec EF en
+  `ConcurrentUpdateException` (409 `CONCURRENT_UPDATE`) avant le dispatch —
+  un module n'a rien à déclarer, `ModuleDbContextTest` et
+  `ModuleRepositoryTest` épinglent la convention. `Enlist=false` dans la
+  chaîne de connexion est refusé dès la composition par `AddModuleDbContext`
+  (ADR 0008) : sans ce
   garde-fou, les commandes cesseraient simplement d'être transactionnelles,
   sans erreur ni avertissement ni test qui échoue — Npgsql enrôle par défaut
   (`Enlist` vaut `true`). Un module qui surcharge `ConfigureDbContext` sans

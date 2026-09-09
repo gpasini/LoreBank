@@ -101,7 +101,7 @@ public sealed class ModuleSqlTest
 
         var inserted = await ModuleSql.ExecuteNonQueryAsync(
             dbContext: _context,
-            sql: """INSERT INTO "Things" ("Id") VALUES (@id)""",
+            sql: """INSERT INTO "Things" ("Id", "Name", "version") VALUES (@id, 'thing', 0)""",
             parameters: new Dictionary<string, object> { ["id"] = id },
             cancellationToken: CancellationToken.None
         );
@@ -124,7 +124,7 @@ public sealed class ModuleSqlTest
         await using (var transaction = await _context.Database.BeginTransactionAsync()) {
             await ModuleSql.ExecuteNonQueryAsync(
                 dbContext: _context,
-                sql: """INSERT INTO "Things" ("Id") VALUES (@id)""",
+                sql: """INSERT INTO "Things" ("Id", "Name", "version") VALUES (@id, 'thing', 0)""",
                 parameters: new Dictionary<string, object> { ["id"] = Guid.NewGuid() },
                 cancellationToken: CancellationToken.None
             );

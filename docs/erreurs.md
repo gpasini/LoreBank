@@ -133,7 +133,7 @@ leur forme :
 | Fichier (`LoreBank.SharedKernel.Api`) | Rôle |
 |---|---|
 | `Problems/ApiProblem.cs` | la forme commune : `title`, pas de `detail`, type de média |
-| `Filters/DomainExceptionFilter.cs` | filtre MVC — les `DomainException` (422 / 404) |
+| `Filters/DomainExceptionFilter.cs` | filtre MVC — les `DomainException` (422 / 404 / 409) |
 | `Validation/ValidationProblemFactory.cs` | fabrique d'`[ApiController]` — les 400 de binding |
 | `Handlers/UnhandledExceptionHandler.cs` | middleware — tout le reste (500) |
 
@@ -224,6 +224,30 @@ un port de lecture n'a pas à connaître la politique HTTP de celui qui l'appell
 occasion d'oublier le code. Le prix de ce choix : une query ne peut plus servir
 de sonde d'existence — tester si un compte existe demande un `try`/`catch`, ou
 une query dédiée qui rend un booléen.
+
+### 409 — l'agrégat a été modifié entre-temps
+
+Deux commandes ont chargé le même agrégat, la première a écrit, la seconde
+écrit sur une version périmée. Tout agrégat porte une Version (ADR 0020) que
+le socle incrémente à chaque sauvegarde et compare à l'écriture : la seconde
+commande est refusée entière — rien d'écrit, aucun event dispatché, aucune
+ligne d'outbox — et le client recharge puis recommence.
+
+```
+POST /api/bank/accounts/{id}/deposits   {"amount":20,"currency":"EUR"}
+→ 409
+{"title":"Conflict","status":409,
+ "code":"CONCURRENT_UPDATE",
+ "parameters":{"id":"e9a613d4-cf97-4703-b2cc-6253ac90ff55"}}
+```
+
+`ConcurrentUpdateException` vit dans le SharedKernel — le code n'a pas de
+préfixe — et c'est `ModuleDbContext` qui la lève, en traduisant l'échec de
+concurrence d'EF avant le dispatch des events. Un module n'a rien à déclarer
+pour en bénéficier, et rien à attraper : le filtre la sert comme toute
+`DomainException`. Le front ne rejoue pas de lui-même — recharger l'état puis
+recommencer est une décision de l'utilisateur, un rejeu automatique croiserait
+l'idempotence des commandes (voir « Ce qui n'est pas là »).
 
 ### 400 — le corps de la requête est invalide
 
@@ -323,6 +347,7 @@ verrous des lignes écrites pendant toute sa durée.
 |---|---|---|---|
 | Invariant du domaine violé | 422 | `<MODULE>.<VIOLATION>` | oui |
 | Ressource introuvable (commande ou lecture) | 404 | `<MODULE>.<VIOLATION>` | oui |
+| Version d'agrégat périmée | 409 | `CONCURRENT_UPDATE` | oui |
 | Corps de requête invalide | 400 | `VALIDATION_FAILED` | — |
 | Handler d'event : `DomainException` | 422 / 404 | `<MODULE>.<VIOLATION>` | oui |
 | Handler d'event : autre exception | 500 | **aucun** | oui |

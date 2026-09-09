@@ -1,5 +1,6 @@
 using LoreBank.FakeModule.Domain.Exceptions;
 using LoreBank.SharedKernel.Domain.Events;
+using LoreBank.SharedKernel.Domain.Exceptions;
 using LoreBank.SharedKernel.Infrastructure.Repositories;
 using LoreBank.SharedKernel.Test.Unit.Fakes;
 using Microsoft.Data.Sqlite;
@@ -144,6 +145,58 @@ public sealed class ModuleRepositoryTest
         // Assert
 
         dispatcher.Dispatched.Should().ContainSingle().Which.Should().BeOfType<SomethingHappenedDomainEvent>();
+    }
+
+    // Le chemin du repository emprunte la Version d'agrégat du socle
+    // (ADR 0020) sans rien déclarer : deux repositories sur deux contextes
+    // chargent la même version, le second à sauver est refusé.
+    [Test]
+    public async Task SaveAsync_ShouldThrowConcurrentUpdate_WhenAnotherRepositorySavedTheAggregateFirst()
+    {
+        // Arrange
+
+        await using var setupContext = CreateContext(new RecordingDomainEventDispatcher());
+        await setupContext.Database.EnsureCreatedAsync();
+
+        var thing = new TestThing(Guid.NewGuid());
+        await new TestThingRepository(setupContext).SaveAsync(
+            aggregate: thing,
+            cancellationToken: CancellationToken.None
+        );
+
+        await using var firstContext = CreateContext(new RecordingDomainEventDispatcher());
+        await using var secondContext = CreateContext(new RecordingDomainEventDispatcher());
+        var firstRepository = new TestThingRepository(firstContext);
+        var secondRepository = new TestThingRepository(secondContext);
+
+        var firstView = await firstRepository.GetRequiredByIdAsync(
+            id: thing.Id,
+            cancellationToken: CancellationToken.None
+        );
+        var secondView = await secondRepository.GetRequiredByIdAsync(
+            id: thing.Id,
+            cancellationToken: CancellationToken.None
+        );
+
+        firstView.Rename("first");
+        secondView.Rename("second");
+
+        await firstRepository.SaveAsync(
+            aggregate: firstView,
+            cancellationToken: CancellationToken.None
+        );
+
+        // Act
+
+        var act = () => secondRepository.SaveAsync(
+            aggregate: secondView,
+            cancellationToken: CancellationToken.None
+        );
+
+        // Assert
+
+        (await act.Should().ThrowAsync<ConcurrentUpdateException>())
+            .Which.Parameters["id"].Should().Be(thing.Id);
     }
 
     private TestModuleDbContext CreateContext(IDomainEventDispatcher dispatcher) => new(

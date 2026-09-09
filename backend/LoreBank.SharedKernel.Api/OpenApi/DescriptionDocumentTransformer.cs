@@ -9,8 +9,8 @@ namespace LoreBank.SharedKernel.Api.OpenApi;
 
 // Ce que le générateur ne sait pas et que le socle sait : la forme unique
 // d'erreur (ApiProblem, docs/erreurs.md) et ses codes (ErrorCode), servis en
-// application/problem+json sur toutes les opérations — 400, 404, 422, 500,
-// uniformément, la Description ne devine pas ce qu'un handler lève ; l'en-tête
+// application/problem+json sur toutes les opérations — 400, 404, 409, 422,
+// 500, uniformément, la Description ne devine pas ce qu'un handler lève ; l'en-tête
 // Location d'un 201 ; un seul media type par sens ; et l'en-tête du document —
 // un titre, pas de `servers` : la Description décrit une surface, pas un
 // déploiement.
@@ -26,6 +26,7 @@ public sealed class DescriptionDocumentTransformer(
     private static readonly int[] ErrorStatuses = [
         StatusCodes.Status400BadRequest,
         StatusCodes.Status404NotFound,
+        StatusCodes.Status409Conflict,
         StatusCodes.Status422UnprocessableEntity,
         StatusCodes.Status500InternalServerError,
     ];

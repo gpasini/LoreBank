@@ -1,4 +1,6 @@
 using LoreBank.SharedKernel.Domain.Events;
+using LoreBank.SharedKernel.Domain.Exceptions;
+using LoreBank.SharedKernel.Domain.ValueObjects;
 using LoreBank.SharedKernel.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Test.Unit.Fakes;
 using Microsoft.Data.Sqlite;
@@ -163,7 +165,11 @@ public sealed class ModuleDbContextTest
             .Select(property => property.Name)
             .Should()
             .NotContain(nameof(TestThing.DomainEvents));
-        entityType.GetNavigations().Should().BeEmpty();
+        entityType
+            .GetNavigations()
+            .Select(navigation => navigation.Name)
+            .Should()
+            .NotContain(nameof(TestThing.DomainEvents));
     }
 
     [Test]
@@ -189,6 +195,174 @@ public sealed class ModuleDbContextTest
         );
 
         context.Model.GetDefaultSchema().Should().Be("bare");
+    }
+
+    // La Version d'agrégat (ADR 0020) : une convention du socle, pas une
+    // ligne par module — TestThing ne la déclare nulle part.
+    [Test]
+    public async Task OnModelCreating_ShouldDeclareTheVersionAsAConcurrencyToken_WhenAnEntityIsAnAggregateRoot()
+    {
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+
+        var version = context.Model.FindEntityType(typeof(TestThing))!.FindProperty(ModuleDbContext.VersionPropertyName)!;
+
+        version.IsShadowProperty().Should().BeTrue();
+        version.IsConcurrencyToken.Should().BeTrue();
+        version.GetColumnName().Should().Be(ModuleDbContext.VersionColumnName);
+    }
+
+    [Test]
+    public async Task OnModelCreating_ShouldNotDeclareAVersion_WhenAnEntityIsNotAnAggregateRoot()
+    {
+        await using var context = new TestTransferDbContext(
+            options: new DbContextOptionsBuilder<TestTransferDbContext>().UseSqlite(_connection).Options,
+            dispatcher: new RecordingDomainEventDispatcher()
+        );
+
+        context.Model.FindEntityType(typeof(TestTransfer))!.FindProperty(ModuleDbContext.VersionPropertyName)
+            .Should().BeNull();
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_ShouldStartTheVersionAtZero_WhenAnAggregateIsInserted()
+    {
+        // Arrange
+
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+        await context.Database.EnsureCreatedAsync();
+
+        var thing = new TestThing(Guid.NewGuid());
+        context.Things.Add(thing);
+
+        // Act
+
+        await context.SaveChangesAsync();
+
+        // Assert
+
+        (await VersionOfAsync(thing.Id)).Should().Be(0);
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_ShouldBumpTheVersion_WhenTheAggregateRootIsModified()
+    {
+        // Arrange
+
+        var thing = await InsertThingAsync();
+
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+        var loaded = await context.Things.SingleAsync(t => t.Id == thing.Id);
+        loaded.Rename("renamed");
+
+        // Act
+
+        await context.SaveChangesAsync();
+
+        // Assert
+
+        (await VersionOfAsync(thing.Id)).Should().Be(1);
+    }
+
+    // Le piège : remplacer l'instance d'un VO owned laisse la racine Unchanged
+    // aux yeux d'EF — la Version doit bouger quand même, sinon deux commandes
+    // qui ne touchent que le solde se croiseraient sans être vues.
+    [Test]
+    public async Task SaveChangesAsync_ShouldBumpTheVersion_WhenOnlyAnOwnedValueObjectIsReplaced()
+    {
+        // Arrange
+
+        var thing = await InsertThingAsync();
+
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+        var loaded = await context.Things.SingleAsync(t => t.Id == thing.Id);
+        loaded.Reprice(Money.Of(
+            amount: 20m,
+            currency: "EUR"
+        ));
+
+        // Act
+
+        await context.SaveChangesAsync();
+
+        // Assert
+
+        (await VersionOfAsync(thing.Id)).Should().Be(1);
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_ShouldNotBumpTheVersion_WhenNothingChanged()
+    {
+        // Arrange
+
+        var thing = await InsertThingAsync();
+
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+        await context.Things.SingleAsync(t => t.Id == thing.Id);
+
+        // Act
+
+        await context.SaveChangesAsync();
+
+        // Assert
+
+        (await VersionOfAsync(thing.Id)).Should().Be(0);
+    }
+
+    [Test]
+    public async Task SaveChangesAsync_ShouldThrowConcurrentUpdateBeforeDispatching_WhenTheVersionIsStale()
+    {
+        // Arrange — deux contextes ont chargé la même version.
+
+        var thing = await InsertThingAsync();
+
+        await using var firstContext = CreateContext(new RecordingDomainEventDispatcher());
+        var secondDispatcher = new RecordingDomainEventDispatcher();
+        await using var secondContext = CreateContext(secondDispatcher);
+
+        var firstView = await firstContext.Things.SingleAsync(t => t.Id == thing.Id);
+        var secondView = await secondContext.Things.SingleAsync(t => t.Id == thing.Id);
+
+        firstView.Rename("first");
+        secondView.Rename("second");
+        secondView.Happen();
+
+        await firstContext.SaveChangesAsync();
+
+        // Act
+
+        var act = () => secondContext.SaveChangesAsync();
+
+        // Assert — refusé, clé en primitive, aucun event parti.
+
+        (await act.Should().ThrowAsync<ConcurrentUpdateException>())
+            .Which.Parameters["id"].Should().Be(thing.Id);
+        secondDispatcher.Dispatched.Should().BeEmpty();
+    }
+
+    private async Task<TestThing> InsertThingAsync()
+    {
+        await using var context = CreateContext(new RecordingDomainEventDispatcher());
+        await context.Database.EnsureCreatedAsync();
+
+        var thing = new TestThing(Guid.NewGuid());
+        thing.Reprice(Money.Of(
+            amount: 10m,
+            currency: "EUR"
+        ));
+        context.Things.Add(thing);
+        await context.SaveChangesAsync();
+
+        return thing;
+    }
+
+    // Lue sur un contexte neuf : ce que la base porte, pas ce qu'un tracker
+    // croit.
+    private async Task<int> VersionOfAsync(Guid thingId)
+    {
+        await using var probe = CreateContext(new RecordingDomainEventDispatcher());
+        var thing = await probe.Things.SingleAsync(t => t.Id == thingId);
+
+        return probe.Entry(thing).Property<int>(ModuleDbContext.VersionPropertyName).CurrentValue;
     }
 
     private TestModuleDbContext CreateContext(IDomainEventDispatcher dispatcher) => new(

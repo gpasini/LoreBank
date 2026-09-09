@@ -43,6 +43,13 @@ et le passage par le SaveChangesAsync qui dispatche les events ; un repository
 concret ne fournit que sa fabrique d'exception.
 _Avoid_ : repository générique, repository de base
 
+**Version (d'agrégat)** :
+Le compteur d'écritures que tout agrégat porte, incrémenté à chaque
+sauvegarde. Deux commandes qui ont lu la même version ne peuvent pas écrire
+toutes les deux : la seconde est refusée. Porté par le socle, invisible du
+Domain et des lectures.
+_Avoid_ : jeton de concurrence, row version, xmin, ETag
+
 **ModuleController** :
 La base des controllers d'un module métier. Type le CQS du bord HTTP : une
 commande → 204, une création → 201 + Location sans corps — une lecture ne

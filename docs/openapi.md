@@ -33,7 +33,7 @@ filtres qui réécriraient le type de média des réponses d'erreur.
 `DescriptionDocumentTransformer` et `DescriptionSchemaTransformer`, même
 dossier :
 
-- **Les erreurs, sur toutes les opérations** : `400`, `404`, `422`, `500` en
+- **Les erreurs, sur toutes les opérations** : `400`, `404`, `409`, `422`, `500` en
   `application/problem+json`, sur le schéma `ApiProblem` — `title`, `status`,
   `code?`, `parameters?` (le 500 n'a pas les deux derniers). Uniformément :
   la Description ne devine pas ce qu'un handler lève, et un `POST` de

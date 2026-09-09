@@ -64,6 +64,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 | Un handler d'event qui échoue annule la commande | `TransactionRollbackTest` |
 | 204 / 201 + `Location`, corps vide | `ModuleControllerTest` (socle), `CqsContractTest` (module, de bout en bout) |
 | Erreur métier → 422/404 codé | `ErrorContractTest`, `ExceptionCodesTest` du module |
+| Deux commandes concurrentes sur le même agrégat : la seconde est refusée en 409 `CONCURRENT_UPDATE`, rien à écrire dans le handler (ADR 0020) | `ModuleRepositoryTest` (socle), `ConcurrentUpdateTest` (module de référence) |
 | La Description dit 204 / 201 + `Location`, le body sans la propriété `[RouteBound]` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
 | Une nouvelle exception métier est dans l'enum `ErrorCode` du Client | `ErrorCodesDescriptionTest` ; côté front, `npm run typecheck` sur `errorMessages.ts` |
 

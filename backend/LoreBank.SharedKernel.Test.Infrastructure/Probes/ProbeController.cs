@@ -1,4 +1,5 @@
 using LoreBank.SharedKernel.Api.Controllers;
+using LoreBank.SharedKernel.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,8 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 // SharedKernelWebAppFactory seulement — il n'existe dans aucun autre hôte.
 //
 // Deux familles d'actions. Les portes de sortie d'erreur (422 métier, 404
-// introuvable, 400 de binding, 500 non gérée), pour ErrorContractTest — un
+// introuvable, 409 version périmée, 400 de binding, 500 non gérée), pour
+// ErrorContractTest — un
 // throw direct suffit, DomainExceptionFilter est un filtre MVC, il voit la
 // même chose qu'en sortie de handler MediatR. Et les formes que la
 // Description OpenAPI doit lire (DescriptionContractTest) : commande,
@@ -23,6 +25,9 @@ public sealed class ProbeController(ISender sender) : ModuleController(sender)
 
     [HttpGet("things/{thingId:guid}")]
     public IActionResult ThrowThingNotFound(Guid thingId) => throw new ProbeThingNotFoundException(thingId);
+
+    [HttpPost("things/{thingId:guid}/concurrent-updates")]
+    public IActionResult ThrowConcurrentUpdate(Guid thingId) => throw new ConcurrentUpdateException(thingId);
 
     [HttpPost("bindings")]
     public IActionResult Bind(ProbeBindingRequest request) => NoContent();

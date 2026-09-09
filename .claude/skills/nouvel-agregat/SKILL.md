@@ -64,6 +64,7 @@ exceptions et id typé dans le même projet.
 | Namespace d'exception nommant le module — le préfixe du code en dépend | `ModuleCompositionTest` |
 | Codes d'erreur publiés | `ExceptionCodesTest` du module — étape 8 |
 | Invariants et ordre des events | les tests de transition — étape 8 |
+| Version d'agrégat (ADR 0020) : rien à déclarer, le socle pose le jeton de concurrence sur tout `AggregateRoot` et refuse une écriture périmée en 409 | `ModuleDbContextTest`, `ModuleRepositoryTest` (socle) ; `ConcurrentUpdateTest` (module de référence) |
 
 ## Pièges
 

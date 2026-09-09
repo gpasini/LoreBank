@@ -12,6 +12,7 @@ export const errorMessages: Record<ErrorCode, (parameters: Record<string, unknow
   "BANK.INSUFFICIENT_BALANCE": ({ balance, requested, currency }) =>
     `Solde insuffisant : ${money(Number(requested), String(currency))} demandés pour un solde de ${money(Number(balance), String(currency))}.`,
   "BANK.NON_EMPTY_ACCOUNT_CLOSURE": () => "Un compte ne se ferme qu'à solde nul.",
+  CONCURRENT_UPDATE: () => "Cet élément a été modifié entre-temps. Rechargez-le et recommencez.",
   CURRENCY_MISMATCH: ({ left, right }) => `Opération impossible entre ${String(left)} et ${String(right)}.`,
   INVALID_BIC: ({ bic }) => `« ${String(bic)} » n'est pas un BIC valide.`,
   INVALID_CURRENCY: ({ currency }) => `« ${String(currency)} » n'est pas une devise connue.`,

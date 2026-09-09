@@ -83,12 +83,12 @@ public sealed class DescriptionContractTest : BaseHostTest<SharedKernelWebAppFac
     }
 
     [Test]
-    public void EveryOperation_ShouldDeclareTheFourErrorsOnApiProblem_WhateverItsShape()
+    public void EveryOperation_ShouldDeclareTheCommonErrorsOnApiProblem_WhateverItsShape()
     {
         foreach (var operation in Operations()) {
             var responses = operation.GetProperty("responses");
 
-            foreach (var status in new[] { "400", "404", "422", "500" }) {
+            foreach (var status in new[] { "400", "404", "409", "422", "500" }) {
                 var content = responses.GetProperty(status).GetProperty("content");
 
                 content.EnumerateObject().Select(media => media.Name).Should().Equal(Problem);

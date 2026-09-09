@@ -13,9 +13,11 @@ public sealed class DomainExceptionFilter : IExceptionFilter
             return;
         }
 
-        var status = domainException is NotFoundException
-            ? StatusCodes.Status404NotFound
-            : StatusCodes.Status422UnprocessableEntity;
+        var status = domainException switch {
+            NotFoundException => StatusCodes.Status404NotFound,
+            ConcurrentUpdateException => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status422UnprocessableEntity,
+        };
 
         var problemDetails = ApiProblem.Create(
             status: status,
