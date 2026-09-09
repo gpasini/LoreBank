@@ -10,5 +10,22 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # La Télémétrie du poste (ADR 0025) : Jaeger reçoit les traces en OTLP,
+  # Prometheus les métriques par son récepteur OTLP — l'hôte en Development
+  # exporte vers les deux par défaut (appsettings.Development.json). Sans
+  # ces conteneurs, l'exporteur échoue en silence, hors des logs.
+  jaeger:
+    image: jaegertracing/jaeger:2.20.0
+    ports:
+      - "16686:16686"   # UI
+      - "4318:4318"     # OTLP/HTTP
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-otlp-receiver
+    ports:
+      - "9090:9090"     # UI et récepteur OTLP (/api/v1/otlp/v1/metrics)
+
 volumes:
   pgdata:

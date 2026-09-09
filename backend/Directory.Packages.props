@@ -41,6 +41,15 @@
         <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2"/>
         <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
         <PackageVersion Include="NUnit" Version="4.4.0"/>
+        <!-- La Télémétrie (ADR 0025) : référencée par l'hôte seul — le socle et
+             les modules posent Activity et Meter en BCL. Apache 2.0. -->
+        <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0"/>
+        <!-- Gardée bien que le span serveur soit natif : en .NET 10 il n'a ni
+             statut ni route, natifs en .NET 11 seulement. -->
+        <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0"/>
+        <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0"/>
+        <!-- L'exporteur du harnais : prouve le câblage de l'hôte sans réseau. -->
+        <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.18.0"/>
         <PackageVersion Include="NUnit3TestAdapter" Version="6.1.0"/>
         <PackageVersion Include="Scalar.AspNetCore" Version="2.17.2"/>
         <!-- Relève la dépendance transitive d'EF Sqlite : la 2.1.11 qu'il

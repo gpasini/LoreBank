@@ -17,7 +17,8 @@ internal static class ProbeOutbox
         bool Dispatched,
         bool Poisoned,
         string? LastError,
-        bool Reserved
+        bool Reserved,
+        string? TraceParent
     );
 
     internal static async Task CleanAsync(IntegrationTestWebAppFactory factory)
@@ -54,7 +55,7 @@ internal static class ProbeOutbox
                 command.CommandText =
                     $"""
                      SELECT id, attempts, dispatched_at IS NOT NULL, poisoned_at IS NOT NULL, last_error,
-                            reserved_until IS NOT NULL
+                            reserved_until IS NOT NULL, trace_parent
                      FROM {dbContext.Schema}.__outbox WHERE discriminant = @discriminant
                      """;
 
@@ -75,7 +76,8 @@ internal static class ProbeOutbox
                     Dispatched: reader.GetBoolean(2),
                     Poisoned: reader.GetBoolean(3),
                     LastError: reader.IsDBNull(4) ? null : reader.GetString(4),
-                    Reserved: reader.GetBoolean(5)
+                    Reserved: reader.GetBoolean(5),
+                    TraceParent: reader.IsDBNull(6) ? null : reader.GetString(6)
                 );
             }
         );

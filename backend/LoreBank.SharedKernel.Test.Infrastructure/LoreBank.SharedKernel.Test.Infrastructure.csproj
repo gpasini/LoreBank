@@ -22,6 +22,9 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="NUnit" />
         <PackageReference Include="NUnit3TestAdapter" />
+        <!-- L'exporteur mémoire de la Télémétrie (ADR 0025) : le harnais
+             capte spans et métriques que l'hôte exporte, sans collecteur. -->
+        <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
         <!-- Référence directe pour relever une transitive de Testcontainers,
              portée ici pour que les projets de test des modules n'aient pas à
              la porter — la version est dans Directory.Packages.props. -->

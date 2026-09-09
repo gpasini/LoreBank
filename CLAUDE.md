@@ -45,7 +45,12 @@ communication inter-modules.
   (`/health/live`, `/health/ready` — un check du socle par base de module,
   hors Description), ses logs en console JSON avec la Corrélation, et le
   `Meter` des outbox (`lorebank.outbox.pending`/`poisoned` par module, sans
-  exporteur — ADR 0022), et monte les modules à travers le seam
+  exporteur — ADR 0022), sa Télémétrie (`Telemetry.cs`, le seul endroit qui
+  référence OpenTelemetry : traces HTTP, Npgsql et livraisons d'outbox —
+  `OutboxTracing`, une activité par handler, enfant de la commande d'origine
+  — et métriques, exportées en OTLP seulement si
+  `OTEL_EXPORTER_OTLP_ENDPOINT` est défini — ADR 0025, `docs/telemetrie.md`),
+  et monte les modules à travers le seam
   `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
   adapter dans `LoreBank.Host/Modules/` dérivant de `HostModule<TDbContext>`
   (voir `BankModule`), qui ne déclare que son `Module` Autofac. Le reste de

@@ -43,6 +43,11 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
             .AddApplicationPart(typeof(ProbeController).Assembly)
         );
 
+        // La sonde de Télémétrie (ADR 0025) : l'exporteur mémoire rejoint le
+        // pipeline que l'hôte compose, par les hooks du SDK prévus pour ça —
+        // le câblage se prouve sans collecteur, la suite ne parle pas réseau.
+        builder.ConfigureTestServices(ProbeTelemetry.Attach);
+
         // La sonde de logs, à côté des providers de l'hôte : les tests relisent
         // la Corrélation et les synthèses d'outbox dans ses entrées.
         builder.ConfigureLogging(logging => logging.AddProvider(ProbeLogs.Provider));
@@ -73,5 +78,6 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
         ProbeRecordingIntegrationEventHandler.Reset();
         ProbeFailingIntegrationEventHandler.Reset();
         ProbeLogs.Reset();
+        ProbeTelemetry.Reset();
     }
 }

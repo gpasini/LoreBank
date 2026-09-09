@@ -1,5 +1,6 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using LoreBank.Host;
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Api.Actors;
 using LoreBank.SharedKernel.Api.Filters;
@@ -118,6 +119,11 @@ foreach (var module in modules) {
 builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(OutboxOptions.SectionName));
 builder.Services.AddSingleton<OutboxProcessor>();
 builder.Services.AddHostedService<OutboxDispatcher>();
+
+// La Télémétrie (ADR 0025) : traces et métriques vers un collecteur OTLP,
+// quand un endpoint est configuré — voir Telemetry.cs, le seul endroit de
+// l'hôte qui connaisse OpenTelemetry.
+builder.AddTelemetry();
 
 // La Disponibilité (ADR 0022) : un seul check du socle, qui parcourt les
 // IHostModule du conteneur à l'exécution — les modules qu'un harnais ajoute

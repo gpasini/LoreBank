@@ -32,10 +32,13 @@ public static class IntegrationEventTables
                       dispatched_at timestamp with time zone,
                       poisoned_at timestamp with time zone,
                       last_error text,
-                      reserved_until timestamp with time zone
+                      reserved_until timestamp with time zone,
+                      trace_parent character varying(55)
                   );
                   ALTER TABLE {OutboxTable(dbContext)}
                       ADD COLUMN IF NOT EXISTS reserved_until timestamp with time zone;
+                  ALTER TABLE {OutboxTable(dbContext)}
+                      ADD COLUMN IF NOT EXISTS trace_parent character varying(55);
                   CREATE INDEX IF NOT EXISTS ix___outbox_pending
                       ON {OutboxTable(dbContext)} (next_attempt_at)
                       WHERE dispatched_at IS NULL AND poisoned_at IS NULL;

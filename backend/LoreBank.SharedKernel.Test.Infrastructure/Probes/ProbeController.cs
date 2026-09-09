@@ -1,8 +1,11 @@
+using LoreBank.Probe.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Api.Controllers;
 using LoreBank.SharedKernel.Application;
+using LoreBank.SharedKernel.Contracts;
 using LoreBank.SharedKernel.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 
@@ -19,6 +22,9 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 // s'exécutent jamais — la Description se lit sans appel — donc aucun handler
 // MediatR n'est câblé derrière. Et l'Acteur courant (ActorContractTest) : le
 // template livré n'authentifie rien, une requête HTTP est Anonyme (ADR 0023).
+// Enfin les sondes de Télémétrie (TelemetryContractTest) : une lecture qui
+// touche la base du Probe — pour le span Npgsql sous le span serveur — et une
+// publication sur son outbox — pour la trace qui traverse jusqu'au handler.
 [Route("api/probe")]
 public sealed class ProbeController(ISender sender) : ModuleController(sender)
 {
@@ -67,6 +73,29 @@ public sealed class ProbeController(ISender sender) : ModuleController(sender)
         Id: id,
         Amount: 0m
     );
+
+    [HttpGet("things")]
+    public async Task<ActionResult<int>> CountThings(
+        [FromServices] ProbeDbContext dbContext,
+        CancellationToken cancellationToken
+    ) => await dbContext.ProbeThings.CountAsync(cancellationToken);
+
+    [HttpPost("publications")]
+    public async Task<IActionResult> Publish(
+        [FromServices] IIntegrationEventPublisher publisher,
+        CancellationToken cancellationToken
+    )
+    {
+        await publisher.PublishAsync(
+            integrationEvent: new ProbeIntegrationEvent(
+                ThingId: Guid.NewGuid(),
+                Label: "publiée en HTTP"
+            ),
+            cancellationToken: cancellationToken
+        );
+
+        return NoContent();
+    }
 
     [HttpPost("readings/{id:guid}/mixed")]
     public Task<CommandResult> Mix(

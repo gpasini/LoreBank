@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using LoreBank.SharedKernel.Contracts;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
@@ -554,6 +555,135 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
         // Assert
 
         ProbeLogs.Entries.Should().NotContain(entry => entry.Level == LogLevel.Warning);
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldTraceEachHandler_AsAChildOfTheOriginatingTrace()
+    {
+        // Arrange — publié sous une Activity, comme sous la requête HTTP de la
+        // commande d'origine.
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+
+        using var activities = ProbeActivities.Listen();
+
+        var origin = new Activity("commande d'origine").Start();
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "tracée"
+        ));
+
+        origin.Stop();
+
+        // Act
+
+        await ProcessPendingAsync();
+
+        // Assert — une activité par handler, enfant de la trace d'origine : le
+        // chemin publieur → consommateur se lit d'un bloc (ADR 0025).
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        activities.Stopped.Should().HaveCount(2).And.AllSatisfy(activity => {
+                activity.OperationName.Should().Be("process probe.probe-happened");
+                activity.Kind.Should().Be(ActivityKind.Consumer);
+                activity.ParentId.Should().Be(origin.Id);
+                activity.TraceId.Should().Be(origin.TraceId);
+                activity.Status.Should().NotBe(ActivityStatusCode.Error);
+                activity.GetTagItem(OutboxTracing.PublisherModuleTag).Should().Be("Probe");
+                activity.GetTagItem(OutboxTracing.ConsumerModuleTag).Should().Be("Probe");
+                activity.GetTagItem(OutboxTracing.MessageIdTag).Should().Be(row!.Id.ToString());
+                activity.GetTagItem(OutboxTracing.AttemptTag).Should().Be(1);
+            }
+        );
+
+        activities.Stopped.Select(activity => activity.GetTagItem(OutboxTracing.HandlerTag))
+            .Should().BeEquivalentTo([
+                    nameof(ProbeRecordingIntegrationEventHandler),
+                    nameof(ProbeFailingIntegrationEventHandler),
+                ]
+            );
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldTraceAsARoot_WhenTheRowHasNoTraceParent()
+    {
+        // Arrange
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+
+        using var activities = ProbeActivities.Listen();
+
+        Activity.Current = null;
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "sans origine"
+        ));
+
+        // Act
+
+        await ProcessPendingAsync();
+
+        // Assert
+
+        activities.Stopped.Should().HaveCount(2).And.AllSatisfy(activity => activity.ParentId.Should().BeNull());
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldMarkTheActivityAsError_WhenAHandlerFails()
+    {
+        // Arrange — la sonde échoueuse échoue, l'enregistreuse réussit.
+
+        using var activities = ProbeActivities.Listen();
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "échec tracé"
+        ));
+
+        // Act
+
+        await ProcessPendingAsync();
+
+        // Assert — l'activité du handler échoué porte l'erreur et l'exception ;
+        // le backoff observé en base est celui d'avant.
+
+        var failed = activities.Stopped
+            .Should().ContainSingle(activity => activity.Status == ActivityStatusCode.Error)
+            .Subject;
+
+        failed.GetTagItem(OutboxTracing.HandlerTag).Should().Be(nameof(ProbeFailingIntegrationEventHandler));
+        failed.Events.Should().ContainSingle(@event => @event.Name == "exception")
+            .Which.Tags.Should().Contain(tag => tag.Key == "exception.message" && tag.Value!.ToString()!.Contains("Échec volontaire"));
+
+        activities.Stopped
+            .Single(activity => activity.Status != ActivityStatusCode.Error)
+            .GetTagItem(OutboxTracing.HandlerTag).Should().Be(nameof(ProbeRecordingIntegrationEventHandler));
+
+        (await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        ))!.Attempts.Should().Be(1);
+
+        // Act — seconde passe : seule la sonde échouée rejoue, en tentative 2.
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+        activities.Stopped.Clear();
+
+        await ProcessPendingAsync();
+
+        // Assert — le handler déjà servi a aussi son activité (son passage
+        // par l'inbox est une exécution, courte) ; les deux sont en tentative 2.
+
+        activities.Stopped.Should().HaveCount(2)
+            .And.AllSatisfy(activity => activity.GetTagItem(OutboxTracing.AttemptTag).Should().Be(2));
+
+        ProbeFailingIntegrationEventHandler.Invocations.Should().Be(2);
     }
 
     // Les jauges du Meter du socle pour le module Probe, lues comme un

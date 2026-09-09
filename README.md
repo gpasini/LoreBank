@@ -22,7 +22,7 @@ Les versions d'outils sont gérées par [mise](https://mise.jdx.dev).
 
 ```bash
 mise install
-docker compose up -d          # PostgreSQL
+docker compose up -d          # PostgreSQL, Jaeger (traces), Prometheus (métriques)
 cd backend && mise exec -- dotnet build LoreBank.slnx
 mise run migrate              # l'API ne migre jamais au démarrage
 mise exec -- dotnet run --project LoreBank.Host

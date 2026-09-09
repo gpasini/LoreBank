@@ -184,3 +184,12 @@ L'artefact généré depuis la Description pour le front : types des commandes
 et des Results, union des codes d'erreur. Jamais écrit à la main, jamais
 édité — il se régénère.
 _Avoid_ : SDK, client API, types partagés
+
+**Télémétrie** :
+Les traces et les métriques que l'hôte laisse sortir vers un collecteur —
+requêtes HTTP, requêtes SQL, livraison d'outbox, jauges du socle — sur un
+canal standard, sans propriétaire. Opt-in : un hôte sans collecteur
+configuré n'exporte rien et n'en dit rien. Les logs n'en font pas partie,
+ils restent sur la sortie standard ; la Corrélation fait le pont.
+_Avoid_ : monitoring, observabilité, APM, tracing, OpenTelemetry (le canal,
+pas le concept)

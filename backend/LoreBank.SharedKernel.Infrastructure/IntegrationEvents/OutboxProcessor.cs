@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Transactions;
@@ -22,7 +23,9 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // dépilent la même outbox par Réservation (ADR 0021) : la lecture du lot est
 // une appropriation à bail, en une requête courte — FOR UPDATE SKIP LOCKED
 // contre une passe simultanée, reserved_until contre celles qui suivent —
-// et chaque marquage rend la réservation.
+// et chaque marquage rend la réservation. Chaque exécution de handler est
+// tracée (OutboxTracing, ADR 0025) : scope, transaction et ligne d'inbox
+// sous une même activité, enfant de la commande d'origine.
 public sealed class OutboxProcessor(
     IServiceProvider serviceProvider,
     IEnumerable<IHostModule> modules,
@@ -157,6 +160,16 @@ public sealed class OutboxProcessor(
         Exception? firstFailure = null;
 
         foreach (var registration in registrations.Where(candidate => candidate.Discriminant == row.Discriminant)) {
+            using var activity = OutboxTracing.StartHandling(
+                publisherModule: publisherModule.ModuleName,
+                consumerModule: registration.ModuleName,
+                handler: registration.HandlerType.Name,
+                discriminant: row.Discriminant,
+                messageId: row.Id,
+                attempt: row.Attempts + 1,
+                traceParent: row.TraceParent
+            );
+
             try {
                 await HandleAsync(
                     registration: registration,
@@ -165,6 +178,12 @@ public sealed class OutboxProcessor(
                 );
             }
             catch (Exception exception) {
+                activity?.SetStatus(
+                    code: ActivityStatusCode.Error,
+                    description: exception.Message
+                );
+                activity?.AddException(exception);
+
                 firstFailure ??= exception;
                 logger.LogWarning(
                     exception: exception,
@@ -348,7 +367,7 @@ public sealed class OutboxProcessor(
                       LIMIT 100
                       FOR UPDATE SKIP LOCKED
                   )
-                  RETURNING id, discriminant, payload, attempts, occurred_at
+                  RETURNING id, discriminant, payload, attempts, occurred_at, trace_parent
                   """,
             parameters: new Dictionary<string, object> {
                 ["reservationSeconds"] = options.Value.ReservationSeconds,
@@ -368,7 +387,8 @@ public sealed class OutboxProcessor(
                             Id: reader.GetGuid(0),
                             Discriminant: reader.GetString(1),
                             Payload: reader.GetString(2),
-                            Attempts: reader.GetInt32(3)
+                            Attempts: reader.GetInt32(3),
+                            TraceParent: reader.IsDBNull(5) ? null : reader.GetString(5)
                         )
                     ));
                 }
@@ -472,6 +492,7 @@ public sealed class OutboxProcessor(
         Guid Id,
         string Discriminant,
         string Payload,
-        int Attempts
+        int Attempts,
+        string? TraceParent
     );
 }
