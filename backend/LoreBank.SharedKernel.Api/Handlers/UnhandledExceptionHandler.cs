@@ -31,7 +31,10 @@ public sealed class UnhandledExceptionHandler(ILogger<UnhandledExceptionHandler>
         httpContext.Response.StatusCode = Status;
 
         await httpContext.Response.WriteAsJsonAsync(
-            value: ApiProblem.Create(Status),
+            value: ApiProblem.Create(
+                httpContext: httpContext,
+                status: Status
+            ),
             options: null,
             contentType: ApiProblem.ContentTypeWithCharset,
             cancellationToken: cancellationToken

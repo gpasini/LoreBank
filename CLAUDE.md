@@ -41,7 +41,11 @@ communication inter-modules.
   VO possible : primitives seulement, matériellement).
 - Les projets `Api` des modules sont des classlibs de controllers MVC (pas de
   minimal API). L'hôte unique `LoreBank.Host` (dossier de solution `Host`)
-  porte la composition (DI, filtres) et monte les modules à travers le seam
+  porte la composition (DI, filtres), sa Vivacité et sa Disponibilité
+  (`/health/live`, `/health/ready` — un check du socle par base de module,
+  hors Description), ses logs en console JSON avec la Corrélation, et le
+  `Meter` des outbox (`lorebank.outbox.pending`/`poisoned` par module, sans
+  exporteur — ADR 0022), et monte les modules à travers le seam
   `IHostModule` de `LoreBank.SharedKernel.Infrastructure` : chaque module a un
   adapter dans `LoreBank.Host/Modules/` dérivant de `HostModule<TDbContext>`
   (voir `BankModule`), qui ne déclare que son `Module` Autofac. Le reste de
@@ -186,9 +190,10 @@ communication inter-modules.
   une sonde d'existence n'est pas un usage. Côté Api, les erreurs métier
   (`DomainException`) deviennent des ProblemDetails via le `DomainExceptionFilter`
   de `LoreBank.SharedKernel.Api`, enregistré une fois par l'hôte : 422, ou 404
-  pour une `NotFoundException`. La réponse porte `code` et `parameters` en
-  extensions, et aucun `detail` — le back ne produit pas de texte destiné à
-  l'utilisateur. Exemple, pour un solde insuffisant :
+  pour une `NotFoundException`. La réponse porte `code`, `parameters` et
+  `traceId` (la Corrélation, ADR 0022) en extensions, et aucun `detail` — le
+  back ne produit pas de texte destiné à l'utilisateur. Exemple, pour un
+  solde insuffisant :
 
   ```json
   {

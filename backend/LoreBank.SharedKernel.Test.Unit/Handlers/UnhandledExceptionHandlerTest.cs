@@ -60,7 +60,8 @@ public sealed class UnhandledExceptionHandlerTest
         body.EnumerateObject().Select(property => property.Name)
             .Should().BeEquivalentTo(
                 "title",
-                "status"
+                "status",
+                "traceId"
             );
     }
 

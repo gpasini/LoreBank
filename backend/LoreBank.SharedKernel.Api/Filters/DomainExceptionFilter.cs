@@ -20,6 +20,7 @@ public sealed class DomainExceptionFilter : IExceptionFilter
         };
 
         var problemDetails = ApiProblem.Create(
+            httpContext: context.HttpContext,
             status: status,
             code: domainException.Code,
             parameters: domainException.Parameters

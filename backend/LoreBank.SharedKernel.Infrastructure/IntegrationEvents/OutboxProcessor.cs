@@ -28,6 +28,7 @@ public sealed class OutboxProcessor(
     IEnumerable<IHostModule> modules,
     IEnumerable<IntegrationEventHandlerRegistration> registrations,
     IOptions<OutboxOptions> options,
+    OutboxMetrics metrics,
     ILogger<OutboxProcessor> logger
 )
 {
@@ -46,6 +47,11 @@ public sealed class OutboxProcessor(
                     cancellationToken: cancellationToken
                 );
             }
+
+            await MeasureAsync(
+                module: module,
+                cancellationToken: cancellationToken
+            );
         }
     }
 
@@ -78,7 +84,68 @@ public sealed class OutboxProcessor(
                 },
                 cancellationToken: cancellationToken
             );
+
+            // La synthèse à la cadence de purge (ADR 0022) : les lignes poison
+            // restent pour un humain, ce log est ce qui le prévient — rien
+            // quand il n'y en a pas.
+            var depth = await MeasureAsync(
+                module: module,
+                cancellationToken: cancellationToken
+            );
+
+            if (depth.Poisoned > 0) {
+                logger.LogWarning(
+                    message: "Le module {Module} a {Poisoned} ligne(s) poison dans son outbox, à examiner.",
+                    module.ModuleName,
+                    depth.Poisoned
+                );
+            }
         }
+    }
+
+    // La mesure d'une outbox : un comptage par module, bon marché tant que la
+    // Rétention tient la table petite, rafraîchi dans les jauges du socle.
+    private async Task<OutboxDepth> MeasureAsync(
+        IHostModule module,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var scope = serviceProvider.CreateAsyncScope();
+
+        var dbContext = ModuleDbContexts.Resolve(
+            services: scope.ServiceProvider,
+            module: module
+        );
+
+        var depth = await ModuleSql.ExecuteAsync(
+            dbContext: dbContext,
+            sql: $"""
+                  SELECT count(*) FILTER (WHERE dispatched_at IS NULL AND poisoned_at IS NULL),
+                         count(*) FILTER (WHERE poisoned_at IS NOT NULL)
+                  FROM {IntegrationEventTables.OutboxTable(dbContext)}
+                  """,
+            parameters: new Dictionary<string, object>(),
+            execute: async (
+                command,
+                token
+            ) => {
+                await using var reader = await command.ExecuteReaderAsync(token);
+                await reader.ReadAsync(token);
+
+                return new OutboxDepth(
+                    Pending: reader.GetInt64(0),
+                    Poisoned: reader.GetInt64(1)
+                );
+            },
+            cancellationToken: cancellationToken
+        );
+
+        metrics.Record(
+            moduleName: module.ModuleName,
+            depth: depth
+        );
+
+        return depth;
     }
 
     private async Task ProcessRowAsync(

@@ -77,7 +77,8 @@ public sealed class ValidationProblemFactoryTest
         problemDetails.Detail.Should().BeNull();
         problemDetails.Extensions.Keys.Should().BeEquivalentTo(
             "code",
-            "parameters"
+            "parameters",
+            "traceId"
         );
     }
 

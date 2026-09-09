@@ -1,13 +1,16 @@
+using LoreBank.SharedKernel.Api.Correlation;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace LoreBank.SharedKernel.Api.Problems;
 
 // Toutes les erreurs de l'API ont la même forme : le libellé standard du statut
-// pour `title`, jamais de `detail`, et le couple `code`/`parameters` en
-// extensions quand l'erreur en porte un. Centralisé ici pour que les trois
-// portes de sortie — filtre métier, échec de binding, exception non gérée — ne
-// divergent pas au fil des ajouts.
+// pour `title`, jamais de `detail`, la Corrélation en `traceId` (ADR 0022 :
+// un 500 sans identifiant n'est pas diagnosticable), et le couple
+// `code`/`parameters` en extensions quand l'erreur en porte un. Centralisé ici
+// pour que les trois portes de sortie — filtre métier, échec de binding,
+// exception non gérée — ne divergent pas au fil des ajouts.
 public static class ApiProblem
 {
     // Le type de média de la RFC 9457. Les trois portes de sortie le posent
@@ -21,18 +24,28 @@ public static class ApiProblem
     // exactement le même des deux côtés.
     public const string ContentTypeWithCharset = $"{ContentType}; charset=utf-8";
 
-    public static ProblemDetails Create(int status) => new() {
+    public static ProblemDetails Create(
+        HttpContext httpContext,
+        int status
+    ) => new() {
         Title = ReasonPhrases.GetReasonPhrase(status),
         Status = status,
+        Extensions = {
+            ["traceId"] = Correlation.Correlation.Of(httpContext),
+        },
     };
 
     public static ProblemDetails Create(
+        HttpContext httpContext,
         int status,
         string code,
         IReadOnlyDictionary<string, object> parameters
     )
     {
-        var problemDetails = Create(status);
+        var problemDetails = Create(
+            httpContext: httpContext,
+            status: status
+        );
 
         problemDetails.Extensions["code"] = code;
         problemDetails.Extensions["parameters"] = parameters;

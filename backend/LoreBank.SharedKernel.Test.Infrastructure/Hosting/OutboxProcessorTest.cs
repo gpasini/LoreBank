@@ -1,8 +1,10 @@
+using System.Diagnostics.Metrics;
 using LoreBank.SharedKernel.Contracts;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Test.Infrastructure.Probes;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Hosting;
 
@@ -480,6 +482,119 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
             factory: Factory,
             discriminant: "probe.probe-happened"
         ))!.Dispatched.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldMeasureTheOutbox_AfterEachPass()
+    {
+        // Arrange — une ligne dont un handler échoue : en attente après la
+        // première passe, poison après la seconde (MaxAttempts vaut 2).
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "mesure"
+        ));
+
+        // Act & Assert
+
+        await ProcessPendingAsync();
+
+        Gauges().Should().BeEquivalentTo(new Dictionary<string, long> {
+            [OutboxMetrics.PendingGauge] = 1,
+            [OutboxMetrics.PoisonedGauge] = 0,
+        });
+
+        await ProcessPendingAsync();
+
+        Gauges().Should().BeEquivalentTo(new Dictionary<string, long> {
+            [OutboxMetrics.PendingGauge] = 0,
+            [OutboxMetrics.PoisonedGauge] = 1,
+        });
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldWarnPerModule_WhenPoisonedRowsRemain()
+    {
+        // Arrange
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "poison signalé"
+        ));
+
+        await ProcessPendingAsync();
+        await ProcessPendingAsync();
+
+        ProbeLogs.Reset();
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert
+
+        var warning = ProbeLogs.Entries
+            .Should().ContainSingle(entry => entry.Level == LogLevel.Warning)
+            .Subject;
+
+        warning.Message.Should().Contain("Probe").And.Contain("1");
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldStaySilent_WhenNoRowIsPoisoned()
+    {
+        // Arrange
+
+        ProbeLogs.Reset();
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert
+
+        ProbeLogs.Entries.Should().NotContain(entry => entry.Level == LogLevel.Warning);
+    }
+
+    // Les jauges du Meter du socle pour le module Probe, lues comme un
+    // exporteur le ferait : un MeterListener observe les instruments, la
+    // valeur est celle du dernier rafraîchissement.
+    private static Dictionary<string, long> Gauges()
+    {
+        var values = new Dictionary<string, long>();
+
+        using var listener = new MeterListener();
+
+        listener.InstrumentPublished = (
+            instrument,
+            meterListener
+        ) => {
+            if (instrument.Meter.Name == OutboxMetrics.MeterName) {
+                meterListener.EnableMeasurementEvents(instrument);
+            }
+        };
+
+        listener.SetMeasurementEventCallback<long>((
+                instrument,
+                measurement,
+                tags,
+                _
+            ) => {
+                foreach (var tag in tags) {
+                    if (tag.Key == OutboxMetrics.ModuleTag && Equals(
+                            objA: tag.Value,
+                            objB: "Probe"
+                        )) {
+                        values[instrument.Name] = measurement;
+                    }
+                }
+            }
+        );
+
+        listener.Start();
+        listener.RecordObservableInstruments();
+
+        return values;
     }
 
     // La rétention par défaut est de 7 jours ; le harnais ne la resserre

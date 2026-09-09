@@ -131,11 +131,11 @@ public sealed class DescriptionDocumentTransformer(
         Enum = errorCodes.Select(code => (JsonNode)JsonValue.Create(code)).ToList(),
     };
 
-    // La forme de docs/erreurs.md : `title` et `status` toujours, `code` et
-    // `parameters` sur tout sauf le 500 — d'où les deux seuls requis.
+    // La forme de docs/erreurs.md : `title`, `status` et `traceId` toujours,
+    // `code` et `parameters` sur tout sauf le 500 — d'où les trois requis.
     private static OpenApiSchema ProblemSchema(OpenApiDocument document) => new() {
         Type = JsonSchemaType.Object,
-        Required = new HashSet<string> { "title", "status" },
+        Required = new HashSet<string> { "title", "status", "traceId" },
         Properties = new Dictionary<string, IOpenApiSchema> {
             ["title"] = new OpenApiSchema { Type = JsonSchemaType.String },
             ["status"] = new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
@@ -147,6 +147,7 @@ public sealed class DescriptionDocumentTransformer(
                 Type = JsonSchemaType.Object,
                 AdditionalProperties = new OpenApiSchema(),
             },
+            ["traceId"] = new OpenApiSchema { Type = JsonSchemaType.String },
         },
     };
 }

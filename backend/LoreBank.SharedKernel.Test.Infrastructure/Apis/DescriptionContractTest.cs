@@ -106,14 +106,16 @@ public sealed class DescriptionContractTest : BaseHostTest<SharedKernelWebAppFac
         problem.GetProperty("required").EnumerateArray().Select(field => field.GetString())
             .Should().BeEquivalentTo(
                 "title",
-                "status"
+                "status",
+                "traceId"
             );
         problem.GetProperty("properties").EnumerateObject().Select(property => property.Name)
             .Should().BeEquivalentTo(
                 "title",
                 "status",
                 "code",
-                "parameters"
+                "parameters",
+                "traceId"
             );
         problem.GetProperty("properties").GetProperty("code").GetProperty("$ref").GetString()
             .Should().Be($"#/components/schemas/{ErrorCodes.SchemaName}");

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
@@ -41,6 +42,10 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
             .AddControllers()
             .AddApplicationPart(typeof(ProbeController).Assembly)
         );
+
+        // La sonde de logs, à côté des providers de l'hôte : les tests relisent
+        // la Corrélation et les synthèses d'outbox dans ses entrées.
+        builder.ConfigureLogging(logging => logging.AddProvider(ProbeLogs.Provider));
     }
 
     // Les sondes se déclarent comme un module consommateur le ferait : une
@@ -66,5 +71,6 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
     {
         ProbeRecordingIntegrationEventHandler.Reset();
         ProbeFailingIntegrationEventHandler.Reset();
+        ProbeLogs.Reset();
     }
 }

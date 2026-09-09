@@ -35,7 +35,7 @@ dossier :
 
 - **Les erreurs, sur toutes les opérations** : `400`, `404`, `409`, `422`, `500` en
   `application/problem+json`, sur le schéma `ApiProblem` — `title`, `status`,
-  `code?`, `parameters?` (le 500 n'a pas les deux derniers). Uniformément :
+  `traceId`, `code?`, `parameters?` (le 500 n'a pas les deux derniers). Uniformément :
   la Description ne devine pas ce qu'un handler lève, et un `POST` de
   création peut très bien faire 404 sur une référence.
 - **`ErrorCode`** : un `string` énuméré, trié — chaque `DomainException`

@@ -21,5 +21,12 @@ public sealed class SharedKernelInfrastructureModule : Module
             .RegisterType<OutboxPublisher>()
             .As<IIntegrationEventPublisher>()
             .InstancePerLifetimeScope();
+
+        // Un Meter par hôte : les jauges d'outbox (ADR 0022), rafraîchies par
+        // le processor, lues par tout exporteur ou par dotnet-counters.
+        builder
+            .RegisterType<OutboxMetrics>()
+            .AsSelf()
+            .SingleInstance();
     }
 }

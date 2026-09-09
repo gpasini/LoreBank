@@ -104,19 +104,25 @@ aux logs et aux stack traces, jamais au client.
 ## Le contrat HTTP
 
 Un `ProblemDetails` (RFC 9457), servi en `application/problem+json; charset=utf-8`,
-avec deux extensions :
+avec trois extensions :
 
 ```json
 {
   "title": "Unprocessable Entity",
   "status": 422,
   "code": "BANK.INSUFFICIENT_BALANCE",
-  "parameters": { "balance": 0, "requested": 50, "currency": "EUR" }
+  "parameters": { "balance": 0, "requested": 50, "currency": "EUR" },
+  "traceId": "0af7651916cd43dd8448eb211c80319c"
 }
 ```
 
 - `code` — l'identifiant stable que le front traduit.
 - `parameters` — objet plat de primitives, présent même vide.
+- `traceId` — la Corrélation (ADR 0022) : l'identifiant de trace W3C que la
+  requête porte dans tous ses logs, propagé depuis un `traceparent` entrant.
+  Présent sur toute erreur, 500 compris : c'est ce qu'un client cite, et ce
+  qu'un exploitant cherche dans les logs. Les exemples plus bas l'omettent
+  pour la lisibilité.
 - `title` — le libellé standard du statut, jamais un nom de classe C#.
 - `detail` — **absent**. Le back ne produisant pas de texte, un `detail` non nul
   ne ferait qu'inviter le front à l'afficher.
@@ -132,7 +138,7 @@ leur forme :
 
 | Fichier (`LoreBank.SharedKernel.Api`) | Rôle |
 |---|---|
-| `Problems/ApiProblem.cs` | la forme commune : `title`, pas de `detail`, type de média |
+| `Problems/ApiProblem.cs` | la forme commune : `title`, `traceId`, pas de `detail`, type de média |
 | `Filters/DomainExceptionFilter.cs` | filtre MVC — les `DomainException` (422 / 404 / 409) |
 | `Validation/ValidationProblemFactory.cs` | fabrique d'`[ApiController]` — les 400 de binding |
 | `Handlers/UnhandledExceptionHandler.cs` | middleware — tout le reste (500) |

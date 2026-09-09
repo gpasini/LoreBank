@@ -23,6 +23,7 @@ public static class ValidationProblemFactory
     public static IActionResult Create(ActionContext context)
     {
         var problemDetails = ApiProblem.Create(
+            httpContext: context.HttpContext,
             status: Status,
             code: Code,
             parameters: new Dictionary<string, object> {

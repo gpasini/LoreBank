@@ -25,6 +25,9 @@
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0"/>
         <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0"/>
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0"/>
+        <!-- IHealthCheck seul : le check de Disponibilité vit dans le socle
+             (ADR 0022), l'enregistrement et les routes dans l'hôte. -->
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0"/>
         <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0"/>
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1"/>
         <!-- Relève la dépendance transitive de Microsoft.AspNetCore.OpenApi :

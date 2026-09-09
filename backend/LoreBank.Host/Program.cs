@@ -3,6 +3,7 @@ using Autofac.Extensions.DependencyInjection;
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
+using LoreBank.SharedKernel.Api.Health;
 using LoreBank.SharedKernel.Api.OpenApi;
 using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application.Behaviors;
@@ -10,6 +11,7 @@ using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Modules;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
 
@@ -104,6 +106,11 @@ builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(Outbo
 builder.Services.AddSingleton<OutboxProcessor>();
 builder.Services.AddHostedService<OutboxDispatcher>();
 
+// La Disponibilité (ADR 0022) : un seul check du socle, qui parcourt les
+// IHostModule du conteneur à l'exécution — les modules qu'un harnais ajoute
+// y entrent aussi. La Vivacité ne monte aucun check.
+builder.Services.AddHealthChecks().AddCheck<ModuleDatabasesHealthCheck>(ModuleDatabasesHealthCheck.Name);
+
 var app = builder.Build();
 
 // Le démarrage de l'API ne migre jamais — ni en dev ni ailleurs (ADR 0006) :
@@ -124,6 +131,17 @@ if (migrateOnly) {
 app.UseExceptionHandler();
 
 app.MapControllers();
+
+// Santé, hors du préfixe api/ et hors Description : ce n'est pas la surface
+// d'un module, c'est celle de l'hôte pour son orchestrateur.
+app.MapHealthChecks(
+    pattern: "/health/live",
+    options: new HealthCheckOptions { Predicate = _ => false }
+).ExcludeFromDescription();
+app.MapHealthChecks(
+    pattern: "/health/ready",
+    options: new HealthCheckOptions { ResponseWriter = HealthResponse.WriteAsync }
+).ExcludeFromDescription();
 
 // /openapi/v1.json et /scalar, en Development seulement : la surface de prod
 // ne publie pas sa propre Description — le front la lit dans le repo.

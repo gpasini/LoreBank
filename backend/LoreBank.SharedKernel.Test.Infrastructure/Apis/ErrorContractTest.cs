@@ -137,7 +137,34 @@ public sealed class ErrorContractTest : BaseHostTest<SharedKernelWebAppFactory>
         body.TryGetProperty(
             propertyName: "code",
             value: out _
-        ).Should().BeFalse();
+        ).Should().BeFalse();        ExpectCorrelation(body);
+    }
+
+    // Un traceparent entrant est honoré : la Corrélation est celle de
+    // l'appelant, pas une nouvelle — le comportement du framework, épinglé.
+    [Test]
+    public async Task Get_ShouldEchoTheCallersTraceId_WhenATraceparentIsSent()
+    {
+        // Arrange
+
+        const string traceId = "0af7651916cd43dd8448eb211c80319c";
+
+        using var request = new HttpRequestMessage(
+            method: HttpMethod.Get,
+            requestUri: "api/probe/domain-failure"
+        );
+        request.Headers.Add(
+            name: "traceparent",
+            value: $"00-{traceId}-b7ad6b7169203331-01"
+        );
+
+        // Act
+
+        var response = await _client.SendAsync(request);
+
+        // Assert
+
+        (await BodyOf(response)).GetProperty("traceId").GetString().Should().Be(traceId);
     }
 
     // Le message de l'exception ne doit jamais atteindre le client, quel que
@@ -175,7 +202,13 @@ public sealed class ErrorContractTest : BaseHostTest<SharedKernelWebAppFactory>
             propertyName: "detail",
             value: out _
         ).Should().BeFalse();
+        ExpectCorrelation(body);
     }
+
+    // La Corrélation (ADR 0022) : l'identifiant de trace W3C, 32 hexadécimaux,
+    // sur toute erreur — c'est ce que le client cite quand il ouvre un ticket.
+    private static void ExpectCorrelation(JsonElement body) =>
+        body.GetProperty("traceId").GetString().Should().MatchRegex("^[0-9a-f]{32}$");
 
     private static async Task<JsonElement> BodyOf(HttpResponseMessage response) => JsonDocument
         .Parse(await response.Content.ReadAsStringAsync())

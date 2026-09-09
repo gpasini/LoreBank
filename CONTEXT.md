@@ -138,6 +138,22 @@ traitée reste en base avant d'être purgée. Les lignes en attente et les
 lignes poison ne sont jamais purgées.
 _Avoid_ : nettoyage, TTL, expiration
 
+**Vivacité** :
+Le process de l'hôte répond — rien de plus. C'est ce qu'un orchestrateur
+demande pour décider de le tuer.
+_Avoid_ : health, liveness, ping
+
+**Disponibilité** :
+Chaque base de module montée est joignable. C'est ce qu'un orchestrateur
+demande pour décider d'envoyer du trafic. Une outbox en attente ou poison
+n'est pas une indisponibilité.
+_Avoid_ : readiness, healthy, up
+
+**Corrélation** :
+L'identifiant de trace W3C qu'une requête porte dans tous ses logs et dans sa
+réponse d'erreur, propagé depuis l'appelant quand il le fournit.
+_Avoid_ : correlation id, request id, trace identifier
+
 **Description (OpenAPI)** :
 La surface Application d'un module, décrite pour le front : les statuts que
 ModuleController garantit, la forme unique d'erreur et ses codes. Dérivée du

@@ -6,6 +6,8 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <!-- Le check de Disponibilité des bases de modules (ADR 0022). -->
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions"/>
         <!-- BackgroundService, pour le dépileur d'outbox de l'hôte. -->
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
         <!-- Le provider est une décision du socle (ADR 0008) : les modules
