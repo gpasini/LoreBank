@@ -122,6 +122,70 @@ public sealed class DescriptionContractTest : BaseHostTest<SharedKernelWebAppFac
             );
     }
 
+    // La Liste (ADR 0027) : la query se lit paramètre par paramètre sur la
+    // query string, en camelCase comme les clés JSON — page, pageSize et
+    // search du socle, les filtres de la query en tableaux — et la réponse est
+    // la Page de son item, sous le nom que le générateur dérive du générique.
+    [Test]
+    public void List_ShouldBeDescribedWithCamelCaseQueryParameters_AndAPageOfItsItem()
+    {
+        var operation = Operation(
+            path: "/api/probe/listings",
+            verb: "get"
+        );
+
+        var parameters = operation.GetProperty("parameters").EnumerateArray()
+            .ToDictionary(
+                keySelector: parameter => parameter.GetProperty("name").GetString()!,
+                elementSelector: parameter => parameter
+            );
+
+        parameters.Keys.Should().BeEquivalentTo(
+            "page",
+            "pageSize",
+            "search",
+            "kind",
+            "active"
+        );
+        parameters.Values.Select(parameter => parameter.GetProperty("in").GetString()).Should().AllBe("query");
+        parameters["page"].GetProperty("schema").GetProperty("type").GetString().Should().Be("integer");
+        parameters["page"].GetProperty("schema").TryGetProperty(
+            propertyName: "pattern",
+            value: out _
+        ).Should().BeFalse();
+        parameters["kind"].GetProperty("schema").GetProperty("type").GetString().Should().Be("array");
+        parameters["kind"].GetProperty("schema").GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+        parameters["active"].GetProperty("schema").GetProperty("items").GetProperty("type").GetString().Should().Be("boolean");
+
+        operation.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString()
+            .Should().Be("#/components/schemas/ListPageOfProbeThingResult");
+
+        var page = Schema("ListPageOfProbeThingResult");
+
+        page.GetProperty("required").EnumerateArray().Select(field => field.GetString()).Should().Equal(
+            "items",
+            "page",
+            "pageSize",
+            "totalCount",
+            "facets"
+        );
+        page.GetProperty("properties").GetProperty("items").GetProperty("items").GetProperty("$ref").GetString()
+            .Should().Be("#/components/schemas/ProbeThingResult");
+        page.GetProperty("properties").GetProperty("totalCount").GetProperty("type").GetString().Should().Be("integer");
+        page.GetProperty("properties").GetProperty("facets").GetProperty("items").GetProperty("$ref").GetString()
+            .Should().Be("#/components/schemas/Facet");
+
+        Schema("Facet").GetProperty("required").EnumerateArray().Select(field => field.GetString()).Should().Equal(
+            "name",
+            "values"
+        );
+        Schema("FacetValue").GetProperty("required").EnumerateArray().Select(field => field.GetString()).Should().Equal(
+            "value",
+            "count"
+        );
+    }
+
     [Test]
     public void EveryOperation_ShouldDeclareTheCommonErrorsOnApiProblem_WhateverItsShape()
     {

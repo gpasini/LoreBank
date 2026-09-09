@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LoreBank.SharedKernel.Api.Problems;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,13 +35,22 @@ public static class ValidationProblemFactory
         return ApiProblem.ResultFor(problemDetails);
     }
 
+    // Un champ est nommé comme sur le fil : le chemin JSON d'un body est déjà
+    // en camelCase, la clé d'une propriété liée sur la query string (une
+    // ListQuery, ADR 0027) porte le nom .NET — elle est ramenée à la casse de
+    // la Description, segment par segment.
     private static string[] FaultyFields(ModelStateDictionary modelState) => modelState
         .Where(entry => entry.Value?.Errors.Count > 0)
-        .Select(entry => TrimJsonPath(entry.Key))
+        .Select(entry => ToCamelCase(TrimJsonPath(entry.Key)))
         .Where(field => field.Length > 0)
         .Distinct(StringComparer.Ordinal)
         .Order(StringComparer.Ordinal)
         .ToArray();
+
+    private static string ToCamelCase(string field) => string.Join(
+        separator: '.',
+        values: field.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName)
+    );
 
     private static string TrimJsonPath(string key) => key.StartsWith(
         value: JsonPathPrefix,

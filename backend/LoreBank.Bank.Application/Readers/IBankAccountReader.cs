@@ -1,5 +1,6 @@
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Application.Queries.ListBankAccounts;
+using LoreBank.SharedKernel.Application;
 
 namespace LoreBank.Bank.Application.Readers;
 
@@ -17,6 +18,11 @@ public interface IBankAccountReader
         CancellationToken cancellationToken
     );
 
-    // Triée par IBAN ; vide plutôt que null — une liste n'a pas d'absence.
-    Task<IReadOnlyList<BankAccountSummaryResult>> ListAsync(CancellationToken cancellationToken);
+    // La Liste des comptes (ADR 0027), triée par IBAN : le reader reçoit la
+    // query entière — c'est elle qui porte page, recherche et filtres — et
+    // rend une Page, jamais null : une liste n'a pas d'absence.
+    Task<ListPage<BankAccountSummaryResult>> ListAsync(
+        ListBankAccountsQuery query,
+        CancellationToken cancellationToken
+    );
 }

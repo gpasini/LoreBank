@@ -332,6 +332,21 @@ communication inter-modules.
   transforme en `NotFoundException`. Conséquence : `LoreBank.Bank.Infrastructure`
   référence `LoreBank.Bank.Application`, et un Result ne dépend plus
   du tout du modèle d'écriture.
+- Une **Liste** (ADR 0027) a une seule forme : la query dérive de
+  `ListQuery<TItem>` (`SharedKernel.Application` — `Page` ≥ 1, `PageSize`
+  20 par défaut et 100 au plus, constantes du socle, `Search`), se lie
+  `[FromQuery]` sur la query string, déclare ses filtres en propriétés
+  typées **multi-valeurs** (`IReadOnlyList<string>? Currency` —
+  `currency=EUR&currency=USD` : OU dans un filtre, ET entre filtres), et
+  rend la **Page** du socle, `ListPage<TItem>` (`items`, `page`,
+  `pageSize`, `totalCount`, `facets`) — l'item reste le Result propre à la
+  query, l'enveloppe n'en est pas un. Le tri est celui du reader, jamais un
+  paramètre ; une page au-delà de la dernière est une Page vide, pas un
+  404 ; hors bornes, le moteur lève `InvalidPagingException` (422
+  `INVALID_PAGING`), par HTTP comme par `ISender`. Le port de lecture
+  reçoit la query entière. `ApplicationConventionTest` épingle la forme
+  (une query qui rend une Page dérive de `ListQuery`, ses filtres sont des
+  `IReadOnlyList<>`), `ListContractTest` la mécanique sur le Probe.
 - Un dossier par use case dans `Commands/` ou `Queries/`, le Result d'une
   query colocalisé dans son dossier (ADR 0012 : un Result appartient à
   exactement une query) ; ce qui est partagé entre use cases reste dans un
@@ -368,8 +383,11 @@ communication inter-modules.
   sur le schéma `ApiProblem` dont `code` est l'enum `ErrorCode` (scan des
   `DomainException` concrètes du Domain et de l'Application de chaque module
   monté + SharedKernel + `VALIDATION_FAILED`), l'`operationId`
-  `<Controller>_<Action>`, le tag au nom du module, `decimal` en `number`,
-  `application/json` seul, pas de `servers`. Sur une route mixte, la
+  `<Controller>_<Action>`, le tag au nom du module, `decimal` en `number`
+  et `int` en `integer`, les paramètres de query string en camelCase (une
+  `ListQuery` liée `[FromQuery]` est décrite propriété par propriété — le
+  binding reste insensible à la casse, et le 400 de binding nomme ses
+  champs de la même façon), `application/json` seul, pas de `servers`. Sur une route mixte, la
   propriété que la route écrase est `[property: RouteBound]`
   (`LoreBank.SharedKernel.Application`) — elle sort du schéma du body, le
   `with` du controller reste. L'hôte monte tout par `AddOpenApiDescription`,
@@ -451,7 +469,14 @@ communication inter-modules.
   agrégat n'est matérialisé : `Query` refuse un type à clé ou hors modèle
   (`ModuleReaderTest` épingle ce contrat). Les VO restent les gardiens des
   formats de paramètres (`LedgerAccountRef.ForBankAccount(id).Value` comparé
-  au `string` de la row). Le mapping colonne → propriété d'une config keyless
+  au `string` de la row). Une Liste se **déclare** au moteur du socle
+  (ADR 0027) : `Query<TRow>().List(query).SearchIn(col).Filter(query.Xxx,
+  col, facet: nameof(query.Xxx)).OrderBy(col).ToPageAsync(projection)` —
+  le moteur (`ListBuilder`, `SharedKernel.Infrastructure/Readers`) exécute
+  le `COUNT`, un `GROUP BY` par facette (comptée hors de son propre filtre :
+  le compte dit ce que cocher donnerait), l'`ILIKE` de la recherche (jokers
+  échappés) et le `Skip/Take` ; un reader n'écrit jamais ces gestes. Le
+  mapping colonne → propriété d'une config keyless
   est en chaînes que rien ne compile, et `ToView` étant hors migrations rien
   ne signale la dérive avec la table : chaque reader doit avoir un test qui
   relit tous ses champs (voir `GetBankAccountByIdTest`). Pas d'échappatoire
@@ -526,7 +551,10 @@ communication inter-modules.
   seulement — `DescriptionContractTest` s'y ancre aussi, avec ses actions
   commande / création / lecture / route mixte `[RouteBound]`, jamais
   exécutées, pour épingler que la Description dit ce que `ModuleController`
-  fait, et `ErrorCodesDescriptionTest` que l'enum `ErrorCode` égale le scan
+  fait — plus la sonde de Liste, `GET api/probe/listings`, la seule qui
+  s'exécute : `ListContractTest` y prouve la mécanique de l'ADR 0027 sur
+  les colonnes `kind`/`active` de `probe_things` —, et
+  `ErrorCodesDescriptionTest` que l'enum `ErrorCode` égale le scan
   de `HostModules.All` ; `CqsContractTest`, côté Bank, le fait qu'une commande ne serve
   aucune représentation de bout en bout — la plomberie 204/201+Location est
   celle de `ModuleController`, prouvée en unitaire côté socle

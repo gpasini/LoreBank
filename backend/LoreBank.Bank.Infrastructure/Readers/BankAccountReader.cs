@@ -3,6 +3,7 @@ using LoreBank.Bank.Application.Queries.ListBankAccounts;
 using LoreBank.Bank.Application.Readers;
 using LoreBank.Bank.Infrastructure.Persistence;
 using LoreBank.Bank.Infrastructure.Persistence.ReadRows;
+using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Infrastructure.Readers;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,16 +33,35 @@ public sealed class BankAccountReader(BankDbContext context) : ModuleReader(cont
         ))
         .SingleOrDefaultAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<BankAccountSummaryResult>> ListAsync(CancellationToken cancellationToken) =>
-        await Query<BankAccountRow>()
-            .OrderBy(row => row.Iban)
-            .Select(row => new BankAccountSummaryResult(
+    // La Liste (ADR 0027) se déclare, le moteur du socle l'exécute : recherche
+    // sur l'IBAN, devise et clôture filtrées et facettées sous le nom de la
+    // propriété de la query, tri par IBAN.
+    public Task<ListPage<BankAccountSummaryResult>> ListAsync(
+        ListBankAccountsQuery query,
+        CancellationToken cancellationToken
+    ) => Query<BankAccountRow>()
+        .List(query)
+        .SearchIn(row => row.Iban)
+        .Filter(
+            values: query.Currency,
+            column: row => row.BalanceCurrency,
+            facet: nameof(query.Currency)
+        )
+        .Filter(
+            values: query.IsClosed,
+            column: row => row.IsClosed,
+            facet: nameof(query.IsClosed)
+        )
+        .OrderBy(row => row.Iban)
+        .ToPageAsync(
+            projection: row => new BankAccountSummaryResult(
                 row.Id,
                 row.Iban,
                 row.BalanceAmount,
                 row.BalanceCurrency,
                 row.IsClosed,
                 row.OpenedAt
-            ))
-            .ToListAsync(cancellationToken);
+            ),
+            cancellationToken: cancellationToken
+        );
 }

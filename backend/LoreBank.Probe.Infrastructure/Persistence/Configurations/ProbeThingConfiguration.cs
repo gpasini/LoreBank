@@ -20,5 +20,14 @@ public sealed class ProbeThingConfiguration : IEntityTypeConfiguration<ProbeThin
             .Property(thing => thing.Label)
             .HasColumnName("label")
             .HasMaxLength(200);
+
+        builder
+            .Property(thing => thing.Kind)
+            .HasColumnName("kind")
+            .HasMaxLength(50);
+
+        builder
+            .Property(thing => thing.Active)
+            .HasColumnName("active");
     }
 }

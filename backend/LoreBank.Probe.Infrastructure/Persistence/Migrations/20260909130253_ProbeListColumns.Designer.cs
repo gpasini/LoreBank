@@ -3,6 +3,7 @@ using System;
 using LoreBank.Probe.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LoreBank.Probe.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProbeDbContext))]
-    partial class ProbeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909130253_ProbeListColumns")]
+    partial class ProbeListColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

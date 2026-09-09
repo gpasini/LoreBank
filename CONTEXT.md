@@ -194,6 +194,29 @@ ils restent sur la sortie standard ; la Corrélation fait le pont.
 _Avoid_ : monitoring, observabilité, APM, tracing, OpenTelemetry (le canal,
 pas le concept)
 
+**Liste** :
+Une lecture qui rend plusieurs éléments, sous la forme unique du socle :
+paginée par page numérotée, recherchée sur les colonnes que son reader
+déclare, filtrée par les propriétés typées et multi-valeurs de sa query,
+triée par son reader — jamais par un paramètre. Sa query dérive de
+`ListQuery`, sa réponse est une Page, son reader n'écrit que sa
+déclaration au moteur du socle.
+_Avoid_ : liste paginée, collection, résultats de recherche, grid
+
+**Page** :
+L'enveloppe que toute Liste rend — ses éléments, la page et sa taille, le
+total, ses Facettes — toujours complète : au-delà de la dernière, une Page
+vide avec son total, jamais une absence. Une forme du socle, pas un
+Result : l'élément, lui, appartient à sa query.
+_Avoid_ : PagedResult, réponse paginée, enveloppe
+
+**Facette** :
+Les valeurs présentes d'un filtre d'une Liste et leur compte, comptées hors
+du filtre lui-même — le compte dit ce que cocher cette valeur donnerait.
+Nommée comme le filtre qu'elle alimente, en camelCase, valeurs en chaînes
+que le front traduit.
+_Avoid_ : agrégation, bucket, compteur de filtre, refinement
+
 **Signal** :
 Le message nu que le socle pousse aux clients connectés quand un integration
 event a été livré — la ligne d'outbox marquée livrée est la notification.

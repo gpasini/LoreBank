@@ -81,20 +81,23 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
         );
     }
 
-    // La liste a son propre Result (ADR 0012) : ses clés sont épinglées à part,
-    // une divergence avec celles du détail doit se voir ici.
+    // La Liste (ADR 0027) sert la Page du socle, et son item a son propre
+    // Result (ADR 0012) : les clés des deux sont épinglées ici — une divergence
+    // de l'item avec le détail doit se voir, comme un changement d'enveloppe.
+    // La recherche isole le compte ouvert : la Liste est partagée avec tout ce
+    // que la suite a écrit.
     [Test]
-    public async Task Get_ShouldListTheAccounts_WithTheExactKeysOfTheSummary()
+    public async Task Get_ShouldListTheAccounts_WithTheExactKeysOfThePageAndTheSummary()
     {
         // Arrange
 
-        var created = await OpenAsync("IT60X0542811101000000123456");
+        var created = await OpenAsync("ES9121000418450200051332");
 
         var id = created.Headers.Location!.Segments.Last();
 
         // Act
 
-        var response = await _client.GetAsync("api/bank/accounts");
+        var response = await _client.GetAsync("api/bank/accounts?search=ES9121000418450200051332");
 
         // Assert
 
@@ -102,9 +105,16 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
 
         var body = await BodyOf(response);
 
-        body.EnumerateObject().Select(property => property.Name).Should().Equal("accounts");
+        body.EnumerateObject().Select(property => property.Name).Should().Equal(
+            "items",
+            "page",
+            "pageSize",
+            "totalCount",
+            "facets"
+        );
+        body.GetProperty("totalCount").GetInt32().Should().Be(1);
 
-        var account = body.GetProperty("accounts").EnumerateArray()
+        var account = body.GetProperty("items").EnumerateArray()
             .Single(item => item.GetProperty("id").GetString() == id);
 
         account.EnumerateObject().Select(property => property.Name).Should().BeEquivalentTo(

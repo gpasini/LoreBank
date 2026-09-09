@@ -24,6 +24,11 @@ une liste) : une autre query avec son propre Result, portée par
 l'Application — `Contracts/` ne revient jamais. Qui veut découpler versionne
 dans l'Application, pas dans l'Api.
 
+Une Liste (ADR 0027) ne fait pas exception : son item est le Result de sa
+query, et l'enveloppe `ListPage<TItem>` qui l'entoure n'est pas un Result
+mais une forme du socle — comme `ApiProblem` pour les erreurs — partagée
+par toutes les lectures qui listent.
+
 ## Options écartées
 
 - **Garder `Contracts/`** : le découplage qu'il promet ne sert que si les

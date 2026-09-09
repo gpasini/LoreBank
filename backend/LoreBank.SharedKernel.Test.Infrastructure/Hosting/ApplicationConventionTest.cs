@@ -1,3 +1,4 @@
+using System.Reflection;
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Infrastructure.Modules;
@@ -44,6 +45,60 @@ public sealed class ApplicationConventionTest
             repositoryParameters.Should().BeEmpty($"{handlerType.Name} est un handler de query — il lit par un port de Readers/, pas par le repository de l'agrégat");
         }
     }
+
+    // Une Liste a une seule forme (ADR 0027) : une query qui rend une Page
+    // dérive de ListQuery — pas de IQuery<ListPage<>> écrit à la main — et ses
+    // filtres sont multi-valeurs, des IReadOnlyList<T> : c'est la forme que
+    // les facettes impliquent (OU dans un filtre), et celle que le front
+    // apprend une fois. Une propriété scalaire compilerait et se lierait sans
+    // que rien d'autre ne le signale.
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldShapeEveryListQueryOnTheSocle_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        var pageQueries = module.ApplicationAssembly
+            .GetTypes()
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .Where(RendersAPage)
+            .ToList();
+
+        foreach (var queryType in pageQueries) {
+            DerivesFromListQuery(queryType).Should().BeTrue(
+                $"{queryType.Name} rend une Page : elle dérive de ListQuery<TItem>, la forme unique d'une Liste"
+            );
+
+            var scalarFilters = queryType
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(property => !IsMultiValued(property.PropertyType))
+                .Select(property => property.Name)
+                .ToList();
+
+            scalarFilters.Should().BeEmpty(
+                $"les filtres de {queryType.Name} sont multi-valeurs (IReadOnlyList<T>) — OU dans un filtre, ET entre filtres"
+            );
+        }
+    }
+
+    private static bool RendersAPage(Type type) => type
+        .GetInterfaces()
+        .Any(contract => contract.IsGenericType
+            && contract.GetGenericTypeDefinition() == typeof(IQuery<>)
+            && contract.GetGenericArguments()[0] is { IsGenericType: true } response
+            && response.GetGenericTypeDefinition() == typeof(ListPage<>)
+        );
+
+    private static bool DerivesFromListQuery(Type type)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType) {
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(ListQuery<>)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMultiValued(Type type) =>
+        type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>);
 
     private static bool HandlesAQuery(Type type) => type
         .GetInterfaces()

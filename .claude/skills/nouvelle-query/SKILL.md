@@ -53,12 +53,54 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
    diff (l'opération, le schéma du Result) et le commiter avec le changement
    — la CI échoue s'il manque.
 
+## Lister
+
+Une lecture qui rend plusieurs éléments est une **Liste** (ADR 0027) — une
+seule forme dans le socle, jamais une liste nue ni une enveloppe maison :
+
+1. La query dérive de `ListQuery<XxxItemResult>` (`SharedKernel.Application`)
+   au lieu d'implémenter `IQuery<>` : elle hérite `Page`, `PageSize`,
+   `Search`, et déclare ses filtres en propriétés typées **multi-valeurs**
+   (`public IReadOnlyList<string>? Currency { get; init; }`). Pas de
+   paramètre de tri.
+2. L'item (`XxxItemResult`) est le Result de la query, colocalisé ; la
+   réponse est `ListPage<XxxItemResult>` — l'enveloppe du socle, pas un
+   Result à écrire.
+3. Le port de lecture reçoit la query entière :
+   `Task<ListPage<XxxItemResult>> ListAsync(ListXxxQuery query, ct)` — une
+   Page, jamais `null` : une liste n'a pas d'absence, le handler la rend
+   telle quelle.
+4. Le reader déclare, le moteur exécute :
+
+   ```csharp
+   Query<XxxRow>()
+       .List(query)
+       .SearchIn(row => row.Label)
+       .Filter(query.Currency, row => row.Currency, facet: nameof(query.Currency))
+       .OrderBy(row => row.Label)
+       .ToPageAsync(row => new XxxItemResult(…), cancellationToken)
+   ```
+
+   `SearchIn` répétable (OU entre colonnes), `Filter` sans `facet:` pour
+   un filtre sans facette, `OrderBy` obligatoire.
+5. L'action : `List([FromQuery] ListXxxQuery query, ct)` rendant
+   `Task<ActionResult<ListPage<XxxItemResult>>>`, `await Sender.Send(query)`.
+6. Le test du use case relit chaque champ de l'item par la recherche, et
+   affirme les facettes sous le nom des filtres ; la mécanique (bornes,
+   jokers, facettes disjonctives) est prouvée par le socle
+   (`ListContractTest`), pas à refaire. `CqsContractTest` épingle les clés
+   de la Page et de l'item.
+7. Le front assemble les briques de `frontend/src/listing/` (`useListing`,
+   `SearchBox`, `Facets`, `Pager`) pour sa query, avec ses libellés de
+   facettes (`App.tsx`, la Liste des comptes, est l'exemple).
+
 ## Exemple de référence
 
 `Queries/GetBankAccountById/` (query + handler + Result colocalisé) dans
 `backend/LoreBank.Bank.Application`, `Readers/BankAccountReader.cs` et
 `Persistence/ReadRows/BankAccountRow.cs` côté Infrastructure,
-`GetBankAccountByIdTest` pour la relecture de tous les champs.
+`GetBankAccountByIdTest` pour la relecture de tous les champs. Pour une
+Liste : `Queries/ListBankAccounts/` et `ListBankAccountsTest`.
 
 ## Garde-fous
 
@@ -72,6 +114,8 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
 | Le 404 d'une lecture porte un code | `ErrorContractTest`, plus le cas absence de l'étape 7 |
 | L'ensemble exact des clés JSON du `GET` | `CqsContractTest` — étape 8 |
 | La Description dit 200 + le schéma du Result, `decimal` en `number` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
+| Une query qui rend une Page dérive de `ListQuery`, ses filtres sont multi-valeurs | `ApplicationConventionTest` |
+| La mécanique de la Liste — bornes (422 `INVALID_PAGING`), recherche, OU/ET, facettes disjonctives, paramètres camelCase | `ListContractTest`, `DescriptionContractTest` (socle, sur le Probe) |
 
 ## Pièges
 
@@ -82,6 +126,10 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
   l'interroger « pour voir » lève un 404.
 - Matérialiser un agrégat pour afficher est le rôle du repository — une
   lecture requête la row de la table, et `Query` refuse un agrégat.
+- Une liste sans borne, ou une enveloppe de pagination écrite dans le
+  module : la Liste est la forme du socle (ADR 0027) — `ListQuery`,
+  `ListPage`, le moteur — et `ApplicationConventionTest` rougit sur une
+  query qui rend une Page sans dériver de `ListQuery`.
 - Une row par table, pas par query : avant d'en créer une, vérifier qu'elle
   n'existe pas déjà dans `Persistence/ReadRows/`. Pas de SQL brut dans un
   reader — `ModuleSql` est réservé aux migrations de données et à

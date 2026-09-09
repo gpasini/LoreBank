@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using LoreBank.SharedKernel.Api.Problems;
 using LoreBank.SharedKernel.Api.Signals;
@@ -13,7 +14,12 @@ namespace LoreBank.SharedKernel.Api.OpenApi;
 // application/problem+json sur toutes les opérations — 400, 404, 409, 422,
 // 500, uniformément, la Description ne devine pas ce qu'un handler lève ; l'en-tête
 // Location d'un 201 ; un seul media type par sens — application/json, ou
-// text/event-stream sur le flux de Signaux (ADR 0026) ; et l'en-tête du document —
+// text/event-stream sur le flux de Signaux (ADR 0026) ; les clés de query
+// string en camelCase comme les clés JSON — une ListQuery liée [FromQuery]
+// (ADR 0027) est décrite propriété par propriété sous son nom .NET, alors
+// que le body de la même surface part en camelCase ; le binding, lui, est
+// insensible à la casse, seule la Description change, et c'est ce nom que
+// porte une Facette ; et l'en-tête du document —
 // un titre, pas de `servers` : la Description décrit une surface, pas un
 // déploiement.
 public sealed class DescriptionDocumentTransformer(
@@ -71,6 +77,12 @@ public sealed class DescriptionDocumentTransformer(
     )
     {
         operation.Responses ??= [];
+
+        foreach (var parameter in (operation.Parameters ?? []).OfType<OpenApiParameter>()) {
+            if (parameter is { In: ParameterLocation.Query, Name: { } name }) {
+                parameter.Name = JsonNamingPolicy.CamelCase.ConvertName(name);
+            }
+        }
 
         if (operation.RequestBody?.Content is { } requestContent) {
             KeepOnly(

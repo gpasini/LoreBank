@@ -18,7 +18,8 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 // throw direct suffit, DomainExceptionFilter est un filtre MVC, il voit la
 // même chose qu'en sortie de handler MediatR. Et les formes que la
 // Description OpenAPI doit lire (DescriptionContractTest) : commande,
-// création, lecture, route mixte à propriété [RouteBound]. Ces dernières ne
+// création, lecture, route mixte à propriété [RouteBound], et la Liste
+// (ListContractTest) — la seule qui s'exécute. Les autres ne
 // s'exécutent jamais — la Description se lit sans appel — donc aucun handler
 // MediatR n'est câblé derrière. Et l'Acteur courant (ActorContractTest) : le
 // template livré n'authentifie rien, une requête HTTP est Anonyme (ADR 0023).
@@ -79,6 +80,19 @@ public sealed class ProbeController(ISender sender) : ModuleController(sender)
         [FromServices] ProbeDbContext dbContext,
         CancellationToken cancellationToken
     ) => await dbContext.ProbeThings.CountAsync(cancellationToken);
+
+    // La sonde de Liste (ListContractTest, ADR 0027) : la query se lie sur la
+    // query string, le reader-sonde déclare sa Liste au moteur, la Page part
+    // telle quelle — la Description lit ce type de retour.
+    [HttpGet("listings")]
+    public async Task<ActionResult<ListPage<ProbeThingResult>>> ListThings(
+        [FromQuery] ProbeListQuery query,
+        [FromServices] ProbeDbContext dbContext,
+        CancellationToken cancellationToken
+    ) => await new ProbeThingReader(dbContext).ListAsync(
+        query: query,
+        cancellationToken: cancellationToken
+    );
 
     [HttpPost("publications")]
     public async Task<IActionResult> Publish(

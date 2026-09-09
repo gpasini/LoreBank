@@ -5,6 +5,7 @@ using LoreBank.Bank.Application.Commands.WithdrawMoney;
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Application.Queries.ListBankAccounts;
 using LoreBank.SharedKernel.Api.Controllers;
+using LoreBank.SharedKernel.Application;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,9 +37,14 @@ public sealed class BankAccountsController(ISender sender) : ModuleController(se
         cancellationToken: cancellationToken
     );
 
+    // La Liste (ADR 0027) : la query string se lie sur la query — page,
+    // recherche, filtres — comme le body se lie sur une commande.
     [HttpGet]
-    public async Task<ActionResult<BankAccountsResult>> List(CancellationToken cancellationToken) => await Sender.Send(
-        request: new ListBankAccountsQuery(),
+    public async Task<ActionResult<ListPage<BankAccountSummaryResult>>> List(
+        [FromQuery] ListBankAccountsQuery query,
+        CancellationToken cancellationToken
+    ) => await Sender.Send(
+        request: query,
         cancellationToken: cancellationToken
     );
 

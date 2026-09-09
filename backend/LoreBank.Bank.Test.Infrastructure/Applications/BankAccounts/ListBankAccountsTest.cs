@@ -1,13 +1,17 @@
 using LoreBank.Bank.Application.Commands.CloseBankAccount;
 using LoreBank.Bank.Application.Queries.ListBankAccounts;
 using LoreBank.Bank.Test.Infrastructure.Setups;
+using LoreBank.SharedKernel.Domain.Exceptions;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
 // La base est partagée avec les fixtures qui écrivent pour de vrai
-// (CqsContractTest) : la liste peut contenir d'autres comptes que ceux
-// arrangés ici, les assertions ciblent les nôtres et l'ordre relatif.
+// (CqsContractTest) : la Liste peut contenir d'autres comptes que ceux
+// arrangés ici, les assertions ciblent les nôtres — par la recherche sur
+// l'IBAN, ou par l'ordre relatif. La mécanique de la Liste (bornes, facettes
+// disjonctives, jokers) est prouvée par le socle (ListContractTest) ; ici,
+// que le module l'emprunte vraiment.
 public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     private static readonly DateTimeOffset Instant = new(
@@ -37,11 +41,11 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
 
         // Act
 
-        var result = await Sender.Send(new ListBankAccountsQuery());
+        var page = await Sender.Send(new ListBankAccountsQuery { Search = "FR7630006000011234567890189" });
 
         // Assert
 
-        var account = result.Accounts.Should().ContainSingle(item => item.Id == accountId.Value).Subject;
+        var account = page.Items.Should().ContainSingle(item => item.Id == accountId.Value).Subject;
 
         account.Iban.Should().Be("FR7630006000011234567890189");
         account.Balance.Should().Be(42.50m);
@@ -67,14 +71,90 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
 
         // Act
 
-        var result = await Sender.Send(new ListBankAccountsQuery());
+        var page = await Sender.Send(new ListBankAccountsQuery { PageSize = ListBankAccountsQuery.MaxPageSize });
 
         // Assert
 
-        var ibans = result.Accounts.Select(item => item.Iban).ToList();
+        var ibans = page.Items.Select(item => item.Iban).ToList();
 
         ibans.IndexOf("BE68539007547034").Should().BeLessThan(ibans.IndexOf("NL91ABNA0417164300"));
-        result.Accounts.Single(item => item.Id == earlier.Value).IsClosed.Should().BeTrue();
-        result.Accounts.Single(item => item.Id == later.Value).IsClosed.Should().BeFalse();
+        page.Items.Single(item => item.Id == earlier.Value).IsClosed.Should().BeTrue();
+        page.Items.Single(item => item.Id == later.Value).IsClosed.Should().BeFalse();
+    }
+
+    // La Liste des comptes est recherchée sur l'IBAN et facettée sur la devise
+    // et la clôture, sous le nom des filtres de la query : la recherche isole
+    // le compte arrangé, les facettes le comptent seul.
+    [Test]
+    public async Task ListBankAccounts_ShouldSearchTheIban_AndFacetCurrencyAndClosure()
+    {
+        // Arrange
+
+        await DbSetup.CreateBankAccountAsync(
+            iban: "CH9300762011623852957",
+            currency: "EUR"
+        );
+
+        var accountId = DbSetup.GetLastBankAccountId();
+
+        // Act
+
+        var page = await Sender.Send(new ListBankAccountsQuery { Search = "ch93007620116" });
+
+        // Assert
+
+        page.TotalCount.Should().Be(1);
+        page.Items.Single().Id.Should().Be(accountId.Value);
+        page.Facets.Select(facet => facet.Name).Should().Equal(
+            "currency",
+            "isClosed"
+        );
+        page.Facets.Single(facet => facet.Name == "currency").Values.Should().ContainSingle()
+            .Which.Should().Be(new SharedKernel.Application.FacetValue(
+                    Value: "EUR",
+                    Count: 1
+                )
+            );
+        page.Facets.Single(facet => facet.Name == "isClosed").Values.Should().ContainSingle()
+            .Which.Should().Be(new SharedKernel.Application.FacetValue(
+                    Value: "false",
+                    Count: 1
+                )
+            );
+    }
+
+    [Test]
+    public async Task ListBankAccounts_ShouldFilterByClosure_WhenTheFilterIsPosed()
+    {
+        // Arrange
+
+        await DbSetup.CreateBankAccountAsync(iban: "AT611904300234573201");
+
+        var closed = DbSetup.GetLastBankAccountId();
+
+        await Sender.Send(new CloseBankAccountCommand(closed.Value));
+
+        // Act
+
+        var page = await Sender.Send(new ListBankAccountsQuery {
+                Search = "AT611904300234573201",
+                IsClosed = [false],
+            }
+        );
+
+        // Assert
+
+        page.TotalCount.Should().Be(0);
+        page.Items.Should().BeEmpty();
+    }
+
+    // La règle des bornes est celle du moteur : elle vaut par ISender comme
+    // par HTTP.
+    [Test]
+    public async Task ListBankAccounts_ShouldThrowInvalidPaging_WhenThePageIsOutOfBounds()
+    {
+        var act = () => Sender.Send(new ListBankAccountsQuery { Page = 0 });
+
+        await act.Should().ThrowAsync<InvalidPagingException>();
     }
 }

@@ -92,13 +92,58 @@
           "Bank"
         ],
         "operationId": "BankAccounts_List",
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "isClosed",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BankAccountsResult"
+                  "$ref": "#/components/schemas/ListPageOfBankAccountSummaryResult"
                 }
               }
             }
@@ -735,20 +780,6 @@
           }
         }
       },
-      "BankAccountsResult": {
-        "required": [
-          "accounts"
-        ],
-        "type": "object",
-        "properties": {
-          "accounts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BankAccountSummaryResult"
-            }
-          }
-        }
-      },
       "BankAccountSummaryResult": {
         "required": [
           "id",
@@ -809,6 +840,7 @@
           "INVALID_BIC",
           "INVALID_CURRENCY",
           "INVALID_IBAN",
+          "INVALID_PAGING",
           "INVALID_SIGNAL_RESOURCE",
           "LEDGER.EMPTY_JOURNAL_ENTRY",
           "LEDGER.INVALID_LEDGER_ACCOUNT_REF",
@@ -819,6 +851,40 @@
           "VALIDATION_FAILED"
         ],
         "type": "string"
+      },
+      "Facet": {
+        "required": [
+          "name",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            }
+          }
+        }
+      },
+      "FacetValue": {
+        "required": [
+          "value",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "LedgerMovementResult": {
         "required": [
@@ -846,6 +912,42 @@
           "recordedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ListPageOfBankAccountSummaryResult": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "facets"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankAccountSummaryResult"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Facet"
+            }
           }
         }
       },

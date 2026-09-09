@@ -45,8 +45,14 @@ dossier :
   et `VALIDATION_FAILED`. `ApiProblem.code` le référence.
 - **`[RouteBound]`** : la propriété d'une commande que la route écrase sort
   du schéma du body — et de ses `required`.
-- **`decimal`** → `number`, sans le pattern ni le `string` que le générateur
-  ajoute parce que System.Text.Json accepte les deux en entrée.
+- **`decimal`** → `number`, **`int`/`long`** → `integer`, sans le pattern ni
+  le `string` que le générateur ajoute parce que System.Text.Json accepte
+  les deux en entrée.
+- **Les paramètres de query string en camelCase** : une `ListQuery` liée
+  `[FromQuery]` (ADR 0027) est décrite propriété par propriété sous son nom
+  .NET ; le transformer les ramène à la casse des clés JSON — le binding,
+  insensible à la casse, n'en change pas, et c'est aussi le nom que porte
+  une Facette.
 - **Un media type par sens** : `application/json` en requête et en réponse
   nominale — `text/event-stream` sur la seule opération du flux de Signaux
   (`docs/signaux.md`).
@@ -86,6 +92,26 @@ back ajoute et que la table ne traduit pas est une erreur de compilation. Le
 job `frontend` de la CI (install, generate, typecheck) est ce qui rend cette
 garantie effective.
 
+## Sur une Liste
+
+```csharp
+public sealed record ListBankAccountsQuery : ListQuery<BankAccountSummaryResult>
+{
+    public IReadOnlyList<string>? Currency { get; init; }
+
+    public IReadOnlyList<bool>? IsClosed { get; init; }
+}
+```
+
+L'action `List([FromQuery] ListBankAccountsQuery query, …)` rend
+`ActionResult<ListPage<BankAccountSummaryResult>>` : la Description dit
+`page`, `pageSize`, `search`, `currency` (tableau de `string`), `isClosed`
+(tableau de `boolean`) en query, et `200` sur le schéma
+`ListPageOfBankAccountSummaryResult` — `items`, `page`, `pageSize`,
+`totalCount`, `facets`. Le Client en tire
+`api.GET("/api/bank/accounts", { params: { query: { search, currency,
+isClosed, page } } })`, typé.
+
 ## Sur une route mixte
 
 ```csharp
@@ -107,7 +133,9 @@ apparu dans un body.
   : sur le `ProbeController` — 204 et 201 + `Location` sans contenu, 200 +
   Result, les quatre erreurs sur `ApiProblem` partout, `operationId`, tag,
   `application/json` seul, `decimal` en `number`, la propriété `[RouteBound]`
-  absente, `ApiProblem.code` → `ErrorCode`, pas de `servers`.
+  absente, `ApiProblem.code` → `ErrorCode`, pas de `servers`, et la Liste —
+  paramètres de query string en camelCase et typés, `ListPageOf…` en
+  réponse.
 - `ErrorCodesDescriptionTest` (`Hosting/`) : l'enum servie égale le scan de
   `HostModules.All` — un module monté dont les codes manqueraient rendrait le
   Client incomplet en silence.

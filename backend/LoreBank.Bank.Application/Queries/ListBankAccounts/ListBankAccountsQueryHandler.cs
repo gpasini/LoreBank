@@ -1,15 +1,19 @@
 using LoreBank.Bank.Application.Readers;
+using LoreBank.SharedKernel.Application;
 using MediatR;
 
 namespace LoreBank.Bank.Application.Queries.ListBankAccounts;
 
-// Une liste vide n'est pas une absence : le Result est toujours servi, il
-// n'y a pas de 404 à lever ici.
+// Une Page vide n'est pas une absence : la Page est toujours servie, il n'y a
+// pas de 404 à lever ici.
 public sealed class ListBankAccountsQueryHandler(IBankAccountReader reader)
-    : IRequestHandler<ListBankAccountsQuery, BankAccountsResult>
+    : IRequestHandler<ListBankAccountsQuery, ListPage<BankAccountSummaryResult>>
 {
-    public async Task<BankAccountsResult> Handle(
+    public Task<ListPage<BankAccountSummaryResult>> Handle(
         ListBankAccountsQuery request,
         CancellationToken cancellationToken
-    ) => new(await reader.ListAsync(cancellationToken));
+    ) => reader.ListAsync(
+        query: request,
+        cancellationToken: cancellationToken
+    );
 }
