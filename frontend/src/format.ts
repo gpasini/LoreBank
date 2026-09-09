@@ -2,7 +2,10 @@
 // avec la locale du navigateur.
 export function money(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+    }).format(amount);
   } catch {
     return `${amount} ${currency}`;
   }
@@ -21,5 +24,8 @@ export function instant(value: string): string {
     return value;
   }
 
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }

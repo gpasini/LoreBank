@@ -8,3 +8,29 @@ config_roots = [
     "backend",
     "frontend",
 ]
+
+# Les portes de qualité (ADR 0028, docs/qualite.md) : chaque tâche ci-dessous
+# est un step de la CI, appelé tel quel — même commande sur le poste et sur
+# le runner. `check` les rejoue toutes, dans l'ordre, en s'arrêtant au premier
+# rouge.
+[tasks.check]
+description = "Toutes les gates, comme la CI"
+run = [
+    "mise run //backend:build",
+    "mise run //backend:format:check",
+    "mise run //backend:openapi:check",
+    "mise run //backend:test",
+    "mise run //frontend:generate",
+    "mise run //frontend:typecheck",
+    "mise run //frontend:check",
+    "mise run //frontend:audit",
+]
+
+# Les gates rapides avant un commit — jamais la suite d'intégration.
+# Opt-in, rien dans .git n'est versionné : `mise generate git-pre-commit --write`.
+[tasks.pre-commit]
+description = "Format et lint, avant un commit (installer : mise generate git-pre-commit --write)"
+run = [
+    "mise run //backend:format:check",
+    "mise run //frontend:check",
+]

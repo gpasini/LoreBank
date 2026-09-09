@@ -25,7 +25,7 @@ public sealed class TelemetryCompositionTest
             )
             .Where(csproj => XDocument.Load(csproj)
                 .Descendants("PackageReference")
-                .Any(reference => reference.Attribute("Include")?.Value.StartsWith("OpenTelemetry") == true)
+                .Any(reference => reference.Attribute("Include")?.Value.StartsWith(value: "OpenTelemetry", comparisonType: StringComparison.Ordinal) == true)
             )
             .Select(Path.GetFileNameWithoutExtension)
             .ToList();
@@ -60,8 +60,8 @@ public sealed class TelemetryCompositionTest
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> {
-                    [Telemetry.EndpointKey] = "http://localhost:4318",
-                }
+                [Telemetry.EndpointKey] = "http://localhost:4318",
+            }
             )
             .Build();
 

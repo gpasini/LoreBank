@@ -10,7 +10,6 @@
     <ItemGroup>
         <PackageVersion Include="Autofac" Version="8.4.0"/>
         <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="11.0.2"/>
-        <PackageVersion Include="coverlet.collector" Version="6.0.4"/>
         <!-- Pinné en 7.x : dernière version sous licence Apache 2.0. -->
         <PackageVersion Include="FluentAssertions" Version="7.2.0"/>
         <!-- Pinné en 12.x : dernière version sous licence Apache 2.0. -->

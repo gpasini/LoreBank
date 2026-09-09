@@ -14,10 +14,18 @@ communication inter-modules.
 - Build : `cd backend && mise exec -- dotnet build LoreBank.slnx`.
 - Les propriétés MSBuild communes (`TargetFramework`, `Nullable`,
   `ImplicitUsings`, `TreatWarningsAsErrors` — la doctrine « build sans
-  warning » est tenue par le compilateur) vivent dans
+  warning » est tenue par le compilateur — `AnalysisMode=Recommended`,
+  `EnforceCodeStyleInBuild`, l'audit NuGet épinglé) vivent dans
   `backend/Directory.Build.props` — ne pas les dupliquer dans les csproj.
-- La CI (`.github/workflows/ci.yml`) rejoue build + suite complète sur push
-  vers `master` et sur PR, avec le SDK installé par mise comme sur le poste.
+- Les **portes de qualité** (ADR 0028, `docs/qualite.md`) sont des tâches
+  mise, une par porte, et la CI (`.github/workflows/ci.yml`, sur push vers
+  `master` et sur PR, SDK installé par mise comme sur le poste) a un step
+  par tâche : build, `format:check` (`dotnet format --verify-no-changes`),
+  `openapi:check`, `test` côté back ; `typecheck`, `check` (Biome) et
+  `audit` (`npm audit --audit-level=high`) côté front. `mise run check` à
+  la racine rejoue tout ; `mise run pre-commit` les rapides, installable en
+  hook par `mise generate git-pre-commit --write`. Les exemptions
+  d'analyseurs vivent dans `.editorconfig` avec leur pourquoi.
 - Les versions de packages sont centralisées dans
   `backend/Directory.Packages.props` (central package management) : un csproj
   référence sans attribut `Version`, et les pins — licence (FluentAssertions
@@ -26,9 +34,10 @@ communication inter-modules.
 - Le front vit dans `frontend/` (Vite + React + TypeScript), Node pinné par
   mise (`frontend/mise.toml`, racine monorepo déclarée dans `mise.toml`) :
   `cd frontend && mise exec -- npm ci` génère le Client depuis
-  `backend/openapi/lorebank.json` (`prepare`), `npm run typecheck` est sa
-  vérification. TypeScript est pinné en 5.x — `openapi-typescript` consomme
-  l'API compilateur que la 7 n'expose plus.
+  `backend/openapi/lorebank.json` (`prepare`) ; `npm run typecheck`,
+  `npm run check` (Biome : lint et format, `npm run format` corrige) et
+  `npm run audit` sont ses portes. TypeScript est pinné en 5.x —
+  `openapi-typescript` consomme l'API compilateur que la 7 n'expose plus.
 
 ## Architecture
 
@@ -603,12 +612,21 @@ communication inter-modules.
 - Le tout est encodé pour Rider dans `.editorconfig`
   (`resharper_max_formal_parameters_on_line = 1`,
   `resharper_max_invocation_arguments_on_line = 1`,
-  `resharper_arguments_* = named`, `resharper_arguments_skip_single = true`).
+  `resharper_arguments_* = named`, `resharper_arguments_skip_single = true`)
+  — et tenu par Rider et la relecture seulement : Roslyn n'a pas
+  d'équivalent, `dotnet format` ne le vérifie pas (ADR 0028). Le reste de
+  `.editorconfig` (accolades, `var`, ordre des modificateurs, namespace =
+  dossier, encodage, newline finale) est tenu par la porte Format.
 
 ## Vérification
 
-Avant de considérer un changement terminé : build de la solution sans warning,
-et comportement démontré à l'exécution (tests, ou programme de vérification).
+Avant de considérer un changement terminé : `mise run check` à la racine —
+toutes les portes, dans l'ordre de la CI (build sans warning, format,
+Description à jour, suite complète, front typé, linté, formaté, audité ;
+`docs/qualite.md`) — et comportement démontré à l'exécution (tests, ou
+programme de vérification). Un fichier hors format se corrige par
+`mise run format` (`backend/`) ou `mise run format` (`frontend/`), jamais à
+la main.
 
 ## Agent skills
 

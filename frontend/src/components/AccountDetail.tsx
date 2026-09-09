@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { api, type ApiProblem } from "../api/client";
+import { bankAccountKind } from "../App";
+import { type ApiProblem, api } from "../api/client";
 import type { components } from "../api/schema";
 import { iban, instant, money } from "../format";
+import { useSignals } from "../signals/SignalsProvider";
 import { AmountForm } from "./AmountForm";
 import { Ledger } from "./Ledger";
 import { Problem } from "./Problem";
-import { bankAccountKind } from "../App";
-import { useSignals } from "../signals/SignalsProvider";
 
 type Account = components["schemas"]["BankAccountResult"];
 
@@ -15,25 +15,38 @@ type Account = components["schemas"]["BankAccountResult"];
 // que la liste se recharge aussi — le CQS jusqu'au bord de l'écran. Et on
 // relit à chaque Signal du compte (ADR 0026) : c'est là que la ligne du
 // Ledger, écrite un instant après le dépôt par l'outbox, arrive à l'écran.
-export function AccountDetail({ accountId, onChanged }: { accountId: string; onChanged: () => void }) {
+export function AccountDetail({
+  accountId,
+  onChanged,
+}: {
+  accountId: string;
+  onChanged: () => void;
+}) {
   const [account, setAccount] = useState<Account | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
   const [closing, setClosing] = useState<ApiProblem | null>(null);
   const [version, setVersion] = useState(0);
 
-  useSignals(bankAccountKind, accountId, () => setVersion((value) => value + 1));
+  useSignals(bankAccountKind, accountId, () =>
+    setVersion((value) => value + 1),
+  );
 
+  // version est le compteur de Signaux (ADR 0026) : il n'est lu nulle part,
+  // sa seule fonction est de relancer la lecture.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version relance le GET sur Signal
   useEffect(() => {
     let cancelled = false;
 
-    api.GET("/api/bank/accounts/{id}", { params: { path: { id: accountId } } }).then(({ data, error }) => {
-      if (cancelled) {
-        return;
-      }
+    api
+      .GET("/api/bank/accounts/{id}", { params: { path: { id: accountId } } })
+      .then(({ data, error }) => {
+        if (cancelled) {
+          return;
+        }
 
-      setAccount(data ?? null);
-      setProblem(error ?? null);
-    });
+        setAccount(data ?? null);
+        setProblem(error ?? null);
+      });
 
     return () => {
       cancelled = true;
@@ -103,7 +116,9 @@ export function AccountDetail({ accountId, onChanged }: { accountId: string; onC
           <p className="muted">Ouvert le {instant(account.openedAt)}</p>
         </div>
         <div className="right">
-          <p className="balance-big">{money(account.balance, account.currency)}</p>
+          <p className="balance-big">
+            {money(account.balance, account.currency)}
+          </p>
           {account.isClosed ? (
             <span className="badge">Fermé</span>
           ) : (
@@ -117,8 +132,18 @@ export function AccountDetail({ accountId, onChanged }: { accountId: string; onC
 
       {!account.isClosed && (
         <div className="grid">
-          <AmountForm title="Dépôt" action="Déposer" currency={account.currency} onSubmit={deposit} />
-          <AmountForm title="Retrait" action="Retirer" currency={account.currency} onSubmit={withdraw} />
+          <AmountForm
+            title="Dépôt"
+            action="Déposer"
+            currency={account.currency}
+            onSubmit={deposit}
+          />
+          <AmountForm
+            title="Retrait"
+            action="Retirer"
+            currency={account.currency}
+            onSubmit={withdraw}
+          />
         </div>
       )}
 

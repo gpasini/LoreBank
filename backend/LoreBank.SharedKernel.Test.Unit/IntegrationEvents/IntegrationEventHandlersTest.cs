@@ -23,7 +23,7 @@ public sealed class IntegrationEventHandlersTest
             .ContainSingle(candidate => candidate.HandlerType == typeof(RecordingIntegrationEventHandler))
             .Subject;
 
-        registration.EventType.Should().Be(typeof(PingIntegrationEvent));
+        registration.EventType.Should().Be<PingIntegrationEvent>();
         registration.ModuleName.Should().Be("Probe");
         registration.Discriminant.Should().Be("probe.ping");
     }

@@ -7,6 +7,20 @@
         <!-- La doctrine « build sans warning » (CLAUDE.md, Vérification) tenue
              par le compilateur plutôt que par la discipline. -->
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- Les portes de qualité tenues par le build (ADR 0028, docs/qualite.md) :
+             les règles CA recommandées et les règles de style IDE que
+             .editorconfig élève à warning deviennent des erreurs par la ligne
+             du dessus. Le reste des gates (format, front, audit npm) vit dans
+             les tâches mise et la CI. -->
+        <AnalysisMode>Recommended</AnalysisMode>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <!-- L'audit NuGet du restore (NU1901–NU1904) est la gate de
+             vulnérabilités du back : ces deux valeurs sont les défauts du SDK,
+             épinglés pour qu'un changement de défaut ne desserre rien en
+             silence — toutes les sévérités, transitives comprises, et
+             TreatWarningsAsErrors les rend bloquantes. -->
+        <NuGetAuditMode>all</NuGetAuditMode>
+        <NuGetAuditLevel>low</NuGetAuditLevel>
     </PropertyGroup>
 
     <!-- Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant

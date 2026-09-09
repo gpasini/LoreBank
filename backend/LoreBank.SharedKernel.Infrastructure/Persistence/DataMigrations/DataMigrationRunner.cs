@@ -51,7 +51,7 @@ public sealed class DataMigrationRunner : IAsyncDisposable
 
         return new DataMigrationRunner(
             scope: scope,
-            dbContext: (ModuleDbContext)scope.Resolve(dbContextType)
+            dbContext: (ModuleDbContext) scope.Resolve(dbContextType)
         );
     }
 
@@ -88,7 +88,7 @@ public sealed class DataMigrationRunner : IAsyncDisposable
                     ids.Add(reader.GetString(0));
                 }
 
-                return (IReadOnlyList<string>)ids;
+                return (IReadOnlyList<string>) ids;
             },
             cancellationToken: cancellationToken
         );
@@ -107,7 +107,7 @@ public sealed class DataMigrationRunner : IAsyncDisposable
         // le DbContext injecté est LA même instance que celle du runner — la
         // migration écrit dans la transaction ouverte ci-dessous, pas à côté.
         var constructor = migrationType.GetConstructors().Single();
-        var migration = (DataMigration)constructor.Invoke(
+        var migration = (DataMigration) constructor.Invoke(
             constructor
                 .GetParameters()
                 .Select(parameter => _scope.Resolve(parameter.ParameterType))
@@ -136,7 +136,7 @@ public sealed class DataMigrationRunner : IAsyncDisposable
     // Le geste SQL — emprunt, finally, paramètres, enrôlement dans la
     // transaction courante — vit dans ModuleSql. Le schéma interpolé est
     // dérivé de l'identité (ADR 0009), jamais une saisie.
-    private Task ExecuteSqlAsync(
+    private Task<int> ExecuteSqlAsync(
         string sql,
         Dictionary<string, object> parameters,
         CancellationToken cancellationToken

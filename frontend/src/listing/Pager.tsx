@@ -19,13 +19,21 @@ export function Pager({
 
   return (
     <nav className="pager" aria-label="Pagination">
-      <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+      <button
+        type="button"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
         Précédent
       </button>
       <span className="muted">
         page {page} sur {pages}
       </span>
-      <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)}>
+      <button
+        type="button"
+        disabled={page >= pages}
+        onClick={() => onChange(page + 1)}
+      >
         Suivant
       </button>
     </nav>

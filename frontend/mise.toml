@@ -1,2 +1,26 @@
 [tools]
 node = "22"
+
+[tasks.install]
+description = "npm ci — `prepare` génère le Client depuis backend/openapi/lorebank.json"
+run = "npm ci"
+
+[tasks.generate]
+description = "Régénère le Client TypeScript depuis la Description commitée"
+run = "npm run generate"
+
+[tasks.typecheck]
+description = "Gate de types : le front est complet sur les codes d'erreur ou ne compile pas"
+run = "npm run typecheck"
+
+[tasks.check]
+description = "Gate de lint et de format (Biome) : rougit si `mise run format` changerait un fichier"
+run = "npm run check"
+
+[tasks.format]
+description = "Formate et applique les corrections sûres de Biome"
+run = "npm run format"
+
+[tasks.audit]
+description = "Gate de vulnérabilités npm : rougit dès une vulnérabilité high, dépendances de dev incluses"
+run = "npm run audit"

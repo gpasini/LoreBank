@@ -22,7 +22,7 @@ public sealed class TransactionBehavior<TRequest, TResponse>
     )
     {
         if (request is not IMutatingRequest) {
-            return await next();
+            return await next(cancellationToken);
         }
 
         using var scope = new TransactionScope(
@@ -37,7 +37,7 @@ public sealed class TransactionBehavior<TRequest, TResponse>
             asyncFlowOption: TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var response = await next();
+        var response = await next(cancellationToken);
 
         scope.Complete();
 

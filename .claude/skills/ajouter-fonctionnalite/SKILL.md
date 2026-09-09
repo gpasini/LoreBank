@@ -43,11 +43,14 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    Chaque skill porte sa recette, ses garde-fous et son « Avant de
    terminer » : les honorer brique par brique, sans reporter les tests à la
    fin.
-5. **Vérification finale** : build sans warning et **suite complète** verte
-   (`mise exec -- dotnet test LoreBank.slnx`) — les tests d'architecture du
-   socle (`ModuleCompositionTest`, `DomainConventionTest`,
-   `ApplicationConventionTest`, contrats HTTP) sont le filet de tout ce qu'une
-   consigne aurait pu manquer.
+5. **Vérification finale** : `mise run check` à la racine — toutes les
+   portes de qualité dans l'ordre de la CI (ADR 0028, `docs/qualite.md`) :
+   build sans warning, format, Description à jour, **suite complète** verte,
+   front typé, linté, formaté, audité — les tests d'architecture du socle
+   (`ModuleCompositionTest`, `DomainConventionTest`,
+   `ApplicationConventionTest`, contrats HTTP) sont le filet de tout ce
+   qu'une consigne aurait pu manquer. Un fichier hors format se corrige par
+   `mise run format`, jamais à la main.
 6. **Clore** : sous `## Comments` de l'issue, un récapitulatif — fichiers
    créés, use cases exposés, tests ajoutés, écarts éventuels avec la spec —
    puis `Status: ready-for-human`.

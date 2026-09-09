@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
 import { baseUrl } from "../api/client";
 import type { components, paths } from "../api/schema";
 
@@ -18,7 +25,9 @@ type Subscription = {
   refresh: () => void;
 };
 
-const SignalsContext = createContext<{ subscribe: (subscription: Subscription) => () => void } | null>(null);
+const SignalsContext = createContext<{
+  subscribe: (subscription: Subscription) => () => void;
+} | null>(null);
 
 export function SignalsProvider({ children }: { children: ReactNode }) {
   const subscriptions = useRef(new Set<Subscription>());
@@ -31,7 +40,10 @@ export function SignalsProvider({ children }: { children: ReactNode }) {
       const signal = JSON.parse(event.data) as Signal;
 
       for (const subscription of subscriptions.current) {
-        if (subscription.kind === signal.resourceKind && (subscription.id === null || subscription.id === signal.resourceId)) {
+        if (
+          subscription.kind === signal.resourceKind &&
+          (subscription.id === null || subscription.id === signal.resourceId)
+        ) {
           subscription.refresh();
         }
       }
@@ -64,17 +76,28 @@ export function SignalsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <SignalsContext.Provider value={{ subscribe }}>{children}</SignalsContext.Provider>;
+  return (
+    <SignalsContext.Provider value={{ subscribe }}>
+      {children}
+    </SignalsContext.Provider>
+  );
 }
 
 // S'abonner aux Signaux d'un genre de ressource — d'une instance, ou de
 // toutes (`id` nul) — et relire à chacun. `refresh` est relu à chaque rendu :
 // l'abonnement, lui, ne bouge que si la ressource change.
-export function useSignals(kind: string, id: string | null, refresh: () => void) {
+export function useSignals(
+  kind: string,
+  id: string | null,
+  refresh: () => void,
+) {
   const context = useContext(SignalsContext);
   const latest = useRef(refresh);
 
   latest.current = refresh;
 
-  useEffect(() => context?.subscribe({ kind, id, refresh: () => latest.current() }), [context, kind, id]);
+  useEffect(
+    () => context?.subscribe({ kind, id, refresh: () => latest.current() }),
+    [context, kind, id],
+  );
 }

@@ -22,11 +22,15 @@ export function AccountList({
         <li key={account.id}>
           <button
             type="button"
-            className={account.id === selectedId ? "account selected" : "account"}
+            className={
+              account.id === selectedId ? "account selected" : "account"
+            }
             onClick={() => onSelect(account.id)}
           >
             <span className="iban">{iban(account.iban)}</span>
-            <span className="balance">{money(account.balance, account.currency)}</span>
+            <span className="balance">
+              {money(account.balance, account.currency)}
+            </span>
             <span className="muted">Ouvert le {instant(account.openedAt)}</span>
             {account.isClosed && <span className="badge">Fermé</span>}
           </button>

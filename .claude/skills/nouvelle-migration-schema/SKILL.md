@@ -32,6 +32,8 @@ ne s'écrit pas à la main.
 3. Relire la migration générée et le snapshot : les colonnes, types et
    contraintes attendus, dans le schéma du module — et rien d'autre (un diff
    inattendu signale un modèle mal configuré, pas une migration à retoucher).
+   Puis `mise run format` (depuis `backend/`) : le générateur écrit un BOM
+   que `.editorconfig` refuse, la porte Format rougirait (ADR 0028).
 4. Appliquer : `mise run migrate` (le verbe `migrate` de l'hôte compose les
    modules comme l'API puis sort — le démarrage de l'API ne migre jamais,
    ADR 0006).
@@ -51,6 +53,7 @@ ne s'écrit pas à la main.
 | Aucun écart entre modèle et migrations | `ModuleCompositionTest` (`HasPendingModelChanges`) — un mapping changé sans migration générée rougit là |
 | Un schéma PostgreSQL par module, jamais `public` | `ModuleCompositionTest` |
 | Les migrations s'appliquent (timeline complète, base vide comprise) | le harnais d'intégration migre son Testcontainer par `ModuleMigrator` — toute la suite `Test.Infrastructure` passe dessus |
+| Une migration générée au format du repo (sans BOM) | `mise run format:check` — la porte Format de la CI |
 
 ## Pièges
 

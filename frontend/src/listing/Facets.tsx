@@ -4,7 +4,10 @@ type Facet = components["schemas"]["Facet"];
 
 // Comment une facette s'affiche : son titre, et la traduction de ses valeurs
 // (une valeur arrive brute — `"true"`, `"EUR"` — c'est ici qu'on la nomme).
-export type FacetLabels = Record<string, { title: string; value?: (value: string) => string }>;
+export type FacetLabels = Record<
+  string,
+  { title: string; value?: (value: string) => string }
+>;
 
 // Les facettes d'une Liste (ADR 0027) : un groupe de cases à cocher par
 // facette, chaque valeur avec le compte que cocher donnerait. Une valeur
@@ -25,8 +28,13 @@ export function Facets({
     <div className="facets">
       {facets.map((facet) => {
         const checked = selected[facet.name] ?? [];
-        const missing = checked.filter((value) => !facet.values.some((item) => item.value === value));
-        const values = [...facet.values, ...missing.map((value) => ({ value, count: 0 }))];
+        const missing = checked.filter(
+          (value) => !facet.values.some((item) => item.value === value),
+        );
+        const values = [
+          ...facet.values,
+          ...missing.map((value) => ({ value, count: 0 })),
+        ];
         const label = labels[facet.name];
 
         if (values.length === 0) {
@@ -43,7 +51,9 @@ export function Facets({
                   checked={checked.includes(item.value)}
                   onChange={() => onToggle(facet.name, item.value)}
                 />
-                <span>{label?.value ? label.value(item.value) : item.value}</span>
+                <span>
+                  {label?.value ? label.value(item.value) : item.value}
+                </span>
                 <span className="count">{item.count}</span>
               </label>
             ))}

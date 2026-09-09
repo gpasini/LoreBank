@@ -1,8 +1,10 @@
-# Le quality gate du repo : rien ne se merge sans build sans warning
-# (TreatWarningsAsErrors le rend bloquant) ni suite complète — les tests
-# d'architecture du socle y jouent le rôle de relecture. Le SDK vient de mise,
-# comme sur le poste : backend/mise.toml + global.json restent la source
-# unique de la toolchain.
+# Les portes de qualité du repo (ADR 0028, docs/qualite.md) : rien ne se
+# merge sans build sans warning (TreatWarningsAsErrors, API bannies,
+# analyseurs), format déclaré, Description OpenAPI à jour, suite complète,
+# front typé, linté, formaté et sans vulnérabilité high. Chaque step est
+# une tâche mise, appelée telle quelle — `mise run check` rejoue la même
+# liste sur le poste. Le SDK vient de mise, comme sur le poste :
+# backend/mise.toml + global.json restent la source unique de la toolchain.
 name: CI
 
 on:
@@ -11,7 +13,7 @@ on:
   pull_request:
 
 jobs:
-  build-and-test:
+  backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,21 +26,23 @@ jobs:
           working_directory: backend
 
       - name: Build
-        run: mise exec -- dotnet build LoreBank.slnx
+        run: mise run build
+
+      # `dotnet format --verify-no-changes` : whitespace, règles de style IDE
+      # et analyseurs, tels que .editorconfig les déclare.
+      - name: Format
+        run: mise run format:check
 
       # Le build de l'hôte émet backend/openapi/lorebank.json (ADR 0019) : si
       # le fichier commité diverge de la surface réelle, la Description est
       # périmée — rebuild en local et commiter le diff.
       - name: Description OpenAPI à jour
-        run: |
-          if ! git diff --exit-code -- openapi/; then
-            echo "::error::backend/openapi/lorebank.json diverge du build : relancer dotnet build et commiter le fichier."
-            exit 1
-          fi
+        run: mise run openapi:check
 
-      # Testcontainers démarre son PostgreSQL sur le Docker du runner.
+      # Testcontainers démarre son PostgreSQL sur le Docker du runner. Les
+      # tests d'architecture du socle y jouent le rôle de relecture.
       - name: Test
-        run: mise exec -- dotnet test LoreBank.slnx --no-build
+        run: mise run test
 
   # Le Client TypeScript se génère depuis le fichier commité et doit compiler :
   # c'est ce job qui matérialise « le front est complet sur les codes d'erreur
@@ -56,10 +60,18 @@ jobs:
           working_directory: frontend
 
       - name: Install
-        run: mise exec -- npm ci
+        run: mise run install
 
       - name: Generate client
-        run: mise exec -- npm run generate
+        run: mise run generate
 
       - name: Typecheck
-        run: mise exec -- npm run typecheck
+        run: mise run typecheck
+
+      # Biome : lint et format en un geste, `mise run format` corrige.
+      - name: Lint and format
+        run: mise run check
+
+      # Dépendances de dev incluses : elles s'exécutent sur le poste et ici.
+      - name: Audit
+        run: mise run audit

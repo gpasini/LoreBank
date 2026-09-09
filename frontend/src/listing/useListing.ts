@@ -19,17 +19,30 @@ export function useListing(initial?: Partial<ListingState>) {
     ...initial,
   });
 
-  const setSearch = useCallback((search: string) => setState((current) => ({ ...current, search, page: 1 })), []);
+  const setSearch = useCallback(
+    (search: string) =>
+      setState((current) => ({ ...current, search, page: 1 })),
+    [],
+  );
 
-  const setPage = useCallback((page: number) => setState((current) => ({ ...current, page })), []);
+  const setPage = useCallback(
+    (page: number) => setState((current) => ({ ...current, page })),
+    [],
+  );
 
   const toggle = useCallback(
     (facet: string, value: string) =>
       setState((current) => {
         const selected = current.filters[facet] ?? [];
-        const next = selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value];
+        const next = selected.includes(value)
+          ? selected.filter((item) => item !== value)
+          : [...selected, value];
 
-        return { ...current, page: 1, filters: { ...current.filters, [facet]: next } };
+        return {
+          ...current,
+          page: 1,
+          filters: { ...current.filters, [facet]: next },
+        };
       }),
     [],
   );

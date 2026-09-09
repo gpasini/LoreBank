@@ -1,6 +1,33 @@
 [tools]
 dotnet = "10"
 
+[tasks.build]
+description = "Build sans warning : TreatWarningsAsErrors, API bannies, analyseurs CA recommandés, règles IDE élevées (ADR 0028)"
+run = "dotnet build LoreBank.slnx"
+
+[tasks.test]
+description = "Suite complète (Testcontainers PostgreSQL) — les tests d'architecture du socle sont le vrai filet"
+depends = ["build"]
+run = "dotnet test LoreBank.slnx --no-build"
+
+[tasks.format]
+description = "Met le code au format déclaré par .editorconfig (whitespace, style IDE, analyseurs)"
+run = "dotnet format LoreBank.slnx"
+
+[tasks."format:check"]
+description = "Gate de format : rougit si `mise run format` changerait un fichier"
+run = "dotnet format LoreBank.slnx --verify-no-changes"
+
+[tasks."openapi:check"]
+description = "Gate de Description : backend/openapi/lorebank.json commité = celui que le build de l'hôte émet (ADR 0019)"
+depends = ["build"]
+run = """
+if ! git diff --exit-code -- openapi/; then
+  echo "::error::backend/openapi/lorebank.json diverge du build : relancer dotnet build et commiter le fichier."
+  exit 1
+fi
+"""
+
 [tasks.migrate]
 description = "Applique les migrations de tous les modules (l'API ne migre jamais au démarrage)"
 run = "dotnet run --project LoreBank.Host -- migrate"

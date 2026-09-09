@@ -2,7 +2,7 @@
 charset = utf-8
 end_of_line = lf
 trim_trailing_whitespace = false
-insert_final_newline = false
+insert_final_newline = true
 indent_style = space
 indent_size = 4
 
@@ -159,6 +159,11 @@ resharper_web_config_module_not_resolved_highlighting = warning
 resharper_web_config_type_not_resolved_highlighting = warning
 resharper_web_config_wrong_module_highlighting = warning
 
+# Le front (Vite + React) est écrit en 2 espaces, comme son écosystème ;
+# Biome lit cette valeur (formatter.useEditorconfig) et la redit dans biome.json.
+[frontend/**]
+indent_size = 2
+
 [{*.yaml,*.yml}]
 indent_style = space
 indent_size = 2
@@ -166,6 +171,46 @@ indent_size = 2
 [{*.har,*.jsb2,*.jsb3,*.json,*.jsonc,*.postman_collection,*.postman_collection.json,*.postman_environment,*.postman_environment.json,.babelrc,.eslintrc,.prettierrc,.stylelintrc,.ws-context,jest.config}]
 indent_style = space
 indent_size = 2
+
+# Diagnostics tenus par le build (EnforceCodeStyleInBuild + AnalysisMode
+# Recommended dans backend/Directory.Build.props — ADR 0028) et par
+# `dotnet format`, qui s'arrête à la sévérité warning : ce qui est en
+# suggestion n'est vérifié par personne.
+[*.cs]
+# L'ordre déclaré par csharp_preferred_modifier_order est tenu, pas suggéré.
+dotnet_diagnostic.IDE0036.severity = warning
+# Un namespace dit son dossier : c'est lui qui préfixe les codes d'erreur
+# (2ᵉ segment = module) et que ModuleCompositionTest lit.
+dotnet_diagnostic.IDE0130.severity = warning
+# Le suffixe EventHandler est le vocabulaire du socle (IDomainEventHandler,
+# IIntegrationEventHandler), pas un délégué .NET.
+dotnet_diagnostic.CA1711.severity = none
+# Les délégués LoggerMessage sont une optimisation de chemin chaud ; le socle
+# ne journalise que des échecs. Un cloneur qui log en volume la remet.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+# CA1859 préfère un type concret à une interface pour la performance ; le
+# socle programme contre des abstractions, y compris dans ses méthodes privées.
+dotnet_diagnostic.CA1859.severity = none
+
+# Les projets de test suivent la doctrine du harnais, pas les règles de
+# conception d'une API publique : noms de tests avec underscores
+# (Méthode_ShouldX_WhenY), fixtures qui libèrent dans [TearDown] plutôt que
+# par IDisposable, hôte partagé en membre statique d'un type générique,
+# actions de controller-sonde sans état. Règle par règle : une sévérité de
+# catégorie ne bat pas celle qu'AnalysisMode pose sur chaque règle.
+[backend/*.Test.*/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1000.severity = none
+dotnet_diagnostic.CA1051.severity = none
+dotnet_diagnostic.CA1710.severity = none
+dotnet_diagnostic.CA1822.severity = none
+
+# Les fakes du socle jouent un module (LoreBank.FakeModule.*) : leur
+# namespace est le sujet du test, pas leur dossier.
+[backend/LoreBank.SharedKernel.Test.Unit/Fakes/*.cs]
+dotnet_diagnostic.IDE0130.severity = none
 
 [*.{appxmanifest,asax,ascx,aspx,axaml,blockshader,c,c++,c++m,cc,ccm,cginc,compute,cp,cpp,cppm,cs,cshtml,cu,cuh,cxx,cxxm,dtd,fs,fsi,fsscript,fsx,fx,fxh,h,h++,hh,hlsl,hlsli,hlslinc,hp,hpp,hxx,icc,inc,inl,ino,ipp,ixx,master,ml,mli,mpp,mq4,mq5,mqh,mxx,nuspec,paml,razor,resw,resx,shader,shaderFoundry,skin,tcc,tpp,urtshader,usf,ush,uxml,vb,xaml,xamlx,xoml,xsd}]
 indent_style = space

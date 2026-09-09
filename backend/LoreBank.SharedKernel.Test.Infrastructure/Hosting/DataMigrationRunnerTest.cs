@@ -106,7 +106,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
         // Une migration re-représente des faits déjà établis : rien ne doit
         // dispatcher dans son scope — ni elle, ni le SaveChangesAsync du
         // DbContext qu'elle partage avec le runner (ADR 0013).
-        ProbeRecordingDataMigration.LastDispatcherType.Should().Be(typeof(NoOpDomainEventDispatcher));
+        ProbeRecordingDataMigration.LastDispatcherType.Should().Be<NoOpDomainEventDispatcher>();
     }
 
     private static async Task<long> CountRowsWithLabelAsync(string label)
@@ -127,9 +127,8 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
             parameter.Value = label;
             command.Parameters.Add(parameter);
 
-            return (long)(await command.ExecuteScalarAsync())!;
-        }
-        finally {
+            return (long) (await command.ExecuteScalarAsync())!;
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }
@@ -152,8 +151,7 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
                  """;
 
             await command.ExecuteNonQueryAsync();
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

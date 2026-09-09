@@ -76,7 +76,7 @@ public static class SignalProbe
                     continue;
                 }
 
-                if (line.StartsWith("data: ")) {
+                if (line.StartsWith(value: "data: ", comparisonType: StringComparison.Ordinal)) {
                     data = line["data: ".Length..];
                 }
             }

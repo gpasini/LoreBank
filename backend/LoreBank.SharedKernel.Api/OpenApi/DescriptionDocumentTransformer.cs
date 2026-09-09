@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using LoreBank.SharedKernel.Api.Problems;
@@ -31,7 +32,7 @@ public sealed class DescriptionDocumentTransformer(
 
     private const string JsonMediaType = "application/json";
 
-    private static readonly int[] ErrorStatuses = [
+    private readonly static int[] ErrorStatuses = [
         StatusCodes.Status400BadRequest,
         StatusCodes.Status404NotFound,
         StatusCodes.Status409Conflict,
@@ -103,7 +104,7 @@ public sealed class DescriptionDocumentTransformer(
         }
 
         if (operation.Responses.TryGetValue(
-                key: StatusCodes.Status201Created.ToString(),
+                key: StatusCodes.Status201Created.ToString(CultureInfo.InvariantCulture),
                 value: out var created
             ) && created is OpenApiResponse creation) {
             creation.Headers ??= new Dictionary<string, IOpenApiHeader>();
@@ -118,7 +119,7 @@ public sealed class DescriptionDocumentTransformer(
         }
 
         foreach (var status in ErrorStatuses) {
-            operation.Responses[status.ToString()] = new OpenApiResponse {
+            operation.Responses[status.ToString(CultureInfo.InvariantCulture)] = new OpenApiResponse {
                 Description = ReasonPhrases.GetReasonPhrase(status),
                 Content = new Dictionary<string, OpenApiMediaType> {
                     [ApiProblem.ContentType] = new() {
@@ -144,7 +145,7 @@ public sealed class DescriptionDocumentTransformer(
 
     private OpenApiSchema ErrorCodeSchema() => new() {
         Type = JsonSchemaType.String,
-        Enum = errorCodes.Select(code => (JsonNode)JsonValue.Create(code)).ToList(),
+        Enum = errorCodes.Select(code => (JsonNode) JsonValue.Create(code)).ToList(),
     };
 
     // La forme de docs/erreurs.md : `title`, `status` et `traceId` toujours,

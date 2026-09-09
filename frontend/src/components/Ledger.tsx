@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type ApiProblem } from "../api/client";
+import { type ApiProblem, api } from "../api/client";
 import type { components } from "../api/schema";
 import { instant, money } from "../format";
-import { Facets, type FacetLabels } from "../listing/Facets";
+import { type FacetLabels, Facets } from "../listing/Facets";
 import { Pager } from "../listing/Pager";
 import { SearchBox } from "../listing/SearchBox";
 import { useListing } from "../listing/useListing";
@@ -26,7 +26,13 @@ const facetLabels: FacetLabels = {
 // amène le mouvement à l'écran, en tête de la page 1 (du plus récent au
 // plus ancien). Une Liste sous la ressource (ADR 0027) : recherche sur
 // l'identifiant d'écriture, facette sur le sens, pager.
-export function Ledger({ accountId, version }: { accountId: string; version: number }) {
+export function Ledger({
+  accountId,
+  version,
+}: {
+  accountId: string;
+  version: number;
+}) {
   const listing = useListing();
   const [page, setPage] = useState<Page | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
@@ -34,17 +40,27 @@ export function Ledger({ accountId, version }: { accountId: string; version: num
   const { page: pageNumber, search, filters } = listing;
 
   const reload = useCallback(async () => {
-    const { data, error } = await api.GET("/api/ledger/bank-accounts/{id}/movements", {
-      params: {
-        path: { id: accountId },
-        query: { page: pageNumber, search: search || undefined, direction: filters.direction },
+    const { data, error } = await api.GET(
+      "/api/ledger/bank-accounts/{id}/movements",
+      {
+        params: {
+          path: { id: accountId },
+          query: {
+            page: pageNumber,
+            search: search || undefined,
+            direction: filters.direction,
+          },
+        },
       },
-    });
+    );
 
     setPage(data ?? null);
     setProblem(error ?? null);
   }, [accountId, pageNumber, search, filters]);
 
+  // version est le compteur de Signaux (ADR 0026) : il n'est lu nulle part,
+  // sa seule fonction est de relancer la lecture.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version relance le GET sur Signal
   useEffect(() => {
     void reload();
   }, [reload, version]);
@@ -55,11 +71,22 @@ export function Ledger({ accountId, version }: { accountId: string; version: num
       <Problem problem={problem} />
       {page && (page.totalCount > 0 || search || filters.direction?.length) ? (
         <>
-          <SearchBox value={search} onChange={listing.setSearch} placeholder="Rechercher une écriture" />
-          <Facets facets={page.facets} selected={filters} labels={facetLabels} onToggle={listing.toggle} />
+          <SearchBox
+            value={search}
+            onChange={listing.setSearch}
+            placeholder="Rechercher une écriture"
+          />
+          <Facets
+            facets={page.facets}
+            selected={filters}
+            labels={facetLabels}
+            onToggle={listing.toggle}
+          />
         </>
       ) : null}
-      {page && page.items.length === 0 && <p className="muted">Aucun mouvement.</p>}
+      {page && page.items.length === 0 && (
+        <p className="muted">Aucun mouvement.</p>
+      )}
       {page && page.items.length > 0 && (
         <table>
           <thead>
@@ -71,18 +98,27 @@ export function Ledger({ accountId, version }: { accountId: string; version: num
             </tr>
           </thead>
           <tbody>
-            {page.items.map((movement, index) => (
-              <tr key={`${movement.entryId}-${index}`}>
+            {page.items.map((movement) => (
+              <tr key={`${movement.entryId}-${movement.direction}`}>
                 <td>{instant(movement.recordedAt)}</td>
                 <td className="mono">{movement.entryId.slice(0, 8)}</td>
                 <td>{direction(movement.direction)}</td>
-                <td className="num">{money(movement.amount, movement.currency)}</td>
+                <td className="num">
+                  {money(movement.amount, movement.currency)}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      {page && <Pager page={page.page} pageSize={page.pageSize} totalCount={page.totalCount} onChange={listing.setPage} />}
+      {page && (
+        <Pager
+          page={page.page}
+          pageSize={page.pageSize}
+          totalCount={page.totalCount}
+          onChange={listing.setPage}
+        />
+      )}
     </section>
   );
 }
