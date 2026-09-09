@@ -1,7 +1,8 @@
 # Lectures via rows keyless
 
-> Remplace l'ADR 0004 — le SQL brut disparaît des readers ; `ModuleSql` reste
-> le geste des migrations de données et de l'outbox/inbox.
+> Statut : accepté — 2026-09-07 ; remplace l'ADR 0004 — le SQL brut disparaît
+> des readers ; `ModuleSql` reste le geste des migrations de données et de
+> l'outbox/inbox.
 
 Les readers écrivaient leur SQL à la main : le lien colonne → propriété
 n'était vérifié par aucun compilateur (chaque reader exigeait un test de

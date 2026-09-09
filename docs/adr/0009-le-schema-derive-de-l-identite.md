@@ -1,5 +1,7 @@
 # Le schéma dérivé de l'identité
 
+> Statut : accepté — 2026-09-04.
+
 Prolonge les ADR 0007 et 0008 : après les assemblies et la clé de connexion,
 le schéma PostgreSQL rejoint l'identité dérivée. « Un schéma par module » est
 une doctrine et une précondition du harnais partagé (la redirection de toutes

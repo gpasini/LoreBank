@@ -1,5 +1,7 @@
 # Les migrations de données dans la timeline du schéma
 
+> Statut : accepté — 2026-09-04.
+
 Une migration de données — le backfill qui accompagne une évolution de schéma —
 s'écrit en C#, pas en SQL : une classe `[DataMigration("<timestamp>")]` dérivant
 de `DataMigration` (`SharedKernel.Infrastructure`), dans

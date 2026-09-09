@@ -1,5 +1,7 @@
 # Le repository d'agrégat via ModuleRepository
 
+> Statut : accepté — 2026-09-04.
+
 Le geste symétrique de l'ADR 0004, appliqué au troisième pilier de
 l'Infrastructure d'un module. Le corps recopié de chaque repository portait
 deux invariants sans les nommer : le mini-unit-of-work (Detached → Add, puis

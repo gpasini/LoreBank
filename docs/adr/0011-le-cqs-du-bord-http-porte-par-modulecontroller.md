@@ -1,5 +1,7 @@
 # Le CQS du bord HTTP porté par ModuleController
 
+> Statut : accepté — 2026-09-04.
+
 La règle « une action qui mute ne renvoie aucune représentation » était une
 discipline écrite dans chaque controller : un `ExecuteAsync` privé recopié
 par controller — typé `IRequest`, donc rien n'empêchait d'y passer une query

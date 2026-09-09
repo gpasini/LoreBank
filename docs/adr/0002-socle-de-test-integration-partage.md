@@ -1,5 +1,7 @@
 # Socle de test d'intégration partagé
 
+> Statut : accepté — 2026-09-03.
+
 Le harnais d'intégration (Testcontainers, hôte statique, transaction par test,
 workaround Autofac) vivait dans `Bank.Test.Infrastructure` : ~130 lignes que
 chaque module aurait recopiées, et dont la copie était destructrice — la

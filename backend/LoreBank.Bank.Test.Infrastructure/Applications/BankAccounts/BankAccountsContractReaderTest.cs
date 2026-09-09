@@ -4,9 +4,10 @@ using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
-// Le port de lecture publié est un reader comme les autres : son SQL est
-// écrit à la main, et ce test est le seul lien entre ses colonnes et les
-// propriétés du DTO — il relit chaque champ après écriture.
+// Le port de lecture publié est un reader comme les autres : il lit une row
+// keyless (ADR 0018) dont le mapping est en chaînes que rien ne compile, et
+// ce test est le seul lien entre ses colonnes et les propriétés du DTO — il
+// relit chaque champ après écriture.
 public sealed class BankAccountsContractReaderTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
     // Pour un lecteur, l'absence est un résultat normal : c'est le module

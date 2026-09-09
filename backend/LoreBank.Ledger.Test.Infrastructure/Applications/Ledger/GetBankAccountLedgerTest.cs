@@ -32,8 +32,10 @@ public sealed class GetBankAccountLedgerTest : BaseIntegrationTest<LedgerWebAppF
         await act.Should().ThrowAsync<UnknownBankAccountException>();
     }
 
-    // Le SQL du reader est écrit à la main : ce test relit chaque champ du
-    // Result — l'iban venu du port de Bank, les mouvements venus des lignes.
+    // Le reader joint deux rows keyless (ADR 0018) dont le mapping colonne →
+    // propriété est en chaînes que rien ne compile : ce test relit chaque
+    // champ du Result — l'iban venu du port de Bank, les mouvements venus des
+    // lignes et de leur écriture.
     [Test]
     public async Task GetBankAccountLedger_ShouldMapEveryColumn_AndEnrichWithTheIban()
     {

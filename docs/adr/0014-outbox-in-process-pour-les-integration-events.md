@@ -1,5 +1,7 @@
 # L'outbox in-process pour les integration events
 
+> Statut : accepté — 2026-09-05.
+
 Un fait métier qui doit sortir de son module — un integration event — part par
 une **outbox** : un domain event handler du module publieur le mappe et le
 confie à `IIntegrationEventPublisher` (`SharedKernel.Contracts`), dont

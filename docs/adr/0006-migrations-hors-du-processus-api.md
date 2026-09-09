@@ -1,5 +1,7 @@
 # Migrations hors du processus API
 
+> Statut : accepté — 2026-09-04.
+
 Le démarrage de l'API ne migre plus — ni en dev ni ailleurs. Migrer au boot
 était un trou en prod (réplicas concurrents qui migrent en même temps, verrous
 DDL pendant le démarrage, droits DDL donnés au process qui sert du HTTP) et le

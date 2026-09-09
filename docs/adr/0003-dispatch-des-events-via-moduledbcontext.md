@@ -1,7 +1,8 @@
 # Dispatch des events via ModuleDbContext
 
-> Statut : complété par l'ADR 0009 — `ConfigureModule` devient optionnel, le
-> schéma et les configurations sont appliqués par la base.
+> Statut : accepté — 2026-09-04 ; complété par l'ADR 0009 — `ConfigureModule`
+> devient optionnel, le schéma et les configurations sont appliqués par la
+> base.
 
 Sur les faits de câblage qu'un nouveau module devait recopier, deux étaient à
 échec silencieux : la surcharge de `SaveChangesAsync` (ramasse/vide/écrit/

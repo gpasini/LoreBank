@@ -1,5 +1,7 @@
 # Les Contrats comme langage publié du module
 
+> Statut : accepté — 2026-09-05.
+
 Ce qu'un module offre aux autres vit dans un projet dédié,
 `LoreBank.<Module>.Contracts` : ses integration events et ses ports de
 lecture publics — rien d'autre. C'est la **seule** surface qu'un autre module

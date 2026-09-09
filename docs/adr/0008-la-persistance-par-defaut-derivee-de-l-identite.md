@@ -1,5 +1,7 @@
 # La persistance par défaut dérivée de l'identité
 
+> Statut : accepté — 2026-09-04.
+
 Prolonge l'ADR 0007. Le corps de `ConfigureDbContext` faisait trois lignes,
 mais son interface en exigeait quatre invariants, tous hors des types : la clé
 sous `ConnectionStrings` précisément (la seule section que le harnais redirige

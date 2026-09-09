@@ -1,5 +1,7 @@
 # La Description OpenAPI dérivée de ModuleController et commitée
 
+> Statut : accepté — 2026-09-07.
+
 L'hôte publiait un document OpenAPI (`AddOpenApi()` natif, Scalar, en
 Development) qui mentait : toutes les opérations en `200` alors que
 `ModuleController` sert 204 ou 201 + `Location`, aucune erreur documentée

@@ -1,5 +1,7 @@
 # Le socle se prouve sur son propre terrain — le ProbeModule
 
+> Statut : accepté — 2026-09-06.
+
 Les garde-fous du socle (`OutboxPublisherTest`, `OutboxProcessorTest`,
 `DataMigrationRunnerTest` et leurs sondes) étaient ancrés en dur sur le module
 d'exemple : `BankDbContext` résolu nommément, discriminants `bank.*`, jusqu'au

@@ -1,5 +1,7 @@
 # La validation aux frontières, la confiance à la réhydratation
 
+> Statut : accepté — 2026-09-05.
+
 Créer et réhydrater sont deux gestes différents que le constructeur unique
 confondait. **Créer**, c'est faire entrer une valeur par une frontière : la
 factory nommée du VO (`Iban.Parse`, `Money.Of`, `XxxId.New`,

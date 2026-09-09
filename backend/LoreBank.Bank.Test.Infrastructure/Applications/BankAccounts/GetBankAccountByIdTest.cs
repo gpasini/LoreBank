@@ -32,10 +32,11 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
         await act.Should().ThrowAsync<BankAccountNotFoundException>();
     }
 
-    // Le SQL du reader est écrit à la main : rien ne relie ses colonnes aux
-    // propriétés du DTO à la compilation. Ce test est le seul garde-fou — il
-    // relit chaque champ, y compris ceux qu'une inversion de colonnes rendrait
-    // silencieusement faux.
+    // Le reader lit une row keyless (ADR 0018) dont le mapping colonne →
+    // propriété est en chaînes que rien ne compile, et ToView est hors
+    // migrations : rien ne signale la dérive avec la table. Ce test est le
+    // seul garde-fou — il relit chaque champ, y compris ceux qu'une inversion
+    // de colonnes rendrait silencieusement faux.
     [Test]
     public async Task GetBankAccountById_ShouldMapEveryColumn_WhenAccountExists()
     {
