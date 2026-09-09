@@ -69,6 +69,7 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
 
     public override void ResetFakes()
     {
+        base.ResetFakes();
         ProbeRecordingIntegrationEventHandler.Reset();
         ProbeFailingIntegrationEventHandler.Reset();
         ProbeLogs.Reset();

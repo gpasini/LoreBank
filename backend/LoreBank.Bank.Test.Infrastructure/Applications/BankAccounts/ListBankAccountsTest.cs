@@ -10,10 +10,22 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 // arrangés ici, les assertions ciblent les nôtres et l'ordre relatif.
 public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
+    private static readonly DateTimeOffset Instant = new(
+        year: 2026,
+        month: 9,
+        day: 9,
+        hour: 8,
+        minute: 30,
+        second: 0,
+        offset: TimeSpan.Zero
+    );
+
     [Test]
     public async Task ListBankAccounts_ShouldMapEveryColumn_WhenAccountsExist()
     {
         // Arrange
+
+        Factory.TimeProvider.Instant = Instant;
 
         await DbSetup.CreateBankAccountAsync(
             iban: "FR7630006000011234567890189",
@@ -35,6 +47,7 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
         account.Balance.Should().Be(42.50m);
         account.Currency.Should().Be("EUR");
         account.IsClosed.Should().BeFalse();
+        account.OpenedAt.Should().Be(Instant);
     }
 
     [Test]

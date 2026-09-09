@@ -9,8 +9,10 @@ namespace LoreBank.Ledger.Application.IntegrationEvents;
 
 // Le miroir du dépôt : un retrait fait sortir de l'argent — débit compte
 // client, crédit trésorerie.
-public sealed class MoneyWithdrawnIntegrationEventHandler(IJournalEntryRepository repository)
-    : IIntegrationEventHandler<MoneyWithdrawnIntegrationEvent>
+public sealed class MoneyWithdrawnIntegrationEventHandler(
+    IJournalEntryRepository repository,
+    TimeProvider timeProvider
+) : IIntegrationEventHandler<MoneyWithdrawnIntegrationEvent>
 {
     public Task HandleAsync(
         MoneyWithdrawnIntegrationEvent integrationEvent,
@@ -23,7 +25,8 @@ public sealed class MoneyWithdrawnIntegrationEventHandler(IJournalEntryRepositor
         );
 
         return repository.SaveAsync(
-            entry: JournalEntry.Record([
+            entry: JournalEntry.Record(
+                lines: [
                 JournalLine.Of(
                     account: LedgerAccountRef.ForBankAccount(integrationEvent.AccountId),
                     direction: JournalDirection.Debit,
@@ -34,7 +37,9 @@ public sealed class MoneyWithdrawnIntegrationEventHandler(IJournalEntryRepositor
                     direction: JournalDirection.Credit,
                     amount: amount
                 ),
-            ]),
+                ],
+                recordedAt: timeProvider.GetUtcNow()
+            ),
             cancellationToken: cancellationToken
         );
     }

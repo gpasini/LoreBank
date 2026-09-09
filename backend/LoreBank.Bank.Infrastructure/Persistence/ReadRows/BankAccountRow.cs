@@ -9,5 +9,6 @@ public sealed record BankAccountRow(
     decimal BalanceAmount,
     string BalanceCurrency,
     bool IsClosed,
-    string? OpenedBy
+    string? OpenedBy,
+    DateTimeOffset OpenedAt
 );

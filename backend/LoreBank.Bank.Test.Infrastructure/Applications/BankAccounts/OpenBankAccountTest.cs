@@ -87,6 +87,37 @@ public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory,
         account.OpenedBy.Should().Be("alice");
     }
 
+    // L'Instant est reçu, jamais demandé (ADR 0024) : le handler le demande à
+    // TimeProvider — l'horloge du harnais ici — et le Domain enregistre ce
+    // qu'on lui passe. ResetFakes efface l'Instant entre deux tests.
+    [Test]
+    public async Task OpenBankAccount_ShouldRecordTheInstant_WhenTheClockIsSet()
+    {
+        // Arrange
+
+        var instant = new DateTimeOffset(
+            year: 2026,
+            month: 9,
+            day: 9,
+            hour: 8,
+            minute: 30,
+            second: 0,
+            offset: TimeSpan.Zero
+        );
+
+        Factory.TimeProvider.Instant = instant;
+
+        await DbSetup.CreateBankAccountAsync();
+
+        // Act
+
+        var account = await Sender.Send(new GetBankAccountByIdQuery(DbSetup.GetLastBankAccountId().Value));
+
+        // Assert
+
+        account.OpenedAt.Should().Be(instant);
+    }
+
     [Test]
     public async Task OpenBankAccount_ShouldRecordAnAnonymousActor_WhenNobodyIsAuthenticated()
     {

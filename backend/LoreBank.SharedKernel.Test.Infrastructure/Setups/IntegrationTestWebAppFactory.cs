@@ -1,8 +1,11 @@
 using Autofac;
 using LoreBank.SharedKernel.Infrastructure.Modules;
+using LoreBank.SharedKernel.Test.Infrastructure.Fakes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
@@ -20,6 +23,10 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
         .Build();
 
     public string ContainerConnectionString => _dbContainer.GetConnectionString();
+
+    // L'horloge du harnais (ADR 0024) : un test y pose l'Instant que toute
+    // Application demandera, ResetFakes l'efface.
+    public ConfigurableTimeProvider TimeProvider => Services.GetRequiredService<ConfigurableTimeProvider>();
 
     // Les modules que cette factory monte en plus de HostModules.All — le
     // ProbeModule du harnais du socle (ADR 0017), jamais un module métier.
@@ -77,6 +84,15 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
             }
         );
 
+        // L'hôte enregistre TimeProvider.System via builder.Services, pas via
+        // un Module Autofac : ConfigureTestServices suffit à le remplacer par
+        // le fake — la dernière inscription gagne.
+        builder.ConfigureTestServices(services => {
+                services.AddSingleton<ConfigurableTimeProvider>();
+                services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<ConfigurableTimeProvider>());
+            }
+        );
+
         // Le geste que Program.cs fait pour chaque module de HostModules.All,
         // fait ici pour les modules additionnels : leur DbContext se monte par
         // le même membre du seam.
@@ -123,11 +139,10 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     {
     }
 
-    // Point unique de remise à zéro des fakes du module, appelé par BaseHostTest
-    // au SetUp et au TearDown de chaque test.
-    public virtual void ResetFakes()
-    {
-    }
+    // Point unique de remise à zéro des fakes, appelé par BaseHostTest au SetUp
+    // et au TearDown de chaque test. La base efface les fakes du socle ; une
+    // factory de module qui surcharge appelle la base, puis remet les siens.
+    public virtual void ResetFakes() => TimeProvider.Reset();
 
     public async Task StartAsync() => await _dbContainer.StartAsync();
 

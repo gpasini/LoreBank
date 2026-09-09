@@ -24,7 +24,13 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
    repository (`GetRequiredByIdAsync` : l'absence lève déjà la
    `NotFoundException` du module, aucun `?? throw` à écrire), construit les VO
    depuis les primitives, appelle la transition, `SaveAsync`. Une naissance
-   appelle la factory de l'agrégat à la place du chargement.
+   appelle la factory de l'agrégat à la place du chargement. Les contextes de
+   la requête ne sont jamais des champs du record : l'Acteur vient du port
+   `ICurrentActor` (ADR 0023) et l'Instant de `TimeProvider` (ADR 0024,
+   `GetUtcNow()`), pris en dépendance selon le besoin et passés à la
+   transition — voir `OpenBankAccountCommandHandler`. Un handler
+   d'integration event fait de même pour l'Instant qu'il comptabilise
+   (`MoneyDepositedIntegrationEventHandler` côté Ledger).
 4. L'action, dans le controller du module (dérivé de `ModuleController`) :
    `Task<CommandResult>` par `SendAsync(command)` → 204, ou
    `Task<CreationResult>` par `CreateAsync(command, actionName:
@@ -39,7 +45,10 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
    **par une query** — l'état d'après ne s'obtient que par une lecture — et
    chaque rejet métier avec son exception. Arranges via `DbSetup`, toujours
    `await` : bloquer sous le scope ambiant emballe l'échec en
-   `AggregateException`.
+   `AggregateException`. Un test qui attend un Acteur ou un Instant précis
+   les pose sur les fakes avant l'arrange (`ConfigurableCurrentActor` du
+   module, `Factory.TimeProvider.Instant` du socle) et relit exactement
+   cette valeur — jamais « autour de maintenant » ; `ResetFakes` efface.
 6. Une nouvelle route se traverse aussi en HTTP réel : un cas dans le
    `CqsContractTest` du module (204 ou 201 + `Location`, corps vide).
 7. Si le use case sert d'arrange à d'autres tests, l'ajouter au `DbSetup` du
@@ -67,6 +76,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 | Deux commandes concurrentes sur le même agrégat : la seconde est refusée en 409 `CONCURRENT_UPDATE`, rien à écrire dans le handler (ADR 0020) | `ModuleRepositoryTest` (socle), `ConcurrentUpdateTest` (module de référence) |
 | La Description dit 204 / 201 + `Location`, le body sans la propriété `[RouteBound]` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
 | Une nouvelle exception métier est dans l'enum `ErrorCode` du Client | `ErrorCodesDescriptionTest` ; côté front, `npm run typecheck` sur `errorMessages.ts` |
+| L'Application demande l'Instant à `TimeProvider`, jamais à l'horloge (ADR 0024) | le build : l'analyseur d'API bannies rougit en `RS0030` dans tout projet `.Application` |
 
 Renommer une propriété du record est un breaking change HTTP que le
 compilateur ne voit pas : ce sont les payloads réels de `CqsContractTest` qui

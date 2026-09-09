@@ -8,6 +8,16 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
 public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
+    private static readonly DateTimeOffset Instant = new(
+        year: 2026,
+        month: 9,
+        day: 9,
+        hour: 8,
+        minute: 30,
+        second: 0,
+        offset: TimeSpan.Zero
+    );
+
     // L'absence est une erreur métier, pas un `null` : c'est ce qui donne un
     // code au 404 d'une lecture comme à celui d'une commande.
     [Test]
@@ -29,7 +39,10 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
     [Test]
     public async Task GetBankAccountById_ShouldMapEveryColumn_WhenAccountExists()
     {
-        // Arrange
+        // Arrange — l'Instant est posé sur l'horloge du harnais (ADR 0024) :
+        // la date relue est exactement celle-là, pas « autour de maintenant ».
+
+        Factory.TimeProvider.Instant = Instant;
 
         await DbSetup.CreateBankAccountAsync(
             iban: "FR7630006000011234567890189",
@@ -51,6 +64,7 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
         account.Currency.Should().Be("EUR");
         account.IsClosed.Should().BeFalse();
         account.OpenedBy.Should().BeNull();
+        account.OpenedAt.Should().Be(Instant);
     }
 
     [Test]

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type ApiProblem } from "../api/client";
 import type { components } from "../api/schema";
-import { money } from "../format";
+import { instant, money } from "../format";
 import { Problem } from "./Problem";
 
 type LedgerResult = components["schemas"]["BankAccountLedgerResult"];
@@ -54,6 +54,7 @@ export function Ledger({ accountId, version }: { accountId: string; version: num
         <table>
           <thead>
             <tr>
+              <th>Comptabilisé le</th>
               <th>Écriture</th>
               <th>Sens</th>
               <th className="num">Montant</th>
@@ -62,6 +63,7 @@ export function Ledger({ accountId, version }: { accountId: string; version: num
           <tbody>
             {ledger.movements.map((movement, index) => (
               <tr key={`${movement.entryId}-${index}`}>
+                <td>{instant(movement.recordedAt)}</td>
                 <td className="mono">{movement.entryId.slice(0, 8)}</td>
                 <td>{movement.direction}</td>
                 <td className="num">{money(movement.amount, movement.currency)}</td>

@@ -17,10 +17,12 @@ public sealed class JournalEntry : AggregateRoot<JournalEntryId>
 
     private JournalEntry(
         JournalEntryId id,
-        IReadOnlyList<JournalLine> lines
+        IReadOnlyList<JournalLine> lines,
+        DateTimeOffset recordedAt
     ) : base(id)
     {
         _lines = [.. lines];
+        RecordedAt = recordedAt;
     }
 
     // Réservé à la matérialisation EF Core, qui peuple ensuite la collection.
@@ -31,7 +33,15 @@ public sealed class JournalEntry : AggregateRoot<JournalEntryId>
 
     public IReadOnlyList<JournalLine> Lines => _lines;
 
-    public static JournalEntry Record(IReadOnlyList<JournalLine> lines)
+    // L'Instant de comptabilisation (ADR 0024) : reçu de la transition, jamais
+    // demandé — celui de l'enregistrement par le Ledger, pas celui du fait
+    // chez Bank.
+    public DateTimeOffset RecordedAt { get; }
+
+    public static JournalEntry Record(
+        IReadOnlyList<JournalLine> lines,
+        DateTimeOffset recordedAt
+    )
     {
         if (lines.Count == 0) {
             throw new EmptyJournalEntryException();
@@ -57,10 +67,16 @@ public sealed class JournalEntry : AggregateRoot<JournalEntryId>
 
         var entry = new JournalEntry(
             id: JournalEntryId.New(),
-            lines: lines
+            lines: lines,
+            recordedAt: recordedAt
         );
 
-        entry.AddDomainEvent(new JournalEntryRecordedDomainEvent(entry.Id));
+        entry.AddDomainEvent(
+            new JournalEntryRecordedDomainEvent(
+                EntryId: entry.Id,
+                RecordedAt: recordedAt
+            )
+        );
 
         return entry;
     }

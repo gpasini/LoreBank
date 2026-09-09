@@ -10,5 +10,6 @@ public sealed record BankAccountSummaryResult(
     string Iban,
     decimal Balance,
     string Currency,
-    bool IsClosed
+    bool IsClosed,
+    DateTimeOffset OpenedAt
 );

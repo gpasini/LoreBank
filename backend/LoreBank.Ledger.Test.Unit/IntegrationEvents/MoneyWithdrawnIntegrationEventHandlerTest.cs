@@ -15,7 +15,10 @@ public sealed class MoneyWithdrawnIntegrationEventHandlerTest
         // Arrange
 
         var repository = new FakeJournalEntryRepository();
-        var handler = new MoneyWithdrawnIntegrationEventHandler(repository);
+        var handler = new MoneyWithdrawnIntegrationEventHandler(
+            repository: repository,
+            timeProvider: new FixedTimeProvider(DateTimeOffset.UnixEpoch)
+        );
         var accountId = Guid.NewGuid();
 
         // Act

@@ -10,9 +10,13 @@ namespace LoreBank.Ledger.Application.IntegrationEvents;
 // La réaction du Ledger au fait publié par Bank : un dépôt fait entrer de
 // l'argent — débit trésorerie, crédit compte client. Le handler tourne dans
 // sa propre transaction, livré at-least-once par le socle : l'inbox le
-// protège du rejeu, il n'a que son métier à écrire (ADR 0014).
-public sealed class MoneyDepositedIntegrationEventHandler(IJournalEntryRepository repository)
-    : IIntegrationEventHandler<MoneyDepositedIntegrationEvent>
+// protège du rejeu, il n'a que son métier à écrire (ADR 0014). L'Instant de
+// comptabilisation vient de TimeProvider (ADR 0024) : celui de
+// l'enregistrement par le Ledger, pas celui du dépôt chez Bank.
+public sealed class MoneyDepositedIntegrationEventHandler(
+    IJournalEntryRepository repository,
+    TimeProvider timeProvider
+) : IIntegrationEventHandler<MoneyDepositedIntegrationEvent>
 {
     public Task HandleAsync(
         MoneyDepositedIntegrationEvent integrationEvent,
@@ -25,7 +29,8 @@ public sealed class MoneyDepositedIntegrationEventHandler(IJournalEntryRepositor
         );
 
         return repository.SaveAsync(
-            entry: JournalEntry.Record([
+            entry: JournalEntry.Record(
+                lines: [
                 JournalLine.Of(
                     account: LedgerAccountRef.Cash,
                     direction: JournalDirection.Debit,
@@ -36,7 +41,9 @@ public sealed class MoneyDepositedIntegrationEventHandler(IJournalEntryRepositor
                     direction: JournalDirection.Credit,
                     amount: amount
                 ),
-            ]),
+                ],
+                recordedAt: timeProvider.GetUtcNow()
+            ),
             cancellationToken: cancellationToken
         );
     }

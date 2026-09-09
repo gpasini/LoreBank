@@ -22,6 +22,10 @@ public sealed class JournalEntryConfiguration : IEntityTypeConfiguration<Journal
             )
             .ValueGeneratedNever();
 
+        builder
+            .Property(entry => entry.RecordedAt)
+            .HasColumnName("recorded_at");
+
         // Les jambes sont des VO possédés par l'écriture : une table dédiée,
         // une clé technique invisible du domaine, et les conversions des VO
         // mono-valeur — le domaine ne voit jamais ces colonnes.

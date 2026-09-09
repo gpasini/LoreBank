@@ -65,6 +65,10 @@ var mvc = builder.Services.AddControllers(options => options.Filters.Add<DomainE
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentActor, HttpContextActor>();
 
+// L'Instant (ADR 0024) : le Domain le reçoit en paramètre, l'Application le
+// demande ici — l'horloge système, que le harnais remplace par son fake.
+builder.Services.AddSingleton(TimeProvider.System);
+
 foreach (var module in modules) {
     mvc.AddApplicationPart(module.ControllerAssembly);
 }

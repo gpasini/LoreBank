@@ -87,7 +87,15 @@ communication inter-modules.
   transition qui prend un `Money` nu accepterait un montant négatif qui
   inverse son sens — et `Actor`, l'Acteur : qui agit, identifiant opaque du
   fournisseur d'identité ou Anonyme, reçu en paramètre par une transition
-  qui enregistre son auteur, jamais demandé par le Domain — ADR 0023). Le même
+  qui enregistre son auteur, jamais demandé par le Domain — ADR 0023). Même
+  règle pour l'Instant (ADR 0024) : une transition qui date un fait reçoit un
+  `DateTimeOffset` en paramètre, le Domain ne lit jamais l'horloge, et un
+  handler de domain event reprend l'Instant que l'event porte. Pas de VO ni
+  de port `IClock` : l'analyseur d'API bannies (`backend/BannedSymbols.txt`,
+  activé par `Directory.Build.props` sur tout projet `.Domain` ou
+  `.Application`, socle inclus) fait échouer le build en `RS0030` sur
+  `DateTime.Now`, `DateTime.UtcNow`, `DateTimeOffset.Now` et
+  `DateTimeOffset.UtcNow`. Le même
   dossier porte `LoreBank.SharedKernel.Api`, qui accueille ce que tous les
   modules partagent côté HTTP : `Controllers/ModuleController` (la base des
   controllers de module — ADR 0011), `Problems/ApiProblem` (la forme unique d'une
@@ -238,7 +246,15 @@ communication inter-modules.
   l'identifiant du principal dès que le cloneur monte le sien, sans rien
   changer aux modules ; en base et dans un Result, l'Anonyme est `null`, et
   le harnais d'un module agit « en tant que » par un fake du port
-  (`ConfigurableCurrentActor` côté Bank).
+  (`ConfigurableCurrentActor` côté Bank). L'Instant suit le même chemin
+  (ADR 0024) : le handler d'une commande ou d'un integration event prend
+  `TimeProvider` — le `TimeProvider.System` de la BCL, enregistré par
+  l'hôte, sans port du socle par-dessus — et passe `GetUtcNow()` à la
+  transition (`OpenedAt` chez Bank, `RecordedAt` chez Ledger, l'Instant de
+  comptabilisation) ; le harnais le remplace par `ConfigurableTimeProvider`
+  (`LoreBank.SharedKernel.Test.Infrastructure`, exposé par la factory de
+  base, effacé par `ResetFakes`) : un test pose l'Instant avant son arrange
+  et relit exactement cette valeur.
 - `ICommand` et `ICreationCommand` portent le marqueur `IMutatingRequest`, que
   `IQuery<TResponse>` n'a pas. C'est lui, et lui seul, qui décide de ce que le
   `TransactionBehavior` de `LoreBank.SharedKernel.Application` enveloppe : toute
@@ -487,7 +503,8 @@ communication inter-modules.
   le `Module` de l'Infrastructure s'exécute après ; le hook est un second
   `ConfigureContainer` ajouté après celui de l'hôte — et les remet à zéro dans
   `ResetFakes`, appelé par `BaseHostTest` au SetUp et au TearDown (point
-  unique, pas de reset à recopier par fixture) ; et un
+  unique, pas de reset à recopier par fixture — la surcharge appelle la base,
+  qui efface les fakes du socle comme l'horloge) ; et un
   `DbSetup : DbSetupBase` (classe partielle par agrégat, `CreateXxxAsync()`,
   `GetLastXxxId()`), qui crée les données via les vrais use cases. Ses
   fixtures dérivent `BaseIntegrationTest<BankWebAppFactory, DbSetup>`

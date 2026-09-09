@@ -22,7 +22,8 @@ public sealed class BankAccountOpenedDomainEventHandlerTest
         var domainEvent = new BankAccountOpenedDomainEvent(
             AccountId: BankAccountId.New(),
             Iban: iban,
-            OpenedBy: Actor.Anonymous
+            OpenedBy: Actor.Anonymous,
+            OpenedAt: DateTimeOffset.UnixEpoch
         );
 
         // Act

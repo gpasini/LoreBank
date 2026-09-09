@@ -30,6 +30,7 @@ public sealed class BankWebAppFactory : IntegrationTestWebAppFactory
 
     public override void ResetFakes()
     {
+        base.ResetFakes();
         Services.GetRequiredService<ConfigurableWelcomeLetterSender>().Reset();
         Services.GetRequiredService<ConfigurableCurrentActor>().Reset();
     }

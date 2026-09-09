@@ -81,11 +81,12 @@ public sealed class NormalizeLegacyIbansTest : BaseHostTest<BankWebAppFactory>
         Guid id,
         string iban
     ) => await ExecuteRawSqlAsync(
-        sqlFor: dbContext => $"INSERT INTO {dbContext.Schema}.bank_accounts (id, iban, balance_amount, balance_currency, is_closed) "
-                             + "VALUES (@id, @iban, 0, 'EUR', false)",
+        sqlFor: dbContext => $"INSERT INTO {dbContext.Schema}.bank_accounts (id, iban, balance_amount, balance_currency, is_closed, opened_at) "
+                             + "VALUES (@id, @iban, 0, 'EUR', false, @openedAt)",
         parameters: new Dictionary<string, object> {
             ["id"] = id,
             ["iban"] = iban,
+            ["openedAt"] = DateTimeOffset.UnixEpoch,
         }
     );
 

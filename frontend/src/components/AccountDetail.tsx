@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type ApiProblem } from "../api/client";
 import type { components } from "../api/schema";
-import { iban, money } from "../format";
+import { iban, instant, money } from "../format";
 import { AmountForm } from "./AmountForm";
 import { Ledger } from "./Ledger";
 import { Problem } from "./Problem";
@@ -94,6 +94,7 @@ export function AccountDetail({ accountId, onChanged }: { accountId: string; onC
         <div>
           <p className="iban">{iban(account.iban)}</p>
           <p className="mono muted">{account.id}</p>
+          <p className="muted">Ouvert le {instant(account.openedAt)}</p>
         </div>
         <div className="right">
           <p className="balance-big">{money(account.balance, account.currency)}</p>

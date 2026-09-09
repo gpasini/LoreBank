@@ -32,7 +32,10 @@ public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender wel
 ```
 
 3. Une donnée absente de l'event ? Enrichir l'event à l'émission — le handler
-   travaille avec ce que l'event porte, il ne recharge pas l'agrégat.
+   travaille avec ce que l'event porte, il ne recharge pas l'agrégat. Vaut
+   pour l'Instant (ADR 0024) : une réaction datée reprend celui du fait
+   (`OpenedAt`, `RecordedAt`), elle ne prend jamais `TimeProvider` — deux
+   dates pour un seul fait seraient un mensonge.
 4. L'implémentation du port dans `Services/` de l'Infrastructure, enregistrée
    dans le `Module` Autofac du module (voir `LoggingWelcomeLetterSender` et
    `BankInfrastructureModule`).
@@ -58,6 +61,7 @@ enregistrés par l'hôte, qui scanne la `DomainAssembly` de chaque
 | Le handler vit dans la `DomainAssembly` — ailleurs, il échapperait au scan | `ModuleCompositionTest` |
 | Un handler qui échoue annule la commande | `TransactionRollbackTest`, `ModuleDbContextTest` |
 | Aucune implémentation concrète dans le Domain | le graphe de projets — le Domain ne référence aucune infrastructure, la dépendance ne compile pas |
+| Le handler ne lit pas l'horloge (ADR 0024) | le build : l'analyseur d'API bannies rougit en `RS0030` dans tout projet `.Domain` |
 
 ## Pièges
 

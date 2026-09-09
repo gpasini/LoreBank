@@ -9,5 +9,7 @@ public sealed record BankAccountResult(
     string Currency,
     bool IsClosed,
     // L'Acteur qui a ouvert le compte ; null pour un Anonyme (ADR 0023).
-    string? OpenedBy
+    string? OpenedBy,
+    // L'Instant de l'ouverture (ADR 0024).
+    DateTimeOffset OpenedAt
 );

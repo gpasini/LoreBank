@@ -8,10 +8,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LoreBank.Ledger.Infrastructure.Readers;
 
-// Lit la row des jambes, pas l'agrégat : la projection du Select final ne
-// fait lire que les colonnes du Result. Le lien colonne → propriété vit dans
-// la configuration de JournalLineRow, en chaînes que rien ne compile :
-// GetBankAccountLedgerTest relit chaque champ.
+// Lit les rows des jambes et des écritures, pas l'agrégat : la jointure est
+// composée en LINQ, la projection du Select final ne fait lire que les
+// colonnes du Result. Les mouvements sortent dans l'ordre de comptabilisation
+// (ADR 0024), l'identifiant d'écriture départageant deux Instants égaux. Le
+// lien colonne → propriété vit dans les configurations des rows, en chaînes
+// que rien ne compile : GetBankAccountLedgerTest relit chaque champ.
 public sealed class LedgerMovementReader(LedgerDbContext context)
     : ModuleReader(context), ILedgerMovementReader
 {
@@ -25,13 +27,27 @@ public sealed class LedgerMovementReader(LedgerDbContext context)
         var accountRef = LedgerAccountRef.ForBankAccount(bankAccountId).Value;
 
         return await Query<JournalLineRow>()
-            .Where(row => row.AccountRef == accountRef)
-            .OrderBy(row => row.JournalEntryId)
-            .Select(row => new LedgerMovementResult(
-                row.JournalEntryId,
-                row.Direction,
-                row.Amount,
-                row.Currency
+            .Where(line => line.AccountRef == accountRef)
+            .Join(
+                inner: Query<JournalEntryRow>(),
+                outerKeySelector: line => line.JournalEntryId,
+                innerKeySelector: entry => entry.Id,
+                resultSelector: (
+                    line,
+                    entry
+                ) => new {
+                    Line = line,
+                    Entry = entry,
+                }
+            )
+            .OrderBy(movement => movement.Entry.RecordedAt)
+            .ThenBy(movement => movement.Entry.Id)
+            .Select(movement => new LedgerMovementResult(
+                movement.Line.JournalEntryId,
+                movement.Line.Direction,
+                movement.Line.Amount,
+                movement.Line.Currency,
+                movement.Entry.RecordedAt
             ))
             .ToListAsync(cancellationToken);
     }

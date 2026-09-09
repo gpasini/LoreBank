@@ -27,7 +27,8 @@ public sealed class BankAccountReader(BankDbContext context) : ModuleReader(cont
             row.BalanceAmount,
             row.BalanceCurrency,
             row.IsClosed,
-            row.OpenedBy
+            row.OpenedBy,
+            row.OpenedAt
         ))
         .SingleOrDefaultAsync(cancellationToken);
 
@@ -39,7 +40,8 @@ public sealed class BankAccountReader(BankDbContext context) : ModuleReader(cont
                 row.Iban,
                 row.BalanceAmount,
                 row.BalanceCurrency,
-                row.IsClosed
+                row.IsClosed,
+                row.OpenedAt
             ))
             .ToListAsync(cancellationToken);
 }

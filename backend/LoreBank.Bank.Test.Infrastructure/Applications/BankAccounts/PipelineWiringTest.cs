@@ -38,7 +38,8 @@ public sealed class PipelineWiringTest : BaseIntegrationTest<BankWebAppFactory, 
             Balance: 0m,
             Currency: "EUR",
             IsClosed: false,
-            OpenedBy: null
+            OpenedBy: null,
+            OpenedAt: DateTimeOffset.UnixEpoch
         );
         BankAccountResult? result = null;
 

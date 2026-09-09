@@ -21,5 +21,6 @@ public sealed class BankAccountRowConfiguration : IEntityTypeConfiguration<BankA
         builder.Property(row => row.BalanceCurrency).HasColumnName("balance_currency");
         builder.Property(row => row.IsClosed).HasColumnName("is_closed");
         builder.Property(row => row.OpenedBy).HasColumnName("opened_by");
+        builder.Property(row => row.OpenedAt).HasColumnName("opened_at");
     }
 }

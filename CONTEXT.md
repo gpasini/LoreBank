@@ -162,6 +162,15 @@ il n'authentifie ni n'autorise — c'est au cloneur de brancher son
 fournisseur.
 _Avoid_ : user, utilisateur courant, principal, caller, identity, auteur
 
+**Instant** :
+Le moment où un fait est établi — l'ouverture d'un compte, la
+comptabilisation d'une écriture. Le Domain le reçoit, comme il reçoit
+l'Acteur : une transition qui date un fait prend l'Instant en paramètre, elle
+ne demande jamais l'heure ; c'est l'Application qui la demande au socle, et
+une réaction à un fait reprend l'Instant du fait, jamais un second. Toujours
+en temps universel.
+_Avoid_ : timestamp, horodatage, now, date de création, heure système
+
 **Description (OpenAPI)** :
 La surface Application d'un module, décrite pour le front : les statuts que
 ModuleController garantit, la forme unique d'erreur et ses codes. Dérivée du

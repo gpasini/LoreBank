@@ -76,7 +76,8 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
             "balance",
             "currency",
             "isClosed",
-            "openedBy"
+            "openedBy",
+            "openedAt"
         );
     }
 
@@ -111,7 +112,8 @@ public sealed class CqsContractTest : BaseHostTest<BankWebAppFactory>
             "iban",
             "balance",
             "currency",
-            "isClosed"
+            "isClosed",
+            "openedAt"
         );
     }
 

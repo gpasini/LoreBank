@@ -12,6 +12,16 @@ namespace LoreBank.Ledger.Test.Infrastructure.Applications.Ledger;
 // TransactionScope rollbacké de la fixture.
 public sealed class GetBankAccountLedgerTest : BaseIntegrationTest<LedgerWebAppFactory, DbSetup>
 {
+    private static readonly DateTimeOffset RecordingInstant = new(
+        year: 2026,
+        month: 9,
+        day: 9,
+        hour: 8,
+        minute: 30,
+        second: 0,
+        offset: TimeSpan.Zero
+    );
+
     // Le port publié de Bank rend null pour un compte inconnu ; c'est le
     // handler de query qui en fait l'erreur métier du Ledger, avec son code.
     [Test]
@@ -32,6 +42,8 @@ public sealed class GetBankAccountLedgerTest : BaseIntegrationTest<LedgerWebAppF
         await DbSetup.CreateBankAccountAsync(iban: "FR7630006000011234567890189");
 
         var accountId = DbSetup.GetLastBankAccountId();
+
+        Factory.TimeProvider.Instant = RecordingInstant;
 
         await GetService<MoneyDepositedIntegrationEventHandler>().HandleAsync(
             integrationEvent: new MoneyDepositedIntegrationEvent(
@@ -57,6 +69,52 @@ public sealed class GetBankAccountLedgerTest : BaseIntegrationTest<LedgerWebAppF
         movement.Direction.Should().Be("Credit");
         movement.Amount.Should().Be(25.50m);
         movement.Currency.Should().Be("EUR");
+        movement.RecordedAt.Should().Be(RecordingInstant);
+    }
+
+    // L'ordre des mouvements est celui de la comptabilisation (ADR 0024) : le
+    // retrait, comptabilisé en second mais à un Instant antérieur, sort en
+    // premier — l'identifiant d'écriture ne décide plus de rien.
+    [Test]
+    public async Task GetBankAccountLedger_ShouldOrderMovementsByRecordingInstant()
+    {
+        // Arrange
+
+        await DbSetup.CreateBankAccountAsync(iban: "IT60X0542811101000000123456");
+
+        var accountId = DbSetup.GetLastBankAccountId();
+
+        Factory.TimeProvider.Instant = RecordingInstant;
+
+        await GetService<MoneyDepositedIntegrationEventHandler>().HandleAsync(
+            integrationEvent: new MoneyDepositedIntegrationEvent(
+                AccountId: accountId,
+                Amount: 25.50m,
+                Currency: "EUR"
+            ),
+            cancellationToken: CancellationToken.None
+        );
+
+        Factory.TimeProvider.Instant = RecordingInstant.AddHours(-1);
+
+        await GetService<MoneyWithdrawnIntegrationEventHandler>().HandleAsync(
+            integrationEvent: new MoneyWithdrawnIntegrationEvent(
+                AccountId: accountId,
+                Amount: 10m,
+                Currency: "EUR"
+            ),
+            cancellationToken: CancellationToken.None
+        );
+
+        // Act
+
+        var ledger = await Sender.Send(new GetBankAccountLedgerQuery(accountId));
+
+        // Assert
+
+        ledger.Movements.Select(movement => movement.Direction).Should().Equal("Debit", "Credit");
+        ledger.Movements.Select(movement => movement.RecordedAt)
+            .Should().Equal(RecordingInstant.AddHours(-1), RecordingInstant);
     }
 
     [Test]

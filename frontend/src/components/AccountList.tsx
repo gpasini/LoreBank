@@ -1,5 +1,5 @@
 import type { components } from "../api/schema";
-import { iban, money } from "../format";
+import { iban, instant, money } from "../format";
 
 type Summary = components["schemas"]["BankAccountSummaryResult"];
 
@@ -27,6 +27,7 @@ export function AccountList({
           >
             <span className="iban">{iban(account.iban)}</span>
             <span className="balance">{money(account.balance, account.currency)}</span>
+            <span className="muted">Ouvert le {instant(account.openedAt)}</span>
             {account.isClosed && <span className="badge">Fermé</span>}
           </button>
         </li>

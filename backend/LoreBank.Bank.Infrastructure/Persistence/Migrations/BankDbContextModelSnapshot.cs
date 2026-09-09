@@ -39,6 +39,10 @@ namespace LoreBank.Bank.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_closed");
 
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
+
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("integer")
@@ -76,6 +80,10 @@ namespace LoreBank.Bank.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsClosed")
                         .HasColumnType("boolean")
                         .HasColumnName("is_closed");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
 
                     b.Property<string>("OpenedBy")
                         .HasColumnType("text")

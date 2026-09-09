@@ -9,4 +9,14 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
+    <!-- Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant
+         en paramètre, l'Application le demande à TimeProvider. L'analyseur
+         d'API bannies fait échouer le build d'un Domain ou d'une Application —
+         socle inclus — qui lirait l'horloge en direct ; les symboles et le
+         message vivent dans BannedSymbols.txt. -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Domain')) Or $(MSBuildProjectName.EndsWith('.Application'))">
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all"/>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt"/>
+    </ItemGroup>
+
 </Project>

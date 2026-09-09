@@ -1,0 +1,4 @@
+P:System.DateTime.Now;Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant en paramètre, l'Application le demande à TimeProvider
+P:System.DateTime.UtcNow;Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant en paramètre, l'Application le demande à TimeProvider
+P:System.DateTimeOffset.Now;Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant en paramètre, l'Application le demande à TimeProvider
+P:System.DateTimeOffset.UtcNow;Le temps reçu, jamais demandé (ADR 0024) : le Domain reçoit l'Instant en paramètre, l'Application le demande à TimeProvider

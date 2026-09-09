@@ -620,7 +620,8 @@
           "balance",
           "currency",
           "isClosed",
-          "openedBy"
+          "openedBy",
+          "openedAt"
         ],
         "type": "object",
         "properties": {
@@ -645,6 +646,10 @@
               "null",
               "string"
             ]
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -668,7 +673,8 @@
           "iban",
           "balance",
           "currency",
-          "isClosed"
+          "isClosed",
+          "openedAt"
         ],
         "type": "object",
         "properties": {
@@ -687,6 +693,10 @@
           },
           "isClosed": {
             "type": "boolean"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -732,7 +742,8 @@
           "entryId",
           "direction",
           "amount",
-          "currency"
+          "currency",
+          "recordedAt"
         ],
         "type": "object",
         "properties": {
@@ -748,6 +759,10 @@
           },
           "currency": {
             "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

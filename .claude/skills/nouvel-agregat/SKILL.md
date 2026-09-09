@@ -30,17 +30,26 @@ obtenir un sans passer par la factory.
    `PositiveMoney`, pas un `Money` nu — un montant négatif qui inverserait le
    sens de l'opération devient inexprimable. Un primitif qui arrive nu passe
    par la skill `nouveau-value-object`.
-6. **Events** : `sealed record` nommé au passé et suffixé `DomainEvent`
+6. **Auteur et date reçus, jamais demandés** : une transition qui enregistre
+   son auteur prend l'Acteur (`Actor`, ADR 0023) en paramètre, une transition
+   qui date un fait prend l'Instant (`DateTimeOffset`, ADR 0024) — le Domain
+   ne lit ni le principal ni l'horloge, c'est le handler qui les fournit
+   (skill `nouvelle-commande`). L'event de la transition les porte
+   (`BankAccountOpenedDomainEvent.OpenedBy`, `.OpenedAt`). Pas de VO pour
+   l'Instant, pas de port `IClock`.
+7. **Events** : `sealed record` nommé au passé et suffixé `DomainEvent`
    (`BankAccountOpenedDomainEvent`),
    implémentant `IDomainEvent`, dans `Events/`, portant l'id de l'agrégat et
    les données utiles au consommateur.
-7. **Exceptions** : une classe `sealed : DomainException` par invariant, dans
+8. **Exceptions** : une classe `sealed : DomainException` par invariant, dans
    `Exceptions/`. Le constructeur peut prendre des VO, mais le dictionnaire
    passé à la base ne porte que des **primitives** à clés camelCase
    (`["balance"] = balance.Amount`) — jamais de texte.
-8. **Tests** : une classe par méthode (`Domain/<Agrégat>/<Méthode>Test.cs`) —
+9. **Tests** : une classe par méthode (`Domain/<Agrégat>/<Méthode>Test.cs`) —
    cycle nominal, chaque invariant rejeté avec son exception, events émis dans
-   l'ordre — et une ligne par exception dans l'`ExceptionCodesTest` du module.
+   l'ordre, l'Acteur et l'Instant reçus relus tels quels (sans fake : ce sont
+   des valeurs) — et une ligne par exception dans l'`ExceptionCodesTest` du
+   module.
 
 ## Répartition des invariants
 
@@ -62,8 +71,9 @@ exceptions et id typé dans le même projet.
 |---|---|
 | Constructeurs privés, `sealed` (agrégat, events, exceptions) | `DomainConventionTest` (SharedKernel.Test.Infrastructure) |
 | Namespace d'exception nommant le module — le préfixe du code en dépend | `ModuleCompositionTest` |
-| Codes d'erreur publiés | `ExceptionCodesTest` du module — étape 8 |
-| Invariants et ordre des events | les tests de transition — étape 8 |
+| Codes d'erreur publiés | `ExceptionCodesTest` du module — étape 9 |
+| Invariants et ordre des events | les tests de transition — étape 9 |
+| Le Domain ne lit jamais l'horloge (ADR 0024) | le build : l'analyseur d'API bannies (`backend/BannedSymbols.txt`) rougit en `RS0030` sur `DateTime.Now`/`UtcNow` et `DateTimeOffset.Now`/`UtcNow` dans tout projet `.Domain` ou `.Application` |
 | Version d'agrégat (ADR 0020) : rien à déclarer, le socle pose le jeton de concurrence sur tout `AggregateRoot` et refuse une écriture périmée en 409 | `ModuleDbContextTest`, `ModuleRepositoryTest` (socle) ; `ConcurrentUpdateTest` (module de référence) |
 
 ## Pièges
@@ -78,6 +88,6 @@ exceptions et id typé dans le même projet.
 
 ## Avant de terminer
 
-Build sans warning, et les tests de l'étape 8 verts : cycle nominal, chaque
+Build sans warning, et les tests de l'étape 9 verts : cycle nominal, chaque
 invariant rejeté avec son exception, ordre des events accumulés vérifié,
 codes épinglés.

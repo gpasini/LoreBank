@@ -29,6 +29,10 @@ namespace LoreBank.Ledger.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("integer")
@@ -37,6 +41,21 @@ namespace LoreBank.Ledger.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("journal_entries", "ledger");
+                });
+
+            modelBuilder.Entity("LoreBank.Ledger.Infrastructure.Persistence.ReadRows.JournalEntryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("journal_entries", "ledger");
                 });
 
             modelBuilder.Entity("LoreBank.Ledger.Infrastructure.Persistence.ReadRows.JournalLineRow", b =>

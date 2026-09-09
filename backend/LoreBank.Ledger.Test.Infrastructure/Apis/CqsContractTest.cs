@@ -20,6 +20,18 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
 {
     private const string FlowIban = "ES9121000418450200051332";
 
+    private static readonly DateTimeOffset DepositInstant = new(
+        year: 2026,
+        month: 9,
+        day: 9,
+        hour: 8,
+        minute: 30,
+        second: 0,
+        offset: TimeSpan.Zero
+    );
+
+    private static readonly DateTimeOffset RecordingInstant = DepositInstant.AddMinutes(5);
+
     private HttpClient _client = null!;
 
     [SetUp]
@@ -37,7 +49,10 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
     [Test]
     public async Task Get_ShouldServeTheLedgerFedByBankEvents_WhenFollowingTheFullFlow()
     {
-        // Arrange — le fait métier naît chez Bank, par son API.
+        // Arrange — le fait métier naît chez Bank, par son API, à un premier
+        // Instant de l'horloge du harnais.
+
+        Factory.TimeProvider.Instant = DepositInstant;
 
         var opened = await _client.PostAsJsonAsync(
             requestUri: "api/bank/accounts",
@@ -59,7 +74,10 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
         )).EnsureSuccessStatusCode();
 
         // Act — la livraison asynchrone, pilotée (la cadence de fond est
-        // neutralisée par le harnais).
+        // neutralisée par le harnais), à un second Instant : celui que le
+        // Ledger comptabilise (ADR 0024).
+
+        Factory.TimeProvider.Instant = RecordingInstant;
 
         await Factory.Services
             .GetRequiredService<OutboxProcessor>()
@@ -91,12 +109,14 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
             "entryId",
             "direction",
             "amount",
-            "currency"
+            "currency",
+            "recordedAt"
         );
 
         movement.GetProperty("direction").GetString().Should().Be("Credit");
         movement.GetProperty("amount").GetDecimal().Should().Be(25.50m);
         movement.GetProperty("currency").GetString().Should().Be("EUR");
+        movement.GetProperty("recordedAt").GetDateTimeOffset().Should().Be(RecordingInstant);
     }
 
     // Le 404 d'une lecture porte un code — celui du Ledger, pas celui de Bank :

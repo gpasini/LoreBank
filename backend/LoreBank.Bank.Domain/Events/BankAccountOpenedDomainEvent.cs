@@ -7,5 +7,6 @@ namespace LoreBank.Bank.Domain.Events;
 public sealed record BankAccountOpenedDomainEvent(
     BankAccountId AccountId,
     Iban Iban,
-    Actor OpenedBy
+    Actor OpenedBy,
+    DateTimeOffset OpenedAt
 ) : IDomainEvent;

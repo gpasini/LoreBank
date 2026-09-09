@@ -6,11 +6,13 @@ using MediatR;
 
 namespace LoreBank.Bank.Application.Commands.OpenBankAccount;
 
-// L'Acteur vient du port, pas de la commande (ADR 0023) : c'est un contexte
-// de la requête, jamais un champ que le client poste.
+// L'Acteur vient du port, pas de la commande (ADR 0023), et l'Instant de
+// TimeProvider (ADR 0024) : des contextes de la requête, jamais des champs que
+// le client poste — et le Domain les reçoit, il ne les demande pas.
 public sealed class OpenBankAccountCommandHandler(
     IBankAccountRepository repository,
-    ICurrentActor currentActor
+    ICurrentActor currentActor,
+    TimeProvider timeProvider
 ) : IRequestHandler<OpenBankAccountCommand, Guid>
 {
     public async Task<Guid> Handle(
@@ -21,7 +23,8 @@ public sealed class OpenBankAccountCommandHandler(
         var account = BankAccount.Open(
             iban: Iban.Parse(request.Iban),
             currency: request.Currency,
-            openedBy: currentActor.Actor
+            openedBy: currentActor.Actor,
+            openedAt: timeProvider.GetUtcNow()
         );
 
         await repository.SaveAsync(

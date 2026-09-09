@@ -11,6 +11,16 @@ namespace LoreBank.Ledger.Test.Unit.Domain.JournalEntries;
 [TestOf(typeof(JournalEntry))]
 public sealed class RecordTest
 {
+    private static readonly DateTimeOffset Instant = new(
+        year: 2026,
+        month: 9,
+        day: 9,
+        hour: 8,
+        minute: 30,
+        second: 0,
+        offset: TimeSpan.Zero
+    );
+
     [Test]
     public void Record_ShouldCreateTheEntry_AndEmitJournalEntryRecordedDomainEvent()
     {
@@ -20,18 +30,38 @@ public sealed class RecordTest
 
         // Act
 
-        var entry = JournalEntry.Record(lines);
+        var entry = JournalEntry.Record(
+            lines: lines,
+            recordedAt: Instant
+        );
 
         // Assert
 
         entry.Lines.Should().Equal(lines);
-        entry.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is JournalEntryRecordedDomainEvent);
+        entry.DomainEvents.Should().ContainSingle(domainEvent => domainEvent is JournalEntryRecordedDomainEvent)
+            .Which.As<JournalEntryRecordedDomainEvent>().RecordedAt.Should().Be(Instant);
+    }
+
+    // L'Instant est reçu, jamais demandé (ADR 0024) : l'écriture enregistre
+    // celui qu'on lui passe, aucune horloge n'est consultée.
+    [Test]
+    public void Record_ShouldRecordTheInstant()
+    {
+        var entry = JournalEntry.Record(
+            lines: BalancedLines(10m),
+            recordedAt: Instant
+        );
+
+        entry.RecordedAt.Should().Be(Instant);
     }
 
     [Test]
     public void Record_ShouldThrow_WhenTheEntryIsEmpty()
     {
-        var act = () => JournalEntry.Record([]);
+        var act = () => JournalEntry.Record(
+            lines: [],
+            recordedAt: Instant
+        );
 
         act.Should().Throw<EmptyJournalEntryException>();
     }
@@ -39,16 +69,19 @@ public sealed class RecordTest
     [Test]
     public void Record_ShouldThrow_WhenDebitsAndCreditsDiffer()
     {
-        var act = () => JournalEntry.Record([
-            Line(
-                direction: JournalDirection.Debit,
-                amount: 25.50m
-            ),
-            Line(
-                direction: JournalDirection.Credit,
-                amount: 20m
-            ),
-        ]);
+        var act = () => JournalEntry.Record(
+            lines: [
+                Line(
+                    direction: JournalDirection.Debit,
+                    amount: 25.50m
+                ),
+                Line(
+                    direction: JournalDirection.Credit,
+                    amount: 20m
+                ),
+            ],
+            recordedAt: Instant
+        );
 
         act.Should().Throw<UnbalancedJournalEntryException>();
     }
@@ -58,12 +91,15 @@ public sealed class RecordTest
     [Test]
     public void Record_ShouldThrow_WhenAllLinesShareTheSameDirection()
     {
-        var act = () => JournalEntry.Record([
-            Line(
-                direction: JournalDirection.Debit,
-                amount: 25.50m
-            ),
-        ]);
+        var act = () => JournalEntry.Record(
+            lines: [
+                Line(
+                    direction: JournalDirection.Debit,
+                    amount: 25.50m
+                ),
+            ],
+            recordedAt: Instant
+        );
 
         act.Should().Throw<UnbalancedJournalEntryException>();
     }
@@ -73,20 +109,23 @@ public sealed class RecordTest
     [Test]
     public void Record_ShouldThrow_WhenLinesMixCurrencies()
     {
-        var act = () => JournalEntry.Record([
-            Line(
-                direction: JournalDirection.Debit,
-                amount: 10m
-            ),
-            JournalLine.Of(
-                account: LedgerAccountRef.Cash,
-                direction: JournalDirection.Credit,
-                amount: PositiveMoney.Of(
-                    amount: 10m,
-                    currency: "USD"
-                )
-            ),
-        ]);
+        var act = () => JournalEntry.Record(
+            lines: [
+                Line(
+                    direction: JournalDirection.Debit,
+                    amount: 10m
+                ),
+                JournalLine.Of(
+                    account: LedgerAccountRef.Cash,
+                    direction: JournalDirection.Credit,
+                    amount: PositiveMoney.Of(
+                        amount: 10m,
+                        currency: "USD"
+                    )
+                ),
+            ],
+            recordedAt: Instant
+        );
 
         act.Should().Throw<CurrencyMismatchException>();
     }

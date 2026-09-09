@@ -16,12 +16,14 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
         BankAccountId id,
         Iban iban,
         Money balance,
-        Actor openedBy
+        Actor openedBy,
+        DateTimeOffset openedAt
     ) : base(id)
     {
         Iban = iban;
         Balance = balance;
         _openedBy = openedBy.IsAnonymous ? null : openedBy;
+        OpenedAt = openedAt;
     }
 
     // Réservé à la matérialisation EF Core, qui écrit ensuite les backing fields.
@@ -37,6 +39,10 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
     // jamais demandé — Anonyme tant que personne n'authentifie.
     public Actor OpenedBy => _openedBy ?? Actor.Anonymous;
 
+    // L'Instant de l'ouverture (ADR 0024) : reçu de la transition, jamais
+    // demandé — le Domain ne lit pas l'horloge.
+    public DateTimeOffset OpenedAt { get; }
+
     public Money Balance { get; private set; }
 
     public bool IsClosed { get; private set; }
@@ -44,7 +50,8 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
     public static BankAccount Open(
         Iban iban,
         string currency,
-        Actor openedBy
+        Actor openedBy,
+        DateTimeOffset openedAt
     )
     {
         var account = new BankAccount(
@@ -54,14 +61,16 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
                 amount: 0m,
                 currency: currency
             ),
-            openedBy: openedBy
+            openedBy: openedBy,
+            openedAt: openedAt
         );
 
         account.AddDomainEvent(
             new BankAccountOpenedDomainEvent(
                 AccountId: account.Id,
                 Iban: iban,
-                OpenedBy: openedBy
+                OpenedBy: openedBy,
+                OpenedAt: openedAt
             )
         );
 

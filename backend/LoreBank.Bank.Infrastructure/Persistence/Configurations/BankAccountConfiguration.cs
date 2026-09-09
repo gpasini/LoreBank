@@ -61,6 +61,10 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
             );
 
         builder
+            .Property(account => account.OpenedAt)
+            .HasColumnName("opened_at");
+
+        builder
             .Property(account => account.IsClosed)
             .HasColumnName("is_closed");
     }
