@@ -137,7 +137,7 @@ public sealed class ErrorContractTest : BaseHostTest<SharedKernelWebAppFactory>
         body.TryGetProperty(
             propertyName: "code",
             value: out _
-        ).Should().BeFalse();        ExpectCorrelation(body);
+        ).Should().BeFalse(); ExpectCorrelation(body);
     }
 
     // Un traceparent entrant est honoré : la Corrélation est celle de

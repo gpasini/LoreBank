@@ -25,7 +25,7 @@ public static class OutboxTracing
 
     public const string AttemptTag = "lorebank.attempt";
 
-    private static readonly ActivitySource Source = new(SourceName);
+    private readonly static ActivitySource Source = new(SourceName);
 
     // Nulle sans listener (le contrat d'ActivitySource) : sans exporteur ni
     // sonde, rien n'est alloué et les appelants tolèrent l'absence.

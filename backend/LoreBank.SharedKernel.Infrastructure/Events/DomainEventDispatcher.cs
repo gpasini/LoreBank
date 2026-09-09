@@ -41,12 +41,11 @@ public sealed class DomainEventDispatcher(IServiceProvider serviceProvider) : ID
     )
     {
         try {
-            await (Task)handleMethod.Invoke(
+            await (Task) handleMethod.Invoke(
                 obj: handler,
                 parameters: [domainEvent, cancellationToken]
             )!;
-        }
-        catch (TargetInvocationException exception) when (exception.InnerException is not null) {
+        } catch (TargetInvocationException exception) when (exception.InnerException is not null) {
             ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
         }
     }

@@ -8,9 +8,9 @@ namespace LoreBank.SharedKernel.Test.Unit.Signals;
 [TestOf(typeof(SignalFilter))]
 public sealed class SignalFilterTest
 {
-    private static readonly Guid AccountId = Guid.NewGuid();
+    private readonly static Guid AccountId = Guid.NewGuid();
 
-    private static readonly Signal Deposited = new(
+    private readonly static Signal Deposited = new(
         Discriminant: "bank.money-deposited",
         ResourceKind: "bank-account",
         ResourceId: AccountId,

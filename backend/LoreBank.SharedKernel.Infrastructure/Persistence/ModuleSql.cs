@@ -52,8 +52,7 @@ internal static class ModuleSql
                 arg1: command,
                 arg2: cancellationToken
             );
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

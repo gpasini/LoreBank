@@ -18,11 +18,11 @@ namespace LoreBank.Ledger.Test.Infrastructure.Persistence.DataMigrations;
 [TestOf(typeof(BackfillJournalEntryRecordedAt))]
 public sealed class BackfillJournalEntryRecordedAtTest : BaseHostTest<LedgerWebAppFactory>
 {
-    private static readonly Guid UndatedId = Guid.Parse("00000000-0000-0000-0000-00000000a001");
+    private readonly static Guid UndatedId = Guid.Parse("00000000-0000-0000-0000-00000000a001");
 
-    private static readonly Guid WitnessId = Guid.Parse("00000000-0000-0000-0000-00000000a002");
+    private readonly static Guid WitnessId = Guid.Parse("00000000-0000-0000-0000-00000000a002");
 
-    private static readonly DateTimeOffset MigrationInstant = new(
+    private readonly static DateTimeOffset MigrationInstant = new(
         year: 2026,
         month: 9,
         day: 9,
@@ -32,7 +32,7 @@ public sealed class BackfillJournalEntryRecordedAtTest : BaseHostTest<LedgerWebA
         offset: TimeSpan.Zero
     );
 
-    private static readonly DateTimeOffset WitnessInstant = new(
+    private readonly static DateTimeOffset WitnessInstant = new(
         year: 2025,
         month: 1,
         day: 1,
@@ -144,8 +144,7 @@ public sealed class BackfillJournalEntryRecordedAtTest : BaseHostTest<LedgerWebA
             var value = await command.ExecuteScalarAsync();
 
             return value is DateTime dateTime ? new DateTimeOffset(dateTime) : null;
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }
@@ -182,8 +181,7 @@ public sealed class BackfillJournalEntryRecordedAtTest : BaseHostTest<LedgerWebA
             }
 
             await command.ExecuteNonQueryAsync();
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

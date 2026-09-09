@@ -156,7 +156,7 @@ public sealed class ModuleCompositionTest
         // régression de la base qui cesserait d'appliquer HasDefaultSchema
         // rougirait ici aussi.
         var schemas = HostModules.All
-            .Select(module => ((DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType)).Model.GetDefaultSchema())
+            .Select(module => ((DbContext) scope.ServiceProvider.GetRequiredService(module.DbContextType)).Model.GetDefaultSchema())
             .ToList();
 
         schemas.Should().OnlyContain(
@@ -313,8 +313,7 @@ public sealed class ModuleCompositionTest
 
         try {
             contracts = Assembly.Load($"{root}.{module.ModuleName}.Contracts");
-        }
-        catch (FileNotFoundException) {
+        } catch (FileNotFoundException) {
             // Un module qui ne publie rien n'a pas de projet Contracts — la
             // doctrine « 6, +1 si le module publie » rend l'absence légitime.
             return;
@@ -346,8 +345,7 @@ public sealed class ModuleCompositionTest
 
         try {
             contracts = Assembly.Load($"{root}.{module.ModuleName}.Contracts");
-        }
-        catch (FileNotFoundException) {
+        } catch (FileNotFoundException) {
             return;
         }
 
@@ -371,7 +369,7 @@ public sealed class ModuleCompositionTest
     {
         using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();
 
-        var dbContext = (DbContext)scope.ServiceProvider.GetRequiredService(module.DbContextType);
+        var dbContext = (DbContext) scope.ServiceProvider.GetRequiredService(module.DbContextType);
 
         dbContext.Database
             .HasPendingModelChanges()

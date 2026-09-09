@@ -17,20 +17,22 @@ public sealed class TestModuleDbContext(
 
     protected override void ConfigureModule(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TestThing>(thing => {
-                thing.HasKey(t => t.Id);
+        modelBuilder.Entity<TestThing>(thing =>
+        {
+            thing.HasKey(t => t.Id);
 
-                // Les propriétés get-only de Money ne sont pas découvertes
-                // par convention : on les déclare, comme les configurations
-                // des modules le font.
-                thing.OwnsOne(
-                    navigationExpression: t => t.Price,
-                    buildAction: money => {
-                        money.Property(m => m.Amount);
-                        money.Property(m => m.Currency);
-                    }
-                );
-            }
+            // Les propriétés get-only de Money ne sont pas découvertes
+            // par convention : on les déclare, comme les configurations
+            // des modules le font.
+            thing.OwnsOne(
+                navigationExpression: t => t.Price,
+                buildAction: money =>
+                {
+                    money.Property(m => m.Amount);
+                    money.Property(m => m.Currency);
+                }
+            );
+        }
         );
 
         // La row keyless du fake : la même table que TestThing, lue sans clé —

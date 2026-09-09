@@ -12,7 +12,7 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // langage publié de l'event — rien de plus.
 internal static class IntegrationEventJson
 {
-    private static readonly JsonSerializerOptions Options = new() {
+    private readonly static JsonSerializerOptions Options = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
         TypeInfoResolver = new DefaultJsonTypeInfoResolver {
@@ -22,7 +22,7 @@ internal static class IntegrationEventJson
 
     internal static string Serialize(IIntegrationEvent integrationEvent) =>
         JsonSerializer.Serialize(
-            value: (object)integrationEvent,
+            value: (object) integrationEvent,
             options: Options
         );
 
@@ -30,7 +30,7 @@ internal static class IntegrationEventJson
         string payload,
         Type eventType
     ) =>
-        (IIntegrationEvent?)JsonSerializer.Deserialize(
+        (IIntegrationEvent?) JsonSerializer.Deserialize(
             json: payload,
             returnType: eventType,
             options: Options

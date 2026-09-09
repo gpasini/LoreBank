@@ -64,7 +64,8 @@ public sealed class IntegrationEventTablesTest : BaseHostTest<SharedKernelWebApp
             action: (
                 ProbeDbContext _,
                 System.Data.Common.DbCommand command
-            ) => {
+            ) =>
+            {
                 command.CommandText = sql;
 
                 return command.ExecuteNonQueryAsync();
@@ -77,10 +78,11 @@ public sealed class IntegrationEventTablesTest : BaseHostTest<SharedKernelWebApp
             action: async (
                 ProbeDbContext _,
                 System.Data.Common.DbCommand command
-            ) => {
+            ) =>
+            {
                 command.CommandText = sql;
 
-                return (long)(await command.ExecuteScalarAsync())!;
+                return (long) (await command.ExecuteScalarAsync())!;
             }
         );
 }

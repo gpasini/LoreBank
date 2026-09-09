@@ -23,15 +23,16 @@ public static class OpenApiDescriptionServiceCollectionExtensions
 
         services.Configure<MvcOptions>(options => options.Conventions.Add(new DescriptionConvention()));
 
-        services.AddOpenApi(options => {
-                options.AddSchemaTransformer(new DescriptionSchemaTransformer());
-                options.AddOperationTransformer(new DescriptionOperationTransformer());
-                options.AddDocumentTransformer(new DescriptionDocumentTransformer(
-                        title: title,
-                        errorCodes: errorCodes
-                    )
-                );
-            }
+        services.AddOpenApi(options =>
+        {
+            options.AddSchemaTransformer(new DescriptionSchemaTransformer());
+            options.AddOperationTransformer(new DescriptionOperationTransformer());
+            options.AddDocumentTransformer(new DescriptionDocumentTransformer(
+                    title: title,
+                    errorCodes: errorCodes
+                )
+            );
+        }
         );
 
         return services;

@@ -29,33 +29,34 @@ var migrateOnly = args.Contains("migrate");
 var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "migrate").ToArray());
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-builder.Host.ConfigureContainer<ContainerBuilder>(container => {
-        container.RegisterModule(new SharedKernelInfrastructureModule());
+builder.Host.ConfigureContainer<ContainerBuilder>(container =>
+{
+    container.RegisterModule(new SharedKernelInfrastructureModule());
 
-        foreach (var module in modules) {
-            container.RegisterModule(module.AutofacModule);
+    foreach (var module in modules) {
+        container.RegisterModule(module.AutofacModule);
 
-            // Les IDomainEventHandler<> s'enregistrent ici et non dans chaque
-            // Module Autofac : la ligne recopiée par module était oubliable, et
-            // l'oubli silencieux — un event sans handler résolu ne signale rien.
-            container
-                .RegisterAssemblyTypes(module.DomainAssembly)
-                .AsClosedTypesOf(typeof(IDomainEventHandler<>))
-                .InstancePerLifetimeScope();
+        // Les IDomainEventHandler<> s'enregistrent ici et non dans chaque
+        // Module Autofac : la ligne recopiée par module était oubliable, et
+        // l'oubli silencieux — un event sans handler résolu ne signale rien.
+        container
+            .RegisterAssemblyTypes(module.DomainAssembly)
+            .AsClosedTypesOf(typeof(IDomainEventHandler<>))
+            .InstancePerLifetimeScope();
 
-            // Le seam lui-même est exposé au conteneur : l'outbox (publisher et
-            // dispatcher) retrouve le DbContext d'un module par son nom.
-            container.RegisterInstance(module).As<IHostModule>();
+        // Le seam lui-même est exposé au conteneur : l'outbox (publisher et
+        // dispatcher) retrouve le DbContext d'un module par son nom.
+        container.RegisterInstance(module).As<IHostModule>();
 
-            // Les handlers d'integration events, découverts comme les
-            // IDomainEventHandler<> — et déclarés au dispatcher avec leur
-            // module, celui dont l'inbox journalisera leurs traitements.
-            foreach (var registration in IntegrationEventHandlers.DiscoverIn(module)) {
-                container.RegisterInstance(registration);
-                container.RegisterType(registration.HandlerType).AsSelf().InstancePerLifetimeScope();
-            }
+        // Les handlers d'integration events, découverts comme les
+        // IDomainEventHandler<> — et déclarés au dispatcher avec leur
+        // module, celui dont l'inbox journalisera leurs traitements.
+        foreach (var registration in IntegrationEventHandlers.DiscoverIn(module)) {
+            container.RegisterInstance(registration);
+            container.RegisterType(registration.HandlerType).AsSelf().InstancePerLifetimeScope();
         }
     }
+}
 );
 
 var mvc = builder.Services.AddControllers(options => options.Filters.Add<DomainExceptionFilter>());
@@ -105,12 +106,13 @@ builder.Services.AddOpenApiDescription(
     assemblies: modules.SelectMany(module => new[] { module.DomainAssembly, module.ApplicationAssembly })
 );
 
-builder.Services.AddMediatR(configuration => {
-        configuration.RegisterServicesFromAssemblies(
-            modules.Select(module => module.ApplicationAssembly).ToArray()
-        );
-        configuration.AddOpenBehavior(typeof(TransactionBehavior<,>));
-    }
+builder.Services.AddMediatR(configuration =>
+{
+    configuration.RegisterServicesFromAssemblies(
+        modules.Select(module => module.ApplicationAssembly).ToArray()
+    );
+    configuration.AddOpenBehavior(typeof(TransactionBehavior<,>));
+}
 );
 
 foreach (var module in modules) {

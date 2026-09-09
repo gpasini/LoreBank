@@ -37,9 +37,9 @@ public sealed class SignalHub(
             Filter: filter,
             Actor: actor,
             Channel: Channel.CreateBounded<Signal>(new BoundedChannelOptions(SubscriberCapacity) {
-                    SingleReader = true,
-                    SingleWriter = false,
-                }
+                SingleReader = true,
+                SingleWriter = false,
+            }
             )
         );
 
@@ -53,8 +53,7 @@ public sealed class SignalHub(
             await foreach (var signal in subscription.Channel.Reader.ReadAllAsync(cancellationToken)) {
                 yield return signal;
             }
-        }
-        finally {
+        } finally {
             _subscriptions.TryRemove(
                 key: subscription,
                 value: out _

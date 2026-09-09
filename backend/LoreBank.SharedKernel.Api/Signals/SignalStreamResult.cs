@@ -70,8 +70,7 @@ public sealed class SignalStreamResult(
                         timeout: keepAlive,
                         cancellationToken: cancellationToken
                     );
-                }
-                catch (TimeoutException) {
+                } catch (TimeoutException) {
                     await WriteAsync(
                         response: response,
                         text: KeepAliveComment,
@@ -96,11 +95,9 @@ public sealed class SignalStreamResult(
 
                 next = enumerator.MoveNextAsync().AsTask();
             }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             // Le client est parti : la fin normale d'un flux.
-        }
-        finally {
+        } finally {
             // Un itérateur ne se dispose pas pendant qu'un MoveNextAsync est
             // en vol : on attend le sien — il s'annule avec le même jeton —
             // avant de le rendre.
@@ -113,8 +110,7 @@ public sealed class SignalStreamResult(
     {
         try {
             await next;
-        }
-        catch (Exception) {
+        } catch (Exception) {
             // Annulé ou échoué : ce qui compte est qu'il soit terminé.
         }
     }

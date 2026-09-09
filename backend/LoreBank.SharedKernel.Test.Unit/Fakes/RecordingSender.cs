@@ -15,7 +15,7 @@ public sealed class RecordingSender : ISender
     {
         Sent.Add(request);
 
-        return Task.FromResult((TResponse)(object)CreatedId);
+        return Task.FromResult((TResponse) (object) CreatedId);
     }
 
     public Task Send<TRequest>(

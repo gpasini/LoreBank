@@ -40,5 +40,5 @@ internal static class ModuleDbContexts
     internal static ModuleDbContext Resolve(
         IServiceProvider services,
         IHostModule module
-    ) => (ModuleDbContext)services.GetRequiredService(module.DbContextType);
+    ) => (ModuleDbContext) services.GetRequiredService(module.DbContextType);
 }

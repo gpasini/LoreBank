@@ -22,7 +22,7 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
 
     private const string WitnessIban = "ES9121000418450200051332";
 
-    private static readonly DateTimeOffset MigrationInstant = new(
+    private readonly static DateTimeOffset MigrationInstant = new(
         year: 2026,
         month: 9,
         day: 9,
@@ -32,7 +32,7 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
         offset: TimeSpan.Zero
     );
 
-    private static readonly DateTimeOffset WitnessInstant = new(
+    private readonly static DateTimeOffset WitnessInstant = new(
         year: 2025,
         month: 1,
         day: 1,
@@ -152,8 +152,7 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
             var value = await command.ExecuteScalarAsync();
 
             return value is DateTime dateTime ? new DateTimeOffset(dateTime) : null;
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }
@@ -190,8 +189,7 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
             }
 
             await command.ExecuteNonQueryAsync();
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

@@ -10,7 +10,7 @@ internal static class IntegrationEventDiscriminant
 {
     internal static string Of(Type eventType)
     {
-        var attribute = (IntegrationEventAttribute?)Attribute.GetCustomAttribute(
+        var attribute = (IntegrationEventAttribute?) Attribute.GetCustomAttribute(
             element: eventType,
             attributeType: typeof(IntegrationEventAttribute)
         );

@@ -7,7 +7,7 @@ namespace LoreBank.SharedKernel.Test.Unit.ValueObjects;
 [TestOf(typeof(SignalResource))]
 public sealed class SignalResourceTest
 {
-    private static readonly Guid Id = Guid.Parse("0f7d2a4e-9c3b-4b1e-8a6d-2f1c3e4d5a6b");
+    private readonly static Guid Id = Guid.Parse("0f7d2a4e-9c3b-4b1e-8a6d-2f1c3e4d5a6b");
 
     [TestCase("bank-account")]
     [TestCase("thing")]

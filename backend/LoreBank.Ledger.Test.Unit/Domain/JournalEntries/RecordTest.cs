@@ -11,7 +11,7 @@ namespace LoreBank.Ledger.Test.Unit.Domain.JournalEntries;
 [TestOf(typeof(JournalEntry))]
 public sealed class RecordTest
 {
-    private static readonly DateTimeOffset Instant = new(
+    private readonly static DateTimeOffset Instant = new(
         year: 2026,
         month: 9,
         day: 9,

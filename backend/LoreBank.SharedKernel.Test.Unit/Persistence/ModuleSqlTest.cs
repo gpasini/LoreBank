@@ -145,7 +145,7 @@ public sealed class ModuleSqlTest
             execute: async (
                 command,
                 token
-            ) => (long)(await command.ExecuteScalarAsync(token))!,
+            ) => (long) (await command.ExecuteScalarAsync(token))!,
             cancellationToken: CancellationToken.None
         );
 }

@@ -56,7 +56,8 @@ public sealed class PipelineWiringTest : BaseIntegrationTest<BankWebAppFactory, 
             foreach (var behavior in behaviors) {
                 result = await behavior.Handle(
                     request: new GetBankAccountByIdQuery(Guid.NewGuid()),
-                    next: _ => {
+                    next: _ =>
+                    {
                         ambient = Transaction.Current;
 
                         return Task.FromResult(fakeResult);

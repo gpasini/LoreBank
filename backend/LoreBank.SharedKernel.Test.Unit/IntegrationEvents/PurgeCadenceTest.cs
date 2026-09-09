@@ -6,7 +6,7 @@ namespace LoreBank.SharedKernel.Test.Unit.IntegrationEvents;
 [TestOf(typeof(PurgeCadence))]
 public sealed class PurgeCadenceTest
 {
-    private static readonly DateTimeOffset Start = new(
+    private readonly static DateTimeOffset Start = new(
         year: 2026,
         month: 9,
         day: 9,

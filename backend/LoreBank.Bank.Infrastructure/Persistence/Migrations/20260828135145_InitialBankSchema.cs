@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -17,8 +17,7 @@ namespace LoreBank.Bank.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateTable(
                 name: "bank_accounts",
                 schema: "bank",
-                columns: table => new
-                {
+                columns: table => new {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     iban = table.Column<string>(type: "character varying(34)", maxLength: 34, nullable: false),
                     balance_amount = table.Column<decimal>(type: "numeric", nullable: false),

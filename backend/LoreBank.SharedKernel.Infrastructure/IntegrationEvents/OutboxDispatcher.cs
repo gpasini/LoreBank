@@ -34,11 +34,9 @@ public sealed class OutboxDispatcher(
                 if (purgeCadence.IsDue(DateTimeOffset.UtcNow)) {
                     await processor.PurgeExpiredAsync(stoppingToken);
                 }
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 return;
-            }
-            catch (Exception exception) {
+            } catch (Exception exception) {
                 logger.LogError(
                     exception: exception,
                     message: "La passe de livraison des integration events a échoué ; nouvelle passe à la prochaine cadence."
@@ -50,8 +48,7 @@ public sealed class OutboxDispatcher(
                     delay: options.Value.PollingInterval,
                     cancellationToken: stoppingToken
                 );
-            }
-            catch (OperationCanceledException) {
+            } catch (OperationCanceledException) {
                 return;
             }
         }

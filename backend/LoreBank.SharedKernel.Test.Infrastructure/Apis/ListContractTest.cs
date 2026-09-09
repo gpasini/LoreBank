@@ -254,11 +254,11 @@ public sealed class ListContractTest : BaseHostTest<SharedKernelWebAppFactory>
         var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
 
         dbContext.ProbeThings.AddRange(things.Select(thing => new ProbeThing {
-                    Id = Guid.NewGuid(),
-                    Label = Label(thing.Label),
-                    Kind = thing.Kind,
-                    Active = thing.Active,
-                }
+            Id = Guid.NewGuid(),
+            Label = Label(thing.Label),
+            Kind = thing.Kind,
+            Active = thing.Active,
+        }
             )
         );
 

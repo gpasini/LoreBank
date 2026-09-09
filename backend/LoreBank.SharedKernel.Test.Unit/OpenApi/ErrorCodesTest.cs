@@ -13,7 +13,7 @@ namespace LoreBank.SharedKernel.Test.Unit.OpenApi;
 [TestOf(typeof(ErrorCodes))]
 public sealed class ErrorCodesTest
 {
-    private static readonly IReadOnlyList<string> Codes = ErrorCodes.DiscoverIn([typeof(ModuleFailureException).Assembly]);
+    private readonly static IReadOnlyList<string> Codes = ErrorCodes.DiscoverIn([typeof(ModuleFailureException).Assembly]);
 
     [Test]
     public void DiscoverIn_ShouldDeriveTheCodeOfEachConcreteException_WhenScanningAnAssembly()

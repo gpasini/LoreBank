@@ -28,7 +28,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"""
                      DELETE FROM {dbContext.Schema}.__inbox WHERE handler LIKE '%Probe%';
@@ -51,7 +52,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"""
                      SELECT id, attempts, dispatched_at IS NOT NULL, poisoned_at IS NOT NULL, last_error,
@@ -67,7 +69,7 @@ internal static class ProbeOutbox
                 await using var reader = await command.ExecuteReaderAsync();
 
                 if (!await reader.ReadAsync()) {
-                    return (Row?)null;
+                    return (Row?) null;
                 }
 
                 return new Row(
@@ -91,7 +93,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"SELECT count(*) FROM {dbContext.Schema}.__inbox WHERE event_id = @eventId";
 
@@ -100,7 +103,7 @@ internal static class ProbeOutbox
                 parameter.Value = eventId;
                 command.Parameters.Add(parameter);
 
-                return (long)(await command.ExecuteScalarAsync())!;
+                return (long) (await command.ExecuteScalarAsync())!;
             }
         );
 
@@ -115,7 +118,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"UPDATE {dbContext.Schema}.__outbox SET dispatched_at = NULL WHERE id = @id";
 
@@ -141,7 +145,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"""
                      UPDATE {dbContext.Schema}.__outbox
@@ -175,7 +180,8 @@ internal static class ProbeOutbox
             action: async (
                 dbContext,
                 command
-            ) => {
+            ) =>
+            {
                 command.CommandText =
                     $"""
                      UPDATE {dbContext.Schema}.__outbox

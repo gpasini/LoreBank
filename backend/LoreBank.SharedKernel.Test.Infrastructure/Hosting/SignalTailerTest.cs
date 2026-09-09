@@ -20,7 +20,7 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Hosting;
 [TestOf(typeof(SignalTailer))]
 public sealed class SignalTailerTest : BaseHostTest<SharedKernelWebAppFactory>
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private readonly static TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
     [SetUp]
     public async Task SetUp()

@@ -61,7 +61,7 @@ public abstract class BaseIntegrationTest<TFactory, TDbSetup> : BaseIntegrationT
     protected TDbSetup DbSetup = null!;
 
     [SetUp]
-    public void DbSetupSetUp() => DbSetup = (TDbSetup)Activator.CreateInstance(
+    public void DbSetupSetUp() => DbSetup = (TDbSetup) Activator.CreateInstance(
         type: typeof(TDbSetup),
         args: ScopeServices
     )!;

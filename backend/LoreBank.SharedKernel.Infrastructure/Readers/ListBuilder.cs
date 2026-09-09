@@ -228,9 +228,9 @@ public sealed class ListBuilder<TRow, TItem> where TRow : class
         var groups = await rows
             .GroupBy(column)
             .Select(group => new {
-                    group.Key,
-                    Count = group.Count(),
-                }
+                group.Key,
+                Count = group.Count(),
+            }
             )
             .ToListAsync(cancellationToken);
 

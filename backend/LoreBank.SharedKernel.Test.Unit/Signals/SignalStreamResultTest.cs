@@ -17,7 +17,7 @@ namespace LoreBank.SharedKernel.Test.Unit.Signals;
 [TestOf(typeof(SignalStreamResult))]
 public sealed class SignalStreamResultTest
 {
-    private static readonly Signal Deposited = new(
+    private readonly static Signal Deposited = new(
         Discriminant: "bank.money-deposited",
         ResourceKind: "bank-account",
         ResourceId: Guid.Parse("0f7d2a4e-9c3b-4b1e-8a6d-2f1c3e4d5a6b"),
@@ -146,7 +146,7 @@ public sealed class SignalStreamResultTest
     }
 
     private static CancellationTokenSource Aborting(ActionContext context) =>
-        (CancellationTokenSource)context.HttpContext.Items["aborting"]!;
+        (CancellationTokenSource) context.HttpContext.Items["aborting"]!;
 
     private static string Text(MemoryStream body) => Encoding.UTF8.GetString(body.ToArray());
 }

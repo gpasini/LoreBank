@@ -9,7 +9,7 @@ namespace LoreBank.Ledger.Test.Unit.IntegrationEvents;
 [TestOf(typeof(MoneyDepositedIntegrationEventHandler))]
 public sealed class MoneyDepositedIntegrationEventHandlerTest
 {
-    private static readonly DateTimeOffset Instant = new(
+    private readonly static DateTimeOffset Instant = new(
         year: 2026,
         month: 9,
         day: 9,

@@ -27,7 +27,7 @@ public sealed class SignalTailer(
     SignalHub hub
 )
 {
-    internal static readonly TimeSpan Overlap = TimeSpan.FromSeconds(5);
+    internal readonly static TimeSpan Overlap = TimeSpan.FromSeconds(5);
 
     private readonly Dictionary<string, Cursor> _cursors = new(StringComparer.OrdinalIgnoreCase);
 
@@ -92,7 +92,7 @@ public sealed class SignalTailer(
             execute: async (
                 command,
                 token
-            ) => (DateTime)(await command.ExecuteScalarAsync(token))!,
+            ) => (DateTime) (await command.ExecuteScalarAsync(token))!,
             cancellationToken: cancellationToken
         );
 
@@ -115,7 +115,8 @@ public sealed class SignalTailer(
             execute: async (
                 command,
                 token
-            ) => {
+            ) =>
+            {
                 var rows = new List<Row>();
 
                 await using var reader = await command.ExecuteReaderAsync(token);
@@ -132,7 +133,7 @@ public sealed class SignalTailer(
                     );
                 }
 
-                return (IReadOnlyList<Row>)rows;
+                return (IReadOnlyList<Row>) rows;
             },
             cancellationToken: cancellationToken
         );

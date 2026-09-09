@@ -18,7 +18,7 @@ public sealed class SignalPublicationTest : BaseHostTest<BankWebAppFactory>
 {
     private const string SignalIban = "ES9121000418450200051332";
 
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private readonly static TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
     private HttpClient _client = null!;
 

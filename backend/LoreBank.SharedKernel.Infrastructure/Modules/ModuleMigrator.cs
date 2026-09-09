@@ -43,8 +43,7 @@ public static class ModuleMigrator
                         migrationType: dataMigrationsById[step.Id],
                         cancellationToken: CancellationToken.None
                     );
-                }
-                else {
+                } else {
                     await runner.DbContext
                         .GetService<IMigrator>()
                         .MigrateAsync(targetMigration: step.Id);

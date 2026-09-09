@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -17,8 +17,7 @@ namespace LoreBank.Ledger.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateTable(
                 name: "journal_entries",
                 schema: "ledger",
-                columns: table => new
-                {
+                columns: table => new {
                     id = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -29,8 +28,7 @@ namespace LoreBank.Ledger.Infrastructure.Persistence.Migrations
             migrationBuilder.CreateTable(
                 name: "journal_lines",
                 schema: "ledger",
-                columns: table => new
-                {
+                columns: table => new {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     account_ref = table.Column<string>(type: "character varying(42)", maxLength: 42, nullable: false),
                     direction = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: false),

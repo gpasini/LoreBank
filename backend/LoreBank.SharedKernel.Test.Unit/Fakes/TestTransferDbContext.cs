@@ -17,27 +17,30 @@ public sealed class TestTransferDbContext(
 
     protected override void ConfigureModule(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TestTransfer>(builder => {
-                builder.HasKey(transfer => transfer.Id);
+        modelBuilder.Entity<TestTransfer>(builder =>
+        {
+            builder.HasKey(transfer => transfer.Id);
 
-                // Les propriétés get-only de Money ne sont pas découvertes par
-                // convention : on les déclare, comme les configurations des
-                // modules le font.
-                builder.OwnsOne(
-                    navigationExpression: transfer => transfer.Debit,
-                    buildAction: money => {
-                        money.Property(m => m.Amount);
-                        money.Property(m => m.Currency);
-                    }
-                );
-                builder.OwnsOne(
-                    navigationExpression: transfer => transfer.Credit,
-                    buildAction: money => {
-                        money.Property(m => m.Amount);
-                        money.Property(m => m.Currency);
-                    }
-                );
-            }
+            // Les propriétés get-only de Money ne sont pas découvertes par
+            // convention : on les déclare, comme les configurations des
+            // modules le font.
+            builder.OwnsOne(
+                navigationExpression: transfer => transfer.Debit,
+                buildAction: money =>
+                {
+                    money.Property(m => m.Amount);
+                    money.Property(m => m.Currency);
+                }
+            );
+            builder.OwnsOne(
+                navigationExpression: transfer => transfer.Credit,
+                buildAction: money =>
+                {
+                    money.Property(m => m.Amount);
+                    money.Property(m => m.Currency);
+                }
+            );
+        }
         );
     }
 }

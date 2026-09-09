@@ -64,7 +64,7 @@ public abstract class ModuleDbContext : DbContext
     // l'écriture mais avant le commit : un handler qui échoue annule la commande.
     // Une écriture refusée pour version périmée sort avant le dispatch : rien
     // ne part, ni event ni ligne d'outbox.
-    public sealed override async Task<int> SaveChangesAsync(
+    public override sealed async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default
     )
@@ -74,7 +74,8 @@ public abstract class ModuleDbContext : DbContext
         var domainEvents = ChangeTracker.Entries()
             .Select(entry => entry.Entity)
             .OfType<IHasDomainEvents>()
-            .SelectMany(entity => {
+            .SelectMany(entity =>
+            {
                 var events = entity.DomainEvents.ToList();
                 entity.ClearDomainEvents();
 
@@ -89,8 +90,7 @@ public abstract class ModuleDbContext : DbContext
                 acceptAllChangesOnSuccess: acceptAllChangesOnSuccess,
                 cancellationToken: cancellationToken
             );
-        }
-        catch (DbUpdateConcurrencyException exception) {
+        } catch (DbUpdateConcurrencyException exception) {
             throw new ConcurrentUpdateException(IdOf(exception.Entries));
         }
 
@@ -105,7 +105,7 @@ public abstract class ModuleDbContext : DbContext
     // Les handlers sont async : les dispatcher d'ici obligerait à bloquer.
     // Plutôt qu'un dispatch perdu en silence ou un sync-over-async, la famille
     // synchrone est interdite. SaveChanges() délègue à cette surcharge.
-    public sealed override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+    public override sealed int SaveChanges(bool acceptAllChangesOnSuccess) =>
         throw new NotSupportedException(
             "SaveChanges synchrone perdrait les domain events : utiliser SaveChangesAsync."
         );
@@ -115,7 +115,7 @@ public abstract class ModuleDbContext : DbContext
     // l'assembly du DbContext concret — plus de typeof à renommer au clonage.
     // Scellé pour que ConfigureModule, devenu optionnel, ne puisse pas la
     // contourner en oubliant d'appeler base.OnModelCreating.
-    protected sealed override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override sealed void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
@@ -175,10 +175,9 @@ public abstract class ModuleDbContext : DbContext
 
             foreach (var root in roots) {
                 var version = root.Property(VersionPropertyName);
-                version.CurrentValue = (int)version.OriginalValue! + 1;
+                version.CurrentValue = (int) version.OriginalValue! + 1;
             }
-        }
-        finally {
+        } finally {
             ChangeTracker.AutoDetectChangesEnabled = autoDetectChanges;
         }
     }

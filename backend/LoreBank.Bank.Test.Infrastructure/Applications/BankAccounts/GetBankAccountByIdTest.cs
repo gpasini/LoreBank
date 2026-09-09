@@ -8,7 +8,7 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 
 public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
-    private static readonly DateTimeOffset Instant = new(
+    private readonly static DateTimeOffset Instant = new(
         year: 2026,
         month: 9,
         day: 9,

@@ -57,45 +57,47 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
         // (TestHostEnvironmentTest tient cette garantie).
         builder.UseEnvironment(Environments.Development);
 
-        builder.ConfigureAppConfiguration((context, configuration) => {
-                var redirected = context.Configuration
-                    .GetSection("ConnectionStrings")
-                    .GetChildren()
-                    .ToDictionary(
-                        keySelector: child => $"ConnectionStrings:{child.Key}",
-                        elementSelector: _ => (string?)ContainerConnectionString
-                    );
-
-                configuration.AddInMemoryCollection(redirected);
-
-                // Les modules additionnels n'ont pas de clé dans appsettings :
-                // leur chaîne naît ici, sur la clé par défaut de leur
-                // ConfigureDbContext, avec la même destination que la
-                // redirection ci-dessus.
-                configuration.AddInMemoryCollection(AdditionalModules.ToDictionary(
-                        keySelector: module => $"ConnectionStrings:{module.ModuleName}Db",
-                        elementSelector: _ => (string?)ContainerConnectionString
-                    )
+        builder.ConfigureAppConfiguration((context, configuration) =>
+        {
+            var redirected = context.Configuration
+                .GetSection("ConnectionStrings")
+                .GetChildren()
+                .ToDictionary(
+                    keySelector: child => $"ConnectionStrings:{child.Key}",
+                    elementSelector: _ => (string?) ContainerConnectionString
                 );
 
-                // La cadence de fond est neutralisée dans tous les hôtes de
-                // test : les tests d'outbox pilotent OutboxProcessor
-                // eux-mêmes, une passe concurrente du hosted service rendrait
-                // leurs compteurs flaky.
-                configuration.AddInMemoryCollection(new Dictionary<string, string?> {
-                        ["IntegrationEvents:PollingSeconds"] = "3600",
-                    }
-                );
+            configuration.AddInMemoryCollection(redirected);
+
+            // Les modules additionnels n'ont pas de clé dans appsettings :
+            // leur chaîne naît ici, sur la clé par défaut de leur
+            // ConfigureDbContext, avec la même destination que la
+            // redirection ci-dessus.
+            configuration.AddInMemoryCollection(AdditionalModules.ToDictionary(
+                    keySelector: module => $"ConnectionStrings:{module.ModuleName}Db",
+                    elementSelector: _ => (string?) ContainerConnectionString
+                )
+            );
+
+            // La cadence de fond est neutralisée dans tous les hôtes de
+            // test : les tests d'outbox pilotent OutboxProcessor
+            // eux-mêmes, une passe concurrente du hosted service rendrait
+            // leurs compteurs flaky.
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> {
+                ["IntegrationEvents:PollingSeconds"] = "3600",
             }
+            );
+        }
         );
 
         // L'hôte enregistre TimeProvider.System via builder.Services, pas via
         // un Module Autofac : ConfigureTestServices suffit à le remplacer par
         // le fake — la dernière inscription gagne.
-        builder.ConfigureTestServices(services => {
-                services.AddSingleton<ConfigurableTimeProvider>();
-                services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<ConfigurableTimeProvider>());
-            }
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<ConfigurableTimeProvider>();
+            services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<ConfigurableTimeProvider>());
+        }
         );
 
         // Le geste que Program.cs fait pour chaque module de HostModules.All,
@@ -128,11 +130,12 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
         // Les modules additionnels rejoignent le seam au conteneur :
         // OutboxPublisher et OutboxProcessor consomment
         // l'IEnumerable<IHostModule> résolu, pas HostModules.All.
-        builder.ConfigureContainer<ContainerBuilder>(container => {
-                foreach (var module in AdditionalModules) {
-                    container.RegisterInstance(module).As<IHostModule>();
-                }
+        builder.ConfigureContainer<ContainerBuilder>(container =>
+        {
+            foreach (var module in AdditionalModules) {
+                container.RegisterInstance(module).As<IHostModule>();
             }
+        }
         );
 
         // Les fakes du socle, dans tous les hôtes de test : inscrits par un

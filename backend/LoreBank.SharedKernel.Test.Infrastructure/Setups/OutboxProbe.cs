@@ -51,7 +51,7 @@ public static class OutboxProbe
                     ));
                 }
 
-                return (IReadOnlyList<Row>)rows;
+                return (IReadOnlyList<Row>) rows;
             }
         );
 
@@ -100,8 +100,7 @@ public static class OutboxProbe
                 arg1: dbContext,
                 arg2: command
             );
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

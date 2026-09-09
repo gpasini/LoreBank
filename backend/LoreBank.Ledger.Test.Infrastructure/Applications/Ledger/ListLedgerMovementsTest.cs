@@ -15,7 +15,7 @@ namespace LoreBank.Ledger.Test.Infrastructure.Applications.Ledger;
 // (ListContractTest) ; ici, que le Ledger l'emprunte, sous sa ressource.
 public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFactory, DbSetup>
 {
-    private static readonly DateTimeOffset RecordingInstant = new(
+    private readonly static DateTimeOffset RecordingInstant = new(
         year: 2026,
         month: 9,
         day: 9,
@@ -143,9 +143,9 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
 
         var page = await Sender.Send(new ListLedgerMovementsQuery { AccountId = accountId });
         var debits = await Sender.Send(new ListLedgerMovementsQuery {
-                AccountId = accountId,
-                Direction = ["Debit"],
-            }
+            AccountId = accountId,
+            Direction = ["Debit"],
+        }
         );
 
         // Assert
@@ -198,9 +198,9 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
         // Act
 
         var page = await Sender.Send(new ListLedgerMovementsQuery {
-                AccountId = accountId,
-                Search = wanted.EntryId.ToString()[..8].ToUpperInvariant(),
-            }
+            AccountId = accountId,
+            Search = wanted.EntryId.ToString()[..8].ToUpperInvariant(),
+        }
         );
 
         // Assert

@@ -113,8 +113,7 @@ public sealed class DomainExceptionTest
             // Assert
 
             exception.Message.Should().Contain("amount=20.50");
-        }
-        finally {
+        } finally {
             CultureInfo.CurrentCulture = previousCulture;
         }
     }

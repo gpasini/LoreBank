@@ -588,17 +588,18 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
             discriminant: "probe.probe-happened"
         );
 
-        activities.Stopped.Should().HaveCount(2).And.AllSatisfy(activity => {
-                activity.OperationName.Should().Be("process probe.probe-happened");
-                activity.Kind.Should().Be(ActivityKind.Consumer);
-                activity.ParentId.Should().Be(origin.Id);
-                activity.TraceId.Should().Be(origin.TraceId);
-                activity.Status.Should().NotBe(ActivityStatusCode.Error);
-                activity.GetTagItem(OutboxTracing.PublisherModuleTag).Should().Be("Probe");
-                activity.GetTagItem(OutboxTracing.ConsumerModuleTag).Should().Be("Probe");
-                activity.GetTagItem(OutboxTracing.MessageIdTag).Should().Be(row!.Id.ToString());
-                activity.GetTagItem(OutboxTracing.AttemptTag).Should().Be(1);
-            }
+        activities.Stopped.Should().HaveCount(2).And.AllSatisfy(activity =>
+        {
+            activity.OperationName.Should().Be("process probe.probe-happened");
+            activity.Kind.Should().Be(ActivityKind.Consumer);
+            activity.ParentId.Should().Be(origin.Id);
+            activity.TraceId.Should().Be(origin.TraceId);
+            activity.Status.Should().NotBe(ActivityStatusCode.Error);
+            activity.GetTagItem(OutboxTracing.PublisherModuleTag).Should().Be("Probe");
+            activity.GetTagItem(OutboxTracing.ConsumerModuleTag).Should().Be("Probe");
+            activity.GetTagItem(OutboxTracing.MessageIdTag).Should().Be(row!.Id.ToString());
+            activity.GetTagItem(OutboxTracing.AttemptTag).Should().Be(1);
+        }
         );
 
         activities.Stopped.Select(activity => activity.GetTagItem(OutboxTracing.HandlerTag))
@@ -698,7 +699,8 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
         listener.InstrumentPublished = (
             instrument,
             meterListener
-        ) => {
+        ) =>
+        {
             if (instrument.Meter.Name == OutboxMetrics.MeterName) {
                 meterListener.EnableMeasurementEvents(instrument);
             }
@@ -709,16 +711,17 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
                 measurement,
                 tags,
                 _
-            ) => {
-                foreach (var tag in tags) {
-                    if (tag.Key == OutboxMetrics.ModuleTag && Equals(
-                            objA: tag.Value,
-                            objB: "Probe"
-                        )) {
-                        values[instrument.Name] = measurement;
-                    }
+            ) =>
+        {
+            foreach (var tag in tags) {
+                if (tag.Key == OutboxMetrics.ModuleTag && Equals(
+                        objA: tag.Value,
+                        objB: "Probe"
+                    )) {
+                    values[instrument.Name] = measurement;
                 }
             }
+        }
         );
 
         listener.Start();
@@ -729,7 +732,7 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
 
     // La rétention par défaut est de 7 jours ; le harnais ne la resserre
     // pas, les tests antidatent au-delà.
-    private static readonly TimeSpan BeyondRetention = TimeSpan.FromDays(8);
+    private readonly static TimeSpan BeyondRetention = TimeSpan.FromDays(8);
 
     private static Task PurgeExpiredAsync() =>
         Factory.Services

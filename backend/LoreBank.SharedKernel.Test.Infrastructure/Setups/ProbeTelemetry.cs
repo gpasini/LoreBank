@@ -55,7 +55,8 @@ public static class ProbeTelemetry
 
         public int Count
         {
-            get {
+            get
+            {
                 lock (_lock) {
                     return _items.Count;
                 }

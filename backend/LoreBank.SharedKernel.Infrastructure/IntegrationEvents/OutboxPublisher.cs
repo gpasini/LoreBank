@@ -51,9 +51,9 @@ public sealed class OutboxPublisher(
                 ["id"] = Guid.NewGuid(),
                 ["discriminant"] = discriminant,
                 ["payload"] = IntegrationEventJson.Serialize(integrationEvent),
-                ["traceParent"] = (object?)Activity.Current?.Id ?? DBNull.Value,
-                ["resourceKind"] = (object?)resource?.Kind ?? DBNull.Value,
-                ["resourceId"] = (object?)resource?.Id ?? DBNull.Value,
+                ["traceParent"] = (object?) Activity.Current?.Id ?? DBNull.Value,
+                ["resourceKind"] = (object?) resource?.Kind ?? DBNull.Value,
+                ["resourceId"] = (object?) resource?.Id ?? DBNull.Value,
             },
             cancellationToken: cancellationToken
         );

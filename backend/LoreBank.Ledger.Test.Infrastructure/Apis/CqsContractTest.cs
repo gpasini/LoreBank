@@ -21,7 +21,7 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
 {
     private const string FlowIban = "ES9121000418450200051332";
 
-    private static readonly DateTimeOffset DepositInstant = new(
+    private readonly static DateTimeOffset DepositInstant = new(
         year: 2026,
         month: 9,
         day: 9,
@@ -31,7 +31,7 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
         offset: TimeSpan.Zero
     );
 
-    private static readonly DateTimeOffset RecordingInstant = DepositInstant.AddMinutes(5);
+    private readonly static DateTimeOffset RecordingInstant = DepositInstant.AddMinutes(5);
 
     private HttpClient _client = null!;
 

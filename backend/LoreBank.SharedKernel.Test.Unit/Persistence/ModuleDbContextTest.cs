@@ -85,7 +85,8 @@ public sealed class ModuleDbContextTest
         await using var context = CreateContext(dispatcher);
         await context.Database.EnsureCreatedAsync();
 
-        dispatcher.OnDispatchAsync = async () => {
+        dispatcher.OnDispatchAsync = async () =>
+        {
             // Un second DbContext sur la même connexion ne voit que ce qui est
             // réellement écrit, pas ce que le premier suit en mémoire.
             await using var probe = CreateContext(new RecordingDomainEventDispatcher());

@@ -131,7 +131,8 @@ public sealed class OutboxProcessor(
             execute: async (
                 command,
                 token
-            ) => {
+            ) =>
+            {
                 await using var reader = await command.ExecuteReaderAsync(token);
                 await reader.ReadAsync(token);
 
@@ -176,8 +177,7 @@ public sealed class OutboxProcessor(
                     row: row,
                     cancellationToken: cancellationToken
                 );
-            }
-            catch (Exception exception) {
+            } catch (Exception exception) {
                 activity?.SetStatus(
                     code: ActivityStatusCode.Error,
                     description: exception.Message
@@ -202,8 +202,7 @@ public sealed class OutboxProcessor(
                 row: row,
                 cancellationToken: cancellationToken
             );
-        }
-        else {
+        } else {
             await RecordFailureAsync(
                 publisherModule: publisherModule,
                 row: row,
@@ -306,7 +305,7 @@ public sealed class OutboxProcessor(
             execute: async (
                 command,
                 token
-            ) => (long)(await command.ExecuteScalarAsync(token))! > 0,
+            ) => (long) (await command.ExecuteScalarAsync(token))! > 0,
             cancellationToken: cancellationToken
         );
 
@@ -326,12 +325,11 @@ public sealed class OutboxProcessor(
         )!;
 
         try {
-            await (Task)handleMethod.Invoke(
+            await (Task) handleMethod.Invoke(
                 obj: scope.GetRequiredService(registration.HandlerType),
                 parameters: [integrationEvent, cancellationToken]
             )!;
-        }
-        catch (TargetInvocationException exception) when (exception.InnerException is not null) {
+        } catch (TargetInvocationException exception) when (exception.InnerException is not null) {
             ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
         }
     }
@@ -375,7 +373,8 @@ public sealed class OutboxProcessor(
             execute: async (
                 command,
                 token
-            ) => {
+            ) =>
+            {
                 var rows = new List<(DateTime OccurredAt, OutboxRow Row)>();
 
                 await using var reader = await command.ExecuteReaderAsync(token);
@@ -393,7 +392,7 @@ public sealed class OutboxProcessor(
                     ));
                 }
 
-                return (IReadOnlyList<OutboxRow>)rows
+                return (IReadOnlyList<OutboxRow>) rows
                     .OrderBy(entry => entry.OccurredAt)
                     .ThenBy(entry => entry.Row.Id)
                     .Select(entry => entry.Row)

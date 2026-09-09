@@ -108,9 +108,8 @@ public sealed class NormalizeLegacyIbansTest : BaseHostTest<BankWebAppFactory>
             parameter.Value = id;
             command.Parameters.Add(parameter);
 
-            return (string?)await command.ExecuteScalarAsync();
-        }
-        finally {
+            return (string?) await command.ExecuteScalarAsync();
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }
@@ -148,8 +147,7 @@ public sealed class NormalizeLegacyIbansTest : BaseHostTest<BankWebAppFactory>
             }
 
             await command.ExecuteNonQueryAsync();
-        }
-        finally {
+        } finally {
             await dbContext.Database.CloseConnectionAsync();
         }
     }

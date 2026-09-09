@@ -103,11 +103,12 @@ public sealed class TelemetryContractTest : BaseHostTest<SharedKernelWebAppFacto
             .Where(activity => activity.Source.Name == OutboxTracing.SourceName)
             .ToList();
 
-        handled.Should().HaveCount(2).And.AllSatisfy(activity => {
-                activity.OperationName.Should().Be("process probe.probe-happened");
-                activity.TraceId.Should().Be(post.TraceId);
-                activity.ParentSpanId.Should().Be(post.SpanId);
-            }
+        handled.Should().HaveCount(2).And.AllSatisfy(activity =>
+        {
+            activity.OperationName.Should().Be("process probe.probe-happened");
+            activity.TraceId.Should().Be(post.TraceId);
+            activity.ParentSpanId.Should().Be(post.SpanId);
+        }
         );
     }
 

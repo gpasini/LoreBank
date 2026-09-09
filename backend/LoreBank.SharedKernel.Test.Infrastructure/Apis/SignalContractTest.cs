@@ -18,7 +18,7 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Apis;
 [TestFixture]
 public sealed class SignalContractTest : BaseHostTest<SharedKernelWebAppFactory>
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private readonly static TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
     private HttpClient _client = null!;
 

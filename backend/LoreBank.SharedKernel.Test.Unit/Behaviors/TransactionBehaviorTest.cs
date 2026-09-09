@@ -41,7 +41,8 @@ public sealed class TransactionBehaviorTest
 
         await behavior.Handle(
             request: new MutatingRequest(),
-            next: _ => {
+            next: _ =>
+            {
                 ambient = Transaction.Current;
                 isolationLevel = ambient?.IsolationLevel;
 
@@ -102,7 +103,8 @@ public sealed class TransactionBehaviorTest
 
         var response = await behavior.Handle(
             request: new NonMutatingRequest(),
-            next: _ => {
+            next: _ =>
+            {
                 ambient = Transaction.Current;
 
                 return Task.FromResult("ok");

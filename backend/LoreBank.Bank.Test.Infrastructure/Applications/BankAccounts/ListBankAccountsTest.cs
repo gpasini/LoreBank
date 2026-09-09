@@ -14,7 +14,7 @@ namespace LoreBank.Bank.Test.Infrastructure.Applications.BankAccounts;
 // que le module l'emprunte vraiment.
 public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory, DbSetup>
 {
-    private static readonly DateTimeOffset Instant = new(
+    private readonly static DateTimeOffset Instant = new(
         year: 2026,
         month: 9,
         day: 9,
@@ -137,9 +137,9 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
         // Act
 
         var page = await Sender.Send(new ListBankAccountsQuery {
-                Search = "AT611904300234573201",
-                IsClosed = [false],
-            }
+            Search = "AT611904300234573201",
+            IsClosed = [false],
+        }
         );
 
         // Assert

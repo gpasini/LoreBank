@@ -14,9 +14,9 @@ namespace LoreBank.SharedKernel.Test.Unit.Signals;
 [TestOf(typeof(SignalHub))]
 public sealed class SignalHubTest
 {
-    private static readonly Guid AccountId = Guid.NewGuid();
+    private readonly static Guid AccountId = Guid.NewGuid();
 
-    private static readonly Signal Deposited = new(
+    private readonly static Signal Deposited = new(
         Discriminant: "bank.money-deposited",
         ResourceKind: "bank-account",
         ResourceId: AccountId,
@@ -235,7 +235,8 @@ public sealed class SignalHubTest
         listener.InstrumentPublished = (
             instrument,
             meterListener
-        ) => {
+        ) =>
+        {
             if (instrument.Meter == Meter(_metrics) && instrument.Name == SignalMetrics.DeliveredCounter) {
                 meterListener.EnableMeasurementEvents(instrument);
             }
@@ -265,8 +266,7 @@ public sealed class SignalHubTest
     {
         try {
             await next;
-        }
-        catch (OperationCanceledException) {
+        } catch (OperationCanceledException) {
         }
     }
 
@@ -288,7 +288,8 @@ public sealed class SignalHubTest
         listener.InstrumentPublished = (
             instrument,
             meterListener
-        ) => {
+        ) =>
+        {
             if (instrument.Meter == Meter(_metrics) && instrument.Name == SignalMetrics.SubscribersGauge) {
                 meterListener.EnableMeasurementEvents(instrument);
             }
@@ -307,7 +308,7 @@ public sealed class SignalHubTest
     }
 
     private static Meter Meter(SignalMetrics metrics) =>
-        (Meter)typeof(SignalMetrics)
+        (Meter) typeof(SignalMetrics)
             .GetField(
                 name: "_meter",
                 bindingAttr: System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance

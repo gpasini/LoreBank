@@ -57,7 +57,8 @@ public sealed class ProbeLogs : ILoggerProvider, ISupportExternalScope
                 callback: (
                     scope,
                     accumulator
-                ) => {
+                ) =>
+                {
                     if (scope is IEnumerable<KeyValuePair<string, object?>> pairs) {
                         foreach (var (key, value) in pairs) {
                             accumulator[key] = value;

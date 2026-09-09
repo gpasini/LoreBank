@@ -10,7 +10,7 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
 [TestOf(typeof(ConfigurableTimeProvider))]
 public sealed class ConfigurableTimeProviderTest : BaseHostTest<SharedKernelWebAppFactory>
 {
-    private static readonly DateTimeOffset Instant = new(
+    private readonly static DateTimeOffset Instant = new(
         year: 2026,
         month: 9,
         day: 9,
