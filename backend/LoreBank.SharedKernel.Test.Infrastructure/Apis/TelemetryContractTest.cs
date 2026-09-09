@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
+using LoreBank.SharedKernel.Infrastructure.Signals;
 using OpenTelemetry.Metrics;
 using LoreBank.SharedKernel.Test.Infrastructure.Probes;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
@@ -161,6 +162,9 @@ public sealed class TelemetryContractTest : BaseHostTest<SharedKernelWebAppFacto
             );
 
         ProbeTelemetry.Metrics.Should().Contain(metric => metric.MeterName == "Npgsql");
+
+        // Le Meter des Signaux (ADR 0026) sort par le même chemin.
+        names.Should().Contain(SignalMetrics.SubscribersGauge);
     }
 
     // Un client dont chaque requête porte un traceparent neuf : le test ne

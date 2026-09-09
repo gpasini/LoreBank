@@ -559,6 +559,88 @@
           }
         }
       }
+    },
+    "/api/signals": {
+      "get": {
+        "tags": [
+          "SharedKernel"
+        ],
+        "operationId": "Signals_Subscribe",
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/Signal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -727,6 +809,7 @@
           "INVALID_BIC",
           "INVALID_CURRENCY",
           "INVALID_IBAN",
+          "INVALID_SIGNAL_RESOURCE",
           "LEDGER.EMPTY_JOURNAL_ENTRY",
           "LEDGER.INVALID_LEDGER_ACCOUNT_REF",
           "LEDGER.JOURNAL_ENTRY_NOT_FOUND",
@@ -781,6 +864,31 @@
           }
         }
       },
+      "Signal": {
+        "required": [
+          "discriminant",
+          "resourceKind",
+          "resourceId",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "discriminant": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "WithdrawMoneyCommand": {
         "required": [
           "amount",
@@ -804,6 +912,9 @@
     },
     {
       "name": "Ledger"
+    },
+    {
+      "name": "SharedKernel"
     }
   ]
 }

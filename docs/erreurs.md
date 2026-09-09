@@ -84,6 +84,7 @@ Les exceptions du SharedKernel n'ont pas de préfixe.
 | `InvalidBicException` | idem | `INVALID_BIC` |
 | `InvalidCurrencyException` | idem | `INVALID_CURRENCY` |
 | `CurrencyMismatchException` | idem | `CURRENCY_MISMATCH` |
+| `InvalidSignalResourceException` | idem | `INVALID_SIGNAL_RESOURCE` |
 | `InsufficientBalanceException` | `LoreBank.Bank.Domain.Exceptions` | `BANK.INSUFFICIENT_BALANCE` |
 | `AccountClosedException` | idem | `BANK.ACCOUNT_CLOSED` |
 | `NonEmptyAccountClosureException` | idem | `BANK.NON_EMPTY_ACCOUNT_CLOSURE` |

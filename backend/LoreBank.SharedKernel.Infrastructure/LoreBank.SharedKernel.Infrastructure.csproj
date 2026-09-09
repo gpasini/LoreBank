@@ -16,6 +16,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Les ports des Signaux (ISignalStream, ISignalPolicy — ADR 0026)
+             sont déclarés dans l'Application, parce que l'Api les consomme,
+             et implémentés ici — la même direction que l'Infrastructure d'un
+             module vers son Application (readers, ADR 0018). -->
+        <ProjectReference Include="..\LoreBank.SharedKernel.Application\LoreBank.SharedKernel.Application.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Contracts\LoreBank.SharedKernel.Contracts.csproj"/>
         <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
     </ItemGroup>

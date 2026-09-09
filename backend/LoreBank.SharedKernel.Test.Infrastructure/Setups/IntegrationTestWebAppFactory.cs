@@ -1,4 +1,5 @@
 using Autofac;
+using LoreBank.SharedKernel.Application.Signals;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using LoreBank.SharedKernel.Test.Infrastructure.Fakes;
 using Microsoft.AspNetCore.Hosting;
@@ -27,6 +28,10 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // L'horloge du harnais (ADR 0024) : un test y pose l'Instant que toute
     // Application demandera, ResetFakes l'efface.
     public ConfigurableTimeProvider TimeProvider => Services.GetRequiredService<ConfigurableTimeProvider>();
+
+    // La policy des Signaux du harnais (ADR 0026) : un test y pose qui reçoit
+    // quoi, ResetFakes l'efface — tout passe.
+    public ConfigurableSignalPolicy SignalPolicy => Services.GetRequiredService<ConfigurableSignalPolicy>();
 
     // Les modules que cette factory monte en plus de HostModules.All — le
     // ProbeModule du harnais du socle (ADR 0017), jamais un module métier.
@@ -130,6 +135,16 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
             }
         );
 
+        // Les fakes du socle, dans tous les hôtes de test : inscrits par un
+        // Module Autofac de l'Infrastructure, ils se remplacent ici — après
+        // l'hôte, avant les fakes du module.
+        builder.ConfigureContainer<ContainerBuilder>(container => container
+            .RegisterType<ConfigurableSignalPolicy>()
+            .AsSelf()
+            .As<ISignalPolicy>()
+            .SingleInstance()
+        );
+
         builder.ConfigureContainer<ContainerBuilder>(ConfigureModuleContainer);
 
         return base.CreateHost(builder);
@@ -142,7 +157,11 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // Point unique de remise à zéro des fakes, appelé par BaseHostTest au SetUp
     // et au TearDown de chaque test. La base efface les fakes du socle ; une
     // factory de module qui surcharge appelle la base, puis remet les siens.
-    public virtual void ResetFakes() => TimeProvider.Reset();
+    public virtual void ResetFakes()
+    {
+        TimeProvider.Reset();
+        SignalPolicy.Reset();
+    }
 
     public async Task StartAsync() => await _dbContainer.StartAsync();
 

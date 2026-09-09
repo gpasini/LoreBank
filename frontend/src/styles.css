@@ -122,12 +122,6 @@ button:disabled {
   cursor: wait;
 }
 
-button.ghost {
-  background: transparent;
-  color: var(--accent);
-  border-color: var(--line);
-}
-
 button.danger {
   background: var(--danger-bg);
   color: var(--danger);
@@ -202,12 +196,6 @@ button.danger {
   font-weight: 700;
   margin: 0 0 0.5rem;
   font-variant-numeric: tabular-nums;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .mono {

@@ -20,6 +20,7 @@ action MVC :
 | `Task<CommandResult>` (via `SendAsync`) | `204`, sans contenu |
 | `Task<CreationResult>` (via `CreateAsync`) | `201`, en-tête `Location` requis, sans contenu |
 | `ActionResult<T>` | `200` + le schéma de `T` (l'ApiExplorer le sait déjà) |
+| `SignalStreamResult` (le flux de Signaux du socle, ADR 0026) | `200` en `text/event-stream`, schéma `Signal` |
 | autre chose | ce que l'ApiExplorer infère |
 
 Elle pose aussi l'`operationId` `<Controller>_<Action>` (`BankAccounts_GetById`)
@@ -47,7 +48,8 @@ dossier :
 - **`decimal`** → `number`, sans le pattern ni le `string` que le générateur
   ajoute parce que System.Text.Json accepte les deux en entrée.
 - **Un media type par sens** : `application/json` en requête et en réponse
-  nominale.
+  nominale — `text/event-stream` sur la seule opération du flux de Signaux
+  (`docs/signaux.md`).
 - **Pas de `servers`, `title` = `LoreBank`** : le document décrit une
   surface, pas un déploiement — l'URL de base est au front.
 

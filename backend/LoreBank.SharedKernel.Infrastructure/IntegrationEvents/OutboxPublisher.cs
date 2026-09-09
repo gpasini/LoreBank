@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using LoreBank.SharedKernel.Contracts;
+using LoreBank.SharedKernel.Domain.ValueObjects;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using LoreBank.SharedKernel.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,10 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // l'outbox. La ligne garde aussi le traceparent W3C de l'Activity courante —
 // celle que le hosting pose sur la requête — pour que le traitement du
 // consommateur soit un enfant de la même trace (ADR 0025) ; nul hors
-// activité (migration de données, test), sans erreur.
+// activité (migration de données, test), sans erreur. Et la ressource que
+// l'event nomme s'il signale les clients (ISignalsClients, ADR 0026) —
+// validée ici, à la frontière : le suiveur lira deux colonnes, jamais le
+// payload.
 public sealed class OutboxPublisher(
     IEnumerable<IHostModule> modules,
     IServiceProvider serviceProvider
@@ -27,19 +31,29 @@ public sealed class OutboxPublisher(
     {
         var discriminant = IntegrationEventDiscriminant.Of(integrationEvent.GetType());
         var dbContext = PublisherDbContextFor(discriminant);
+        var resource = integrationEvent is ISignalsClients signals
+            ? SignalResource.Of(
+                kind: signals.ResourceKind,
+                id: signals.ResourceId
+            )
+            : null;
 
         await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
             sql: $"""
                   INSERT INTO {IntegrationEventTables.OutboxTable(dbContext)}
-                      (id, discriminant, payload, occurred_at, next_attempt_at, attempts, trace_parent)
-                  VALUES (@id, @discriminant, CAST(@payload AS jsonb), now(), now(), 0, @traceParent)
+                      (id, discriminant, payload, occurred_at, next_attempt_at, attempts, trace_parent,
+                       resource_kind, resource_id)
+                  VALUES (@id, @discriminant, CAST(@payload AS jsonb), now(), now(), 0, @traceParent,
+                          @resourceKind, @resourceId)
                   """,
             parameters: new Dictionary<string, object> {
                 ["id"] = Guid.NewGuid(),
                 ["discriminant"] = discriminant,
                 ["payload"] = IntegrationEventJson.Serialize(integrationEvent),
                 ["traceParent"] = (object?)Activity.Current?.Id ?? DBNull.Value,
+                ["resourceKind"] = (object?)resource?.Kind ?? DBNull.Value,
+                ["resourceId"] = (object?)resource?.Id ?? DBNull.Value,
             },
             cancellationToken: cancellationToken
         );

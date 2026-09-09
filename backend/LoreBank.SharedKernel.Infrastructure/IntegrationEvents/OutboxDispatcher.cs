@@ -1,3 +1,4 @@
+using LoreBank.SharedKernel.Infrastructure.Signals;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,8 +12,12 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // ligne à ligne par le processor (backoff, poison). La purge de Rétention
 // (ADR 0021) suit la même boucle à sa propre cadence : dès le démarrage,
 // puis à l'intervalle — un hôte redémarré souvent purgerait sinon jamais.
+// Le suiveur des Signaux (ADR 0026) passe après la livraison, à chaque
+// passe : sur une instance seule, la ligne livrée par la passe est signalée
+// par la même passe.
 public sealed class OutboxDispatcher(
     OutboxProcessor processor,
+    SignalTailer tailer,
     IOptions<OutboxOptions> options,
     ILogger<OutboxDispatcher> logger
 ) : BackgroundService
@@ -24,6 +29,7 @@ public sealed class OutboxDispatcher(
         while (!stoppingToken.IsCancellationRequested) {
             try {
                 await processor.ProcessPendingAsync(stoppingToken);
+                await tailer.TailAsync(stoppingToken);
 
                 if (purgeCadence.IsDue(DateTimeOffset.UtcNow)) {
                     await processor.PurgeExpiredAsync(stoppingToken);

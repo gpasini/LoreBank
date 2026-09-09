@@ -1,4 +1,6 @@
 using LoreBank.SharedKernel.Api.Controllers;
+using LoreBank.SharedKernel.Api.Signals;
+using LoreBank.SharedKernel.Application.Signals;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +12,8 @@ namespace LoreBank.SharedKernel.Api.OpenApi;
 // La convention qui lit ce que ModuleController affirme par ses types de
 // retour : une action qui rend CommandResult sert 204, une qui rend
 // CreationResult sert 201 — l'ApiExplorer, lui, inférerait 200 d'un
-// ActionResult nu. Elle pose aussi l'identité wire de chaque opération :
+// ActionResult nu — et une qui rend SignalStreamResult sert 200 en
+// text/event-stream sur le schéma Signal (ADR 0026). Elle pose aussi l'identité wire de chaque opération :
 // l'operationId `<Controller>_<Action>` (le nom d'action est déjà du contrat —
 // CreatedAtAction le cible) et le tag au nom du module, lu au 2ᵉ segment de
 // l'assembly du controller comme le sont les codes d'erreur.
@@ -23,10 +26,10 @@ public sealed class DescriptionConvention : IActionModelConvention
 {
     public void Apply(ActionModel action)
     {
-        var status = StatusOf(action.ActionMethod.ReturnType);
+        var produces = ProducesOf(action.ActionMethod.ReturnType);
 
-        if (status is not null) {
-            action.Filters.Add(new ProducesResponseTypeAttribute(status.Value));
+        if (produces is not null) {
+            action.Filters.Add(produces);
         }
 
         var operationId = $"{action.Controller.ControllerName}_{action.ActionName}";
@@ -38,18 +41,26 @@ public sealed class DescriptionConvention : IActionModelConvention
         }
     }
 
-    private static int? StatusOf(Type returnType)
+    private static ProducesResponseTypeAttribute? ProducesOf(Type returnType)
     {
         var unwrapped = returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)
             ? returnType.GetGenericArguments()[0]
             : returnType;
 
         if (unwrapped == typeof(CommandResult)) {
-            return StatusCodes.Status204NoContent;
+            return new ProducesResponseTypeAttribute(StatusCodes.Status204NoContent);
         }
 
         if (unwrapped == typeof(CreationResult)) {
-            return StatusCodes.Status201Created;
+            return new ProducesResponseTypeAttribute(StatusCodes.Status201Created);
+        }
+
+        if (unwrapped == typeof(SignalStreamResult)) {
+            return new ProducesResponseTypeAttribute(
+                type: typeof(Signal),
+                statusCode: StatusCodes.Status200OK,
+                contentType: SignalStreamResult.ContentType
+            );
         }
 
         return null;

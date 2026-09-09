@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using LoreBank.SharedKernel.Api.Problems;
+using LoreBank.SharedKernel.Api.Signals;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.WebUtilities;
@@ -11,7 +12,8 @@ namespace LoreBank.SharedKernel.Api.OpenApi;
 // d'erreur (ApiProblem, docs/erreurs.md) et ses codes (ErrorCode), servis en
 // application/problem+json sur toutes les opérations — 400, 404, 409, 422,
 // 500, uniformément, la Description ne devine pas ce qu'un handler lève ; l'en-tête
-// Location d'un 201 ; un seul media type par sens ; et l'en-tête du document —
+// Location d'un 201 ; un seul media type par sens — application/json, ou
+// text/event-stream sur le flux de Signaux (ADR 0026) ; et l'en-tête du document —
 // un titre, pas de `servers` : la Description décrit une surface, pas un
 // déploiement.
 public sealed class DescriptionDocumentTransformer(
@@ -81,7 +83,9 @@ public sealed class DescriptionDocumentTransformer(
             if (response.Content is { } content) {
                 KeepOnly(
                     content: content,
-                    mediaType: JsonMediaType
+                    mediaType: content.ContainsKey(SignalStreamResult.ContentType)
+                        ? SignalStreamResult.ContentType
+                        : JsonMediaType
                 );
             }
         }

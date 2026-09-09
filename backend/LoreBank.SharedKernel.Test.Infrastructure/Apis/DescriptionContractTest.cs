@@ -83,6 +83,46 @@ public sealed class DescriptionContractTest : BaseHostTest<SharedKernelWebAppFac
     }
 
     [Test]
+    public void Stream_ShouldBeDescribedAs200EventStreamOnSignal_WhenTheActionReturnsSignalStreamResult()
+    {
+        // Le flux de Signaux (ADR 0026) : la seule opération en
+        // text/event-stream, sur le schéma Signal — le Client en tire le type
+        // du message et le chemin.
+        var operation = Operation(
+            path: "/api/signals",
+            verb: "get"
+        );
+
+        operation.GetProperty("operationId").GetString().Should().Be("Signals_Subscribe");
+        operation.GetProperty("parameters").EnumerateArray().Select(parameter => parameter.GetProperty("name").GetString())
+            .Should().Equal("resource");
+
+        var ok = operation.GetProperty("responses").GetProperty("200");
+
+        ok.GetProperty("content").EnumerateObject().Select(media => media.Name)
+            .Should().Equal("text/event-stream");
+        ok.GetProperty("content").GetProperty("text/event-stream").GetProperty("schema").GetProperty("$ref").GetString()
+            .Should().Be("#/components/schemas/Signal");
+
+        var signal = Schema("Signal");
+
+        signal.GetProperty("properties").EnumerateObject().Select(property => property.Name)
+            .Should().BeEquivalentTo(
+                "discriminant",
+                "resourceKind",
+                "resourceId",
+                "occurredAt"
+            );
+        signal.GetProperty("required").EnumerateArray().Select(field => field.GetString())
+            .Should().BeEquivalentTo(
+                "discriminant",
+                "resourceKind",
+                "resourceId",
+                "occurredAt"
+            );
+    }
+
+    [Test]
     public void EveryOperation_ShouldDeclareTheCommonErrorsOnApiProblem_WhateverItsShape()
     {
         foreach (var operation in Operations()) {

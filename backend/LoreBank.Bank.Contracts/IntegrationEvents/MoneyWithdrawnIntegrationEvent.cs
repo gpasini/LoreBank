@@ -7,4 +7,9 @@ public sealed record MoneyWithdrawnIntegrationEvent(
     Guid AccountId,
     decimal Amount,
     string Currency
-) : IIntegrationEvent;
+) : ISignalsClients
+{
+    public string ResourceKind => MoneyDepositedIntegrationEvent.BankAccountResourceKind;
+
+    public Guid ResourceId => AccountId;
+}

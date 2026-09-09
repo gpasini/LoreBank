@@ -18,12 +18,14 @@ public sealed class IntegrationEventTablesTest : BaseHostTest<SharedKernelWebApp
     public async Task EnsureAsync_ShouldAddWhatCameLater_WhenTheTablesHaveTheirOriginalShape()
     {
         // Arrange — la forme d'origine : ni bail, ni traceparent, ni index de
-        // purge.
+        // purge, ni ressource de Signal.
 
         await ExecuteAsync(
             """
             ALTER TABLE probe.__outbox DROP COLUMN IF EXISTS reserved_until;
             ALTER TABLE probe.__outbox DROP COLUMN IF EXISTS trace_parent;
+            ALTER TABLE probe.__outbox DROP COLUMN IF EXISTS resource_kind;
+            ALTER TABLE probe.__outbox DROP COLUMN IF EXISTS resource_id;
             DROP INDEX IF EXISTS probe.ix___outbox_dispatched;
             DROP INDEX IF EXISTS probe.ix___inbox_handled;
             """
@@ -44,9 +46,9 @@ public sealed class IntegrationEventTablesTest : BaseHostTest<SharedKernelWebApp
             """
             SELECT count(*) FROM information_schema.columns
             WHERE table_schema = 'probe' AND table_name = '__outbox'
-              AND column_name IN ('reserved_until', 'trace_parent')
+              AND column_name IN ('reserved_until', 'trace_parent', 'resource_kind', 'resource_id')
             """
-        )).Should().Be(2);
+        )).Should().Be(4);
 
         (await CountAsync(
             """

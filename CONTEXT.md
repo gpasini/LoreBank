@@ -193,3 +193,12 @@ configuré n'exporte rien et n'en dit rien. Les logs n'en font pas partie,
 ils restent sur la sortie standard ; la Corrélation fait le pont.
 _Avoid_ : monitoring, observabilité, APM, tracing, OpenTelemetry (le canal,
 pas le concept)
+
+**Signal** :
+Le message nu que le socle pousse aux clients connectés quand un integration
+event a été livré — la ligne d'outbox marquée livrée est la notification.
+Il dit quoi (le discriminant) et où (la ressource : un genre stable en
+kebab-case et un identifiant), jamais comment : le client refait son GET.
+Opt-in par l'event, qui nomme sa ressource ; servi en SSE sur un flux global
+filtrable, après livraison, sans rejeu.
+_Avoid_ : notification, message, push, event client, websocket

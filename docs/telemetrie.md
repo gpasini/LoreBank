@@ -22,6 +22,7 @@ l'exporteur OTLP seulement si `OTEL_EXPORTER_OTLP_ENDPOINT` est défini.
 | Métriques HttpClient | `System.Net.Http` | natif .NET |
 | Métriques du pool et des commandes Npgsql | `Npgsql` | natif Npgsql |
 | Jauges d'outbox `lorebank.outbox.pending` / `poisoned` | `LoreBank.Outbox` | `OutboxMetrics` (socle) |
+| Jauge des abonnés `lorebank.signals.subscribers`, compteur `lorebank.signals.delivered` | `LoreBank.Signals` | `SignalMetrics` (socle, ADR 0026) |
 
 Un span SQL **sans parent** ne sort pas : chaque passe de l'outbox réserve
 et mesure en SQL hors de toute requête et de tout handler, et sans ce filtre

@@ -5,12 +5,19 @@ import { AccountDetail } from "./components/AccountDetail";
 import { AccountList } from "./components/AccountList";
 import { OpenAccountForm } from "./components/OpenAccountForm";
 import { Problem } from "./components/Problem";
+import { useSignals } from "./signals/SignalsProvider";
 
 type Summary = components["schemas"]["BankAccountSummaryResult"];
 
+// La ressource que Bank signale : le genre stable de ses jumeaux publiés
+// (MoneyDepositedIntegrationEvent.ResourceKind).
+export const bankAccountKind = "bank-account";
+
 // L'écran : la liste des comptes à gauche (avec l'ouverture), le détail du
 // compte choisi à droite. Tout ce qui s'affiche vient du Client généré depuis
-// la Description : aucun type de l'API n'est écrit ici.
+// la Description : aucun type de l'API n'est écrit ici. La liste relit sur
+// tout Signal de compte — un dépôt fait par un autre client, ou l'écriture
+// du Ledger — en plus de ses propres commandes.
 export function App() {
   const [accounts, setAccounts] = useState<Summary[]>([]);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
@@ -26,6 +33,8 @@ export function App() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useSignals(bankAccountKind, null, () => void reload());
 
   return (
     <main className="layout">

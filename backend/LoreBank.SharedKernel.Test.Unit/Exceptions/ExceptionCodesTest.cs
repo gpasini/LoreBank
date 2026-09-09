@@ -39,6 +39,12 @@ public sealed class ExceptionCodesTest
     }
 
     [Test]
+    public void Code_ShouldBeInvalidSignalResource_WhenExceptionIsInvalidSignalResourceException()
+    {
+        new InvalidSignalResourceException("nope").Code.Should().Be("INVALID_SIGNAL_RESOURCE");
+    }
+
+    [Test]
     public void Code_ShouldBeCurrencyMismatch_WhenExceptionIsCurrencyMismatchException()
     {
         var exception = new CurrencyMismatchException(

@@ -5,17 +5,23 @@ import { iban, instant, money } from "../format";
 import { AmountForm } from "./AmountForm";
 import { Ledger } from "./Ledger";
 import { Problem } from "./Problem";
+import { bankAccountKind } from "../App";
+import { useSignals } from "../signals/SignalsProvider";
 
 type Account = components["schemas"]["BankAccountResult"];
 
 // Le détail d'un compte et ses trois transitions. Une commande ne renvoie
 // rien : après chacune, on relit le compte (GET) et on prévient le parent pour
-// que la liste se recharge aussi — le CQS jusqu'au bord de l'écran.
+// que la liste se recharge aussi — le CQS jusqu'au bord de l'écran. Et on
+// relit à chaque Signal du compte (ADR 0026) : c'est là que la ligne du
+// Ledger, écrite un instant après le dépôt par l'outbox, arrive à l'écran.
 export function AccountDetail({ accountId, onChanged }: { accountId: string; onChanged: () => void }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
   const [closing, setClosing] = useState<ApiProblem | null>(null);
   const [version, setVersion] = useState(0);
+
+  useSignals(bankAccountKind, accountId, () => setVersion((value) => value + 1));
 
   useEffect(() => {
     let cancelled = false;

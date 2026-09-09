@@ -29,11 +29,14 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
 
         // Retries resserrés pour que le marquage poison se prouve en deux
         // passes, et backoff nul pour qu'une ligne échouée soit ré-éligible
-        // immédiatement — les tests pilotent les passes, pas l'horloge.
+        // immédiatement — les tests pilotent les passes, pas l'horloge. Le
+        // keep-alive du flux de Signaux resserré pour qu'un test le voie
+        // passer sans attendre.
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?> {
                     ["IntegrationEvents:MaxAttempts"] = "2",
                     ["IntegrationEvents:BackoffSeconds"] = "0",
+                    ["Signals:KeepAliveSeconds"] = "0.2",
                 }
             )
         );

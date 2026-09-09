@@ -40,7 +40,16 @@ obtenir un sans passer par la factory.
 7. **Events** : `sealed record` nommé au passé et suffixé `DomainEvent`
    (`BankAccountOpenedDomainEvent`),
    implémentant `IDomainEvent`, dans `Events/`, portant l'id de l'agrégat et
-   les données utiles au consommateur.
+   les données utiles au consommateur. Un fait qu'un autre module consomme
+   a un jumeau publié dans les Contrats du module (`…IntegrationEvent`,
+   primitives plates, `[IntegrationEvent("<module>.<fait>")]`), mappé par
+   un domain event handler vers `IIntegrationEventPublisher` (ADR 0014).
+   Un fait que **les clients** doivent apprendre (ADR 0026,
+   `docs/signaux.md`) : le jumeau implémente `ISignalsClients` et nomme sa
+   ressource — `ResourceKind` stable en kebab-case (`bank-account`),
+   `ResourceId` — rien d'autre à câbler ; le front abonné à cette ressource
+   relit son `GET`. Signaler commence par publier : pas de Signal sans
+   jumeau.
 8. **Exceptions** : une classe `sealed : DomainException` par invariant, dans
    `Exceptions/`. Le constructeur peut prendre des VO, mais le dictionnaire
    passé à la base ne porte que des **primitives** à clés camelCase
@@ -75,6 +84,7 @@ exceptions et id typé dans le même projet.
 | Invariants et ordre des events | les tests de transition — étape 9 |
 | Le Domain ne lit jamais l'horloge (ADR 0024) | le build : l'analyseur d'API bannies (`backend/BannedSymbols.txt`) rougit en `RS0030` sur `DateTime.Now`/`UtcNow` et `DateTimeOffset.Now`/`UtcNow` dans tout projet `.Domain` ou `.Application` |
 | Version d'agrégat (ADR 0020) : rien à déclarer, le socle pose le jeton de concurrence sur tout `AggregateRoot` et refuse une écriture périmée en 409 | `ModuleDbContextTest`, `ModuleRepositoryTest` (socle) ; `ConcurrentUpdateTest` (module de référence) |
+| Un jumeau publié part vraiment dans l'outbox, avec sa ressource de Signal s'il signale (ADR 0014, 0026) | `IntegrationEventPublicationTest` et `SignalPublicationTest` du module (sur `OutboxProbe` et `SignalProbe`) ; `ModuleCompositionTest` — un `ISignalsClients` sans `[IntegrationEvent]` |
 
 ## Pièges
 

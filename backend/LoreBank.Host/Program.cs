@@ -7,6 +7,7 @@ using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
 using LoreBank.SharedKernel.Api.Health;
 using LoreBank.SharedKernel.Api.OpenApi;
+using LoreBank.SharedKernel.Api.Signals;
 using LoreBank.SharedKernel.Api.Validation;
 using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Application.Behaviors;
@@ -73,6 +74,12 @@ builder.Services.AddSingleton(TimeProvider.System);
 foreach (var module in modules) {
     mvc.AddApplicationPart(module.ControllerAssembly);
 }
+
+// Les Signaux (ADR 0026) : la route du socle côté clients, GET /api/signals
+// en SSE — le controller vit dans SharedKernel.Api, l'hôte le monte comme
+// ceux des modules ; le keep-alive se règle dans la section Signals.
+mvc.AddApplicationPart(typeof(SignalsController).Assembly);
+builder.Services.Configure<SignalOptions>(builder.Configuration.GetSection(SignalOptions.SectionName));
 
 // Le 400 automatique d'[ApiController] est le seul ProblemDetails que l'API ne
 // fabrique pas elle-même : on le remplace pour qu'il ait la même forme que les

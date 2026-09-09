@@ -22,6 +22,26 @@ public sealed class IntegrationEventJsonTest
     }
 
     [Test]
+    public void Serialize_ShouldLeaveTheSignalResourceOut_WhenTheEventSignalsClients()
+    {
+        // La ressource vit dans ses colonnes (ADR 0026) : le payload reste le
+        // langage publié de l'event, rien de plus — et se relit tel quel.
+        var original = new SignallingIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "signalé"
+        );
+
+        var payload = IntegrationEventJson.Serialize(original);
+
+        payload.Should().NotContain("resourceKind").And.NotContain("resourceId");
+        payload.Should().Contain("\"thingId\"").And.Contain("\"label\"");
+        IntegrationEventJson.Deserialize(
+            payload: payload,
+            eventType: typeof(SignallingIntegrationEvent)
+        ).Should().Be(original);
+    }
+
+    [Test]
     public void Deserialize_ShouldRoundTripTheEvent()
     {
         // Arrange

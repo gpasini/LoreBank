@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
+using LoreBank.SharedKernel.Infrastructure.Signals;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -50,6 +51,7 @@ public static class Telemetry
                 .AddMeter("System.Net.Http")
                 .AddMeter("Npgsql")
                 .AddMeter(OutboxMetrics.MeterName)
+                .AddMeter(SignalMetrics.MeterName)
             );
 
         if (ExportsTo(builder.Configuration)) {

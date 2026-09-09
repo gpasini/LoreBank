@@ -338,6 +338,35 @@ public sealed class ModuleCompositionTest
     }
 
     [TestCaseSource(nameof(Modules))]
+    public void All_ShouldPublishEverySignallingEvent_WhenTheModulePublishes(IHostModule module)
+    {
+        var root = module.DbContextType.Assembly.GetName().Name!.Split('.')[0];
+
+        Assembly contracts;
+
+        try {
+            contracts = Assembly.Load($"{root}.{module.ModuleName}.Contracts");
+        }
+        catch (FileNotFoundException) {
+            return;
+        }
+
+        // Signaler commence par publier (ADR 0026) : un ISignalsClients sans
+        // [IntegrationEvent] n'entrerait jamais dans l'outbox — le publisher
+        // le refuserait, à la première commande, jamais au build.
+        var unpublished = contracts
+            .GetTypes()
+            .Where(type => type is { IsAbstract: false, IsInterface: false } && typeof(ISignalsClients).IsAssignableFrom(type))
+            .Where(type => !type.IsDefined(
+                attributeType: typeof(IntegrationEventAttribute),
+                inherit: false
+            ))
+            .ToList();
+
+        unpublished.Should().BeEmpty("un event qui signale les clients est un integration event : il porte son [IntegrationEvent(\"<module>.<fait>\")]");
+    }
+
+    [TestCaseSource(nameof(Modules))]
     public void All_ShouldResolveADbContextWithoutPendingModelChanges_WhenTheModuleIsDeclared(IHostModule module)
     {
         using var scope = TestHost<SharedKernelWebAppFactory>.Factory.Services.CreateScope();

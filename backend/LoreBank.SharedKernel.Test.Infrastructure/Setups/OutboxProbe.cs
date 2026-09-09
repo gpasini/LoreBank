@@ -7,7 +7,8 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
 // La surface d'observation d'outbox offerte aux modules publieurs : leur
 // garde-fou « mes jumeaux partent vraiment dans mon outbox » (ADR 0014) se
-// réduit à agir en HTTP, lire les lignes, affirmer discriminant et payload —
+// réduit à agir en HTTP, lire les lignes, affirmer discriminant, payload et
+// ressource de Signal (ADR 0026) —
 // plus de plomberie ADO à recopier par module (voir
 // IntegrationEventPublicationTest, le consommateur de référence). Attempts,
 // poison, rejeu et inbox n'y sont volontairement pas : ce sont des
@@ -18,7 +19,9 @@ public static class OutboxProbe
     public sealed record Row(
         string Discriminant,
         string Payload,
-        bool Dispatched
+        bool Dispatched,
+        string? ResourceKind,
+        Guid? ResourceId
     );
 
     public static Task<IReadOnlyList<Row>> ReadRowsAsync<TDbContext>(IntegrationTestWebAppFactory factory)
@@ -32,7 +35,7 @@ public static class OutboxProbe
             ) =>
             {
                 command.CommandText =
-                    $"SELECT discriminant, payload, dispatched_at IS NOT NULL FROM {dbContext.Schema}.__outbox";
+                    $"SELECT discriminant, payload, dispatched_at IS NOT NULL, resource_kind, resource_id FROM {dbContext.Schema}.__outbox";
 
                 var rows = new List<Row>();
 
@@ -42,7 +45,9 @@ public static class OutboxProbe
                     rows.Add(new Row(
                         Discriminant: reader.GetString(0),
                         Payload: reader.GetString(1),
-                        Dispatched: reader.GetBoolean(2)
+                        Dispatched: reader.GetBoolean(2),
+                        ResourceKind: reader.IsDBNull(3) ? null : reader.GetString(3),
+                        ResourceId: reader.IsDBNull(4) ? null : reader.GetGuid(4)
                     ));
                 }
 

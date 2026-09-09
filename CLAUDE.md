@@ -140,11 +140,41 @@ communication inter-modules.
   le chemin) — ce dernier écrit sur `OutboxProbe`, la surface d'observation
   d'outbox du harnais (`ReadRowsAsync<TDbContext>`/`CleanAsync<TDbContext>`) :
   le test de publication d'un module se réduit à agir en HTTP puis affirmer
-  discriminant et payload. Le chemin complet entre deux modules d'exemple —
+  discriminant, payload et ressource de Signal. Le chemin complet entre deux modules d'exemple —
   dépôt HTTP chez Bank, passe du processor, écriture chez Ledger, lecture
   HTTP du Ledger — est joué par le `CqsContractTest` du Ledger ; la ligne
   d'inbox n'y est pas affirmée, c'est un invariant du socle prouvé sur Probe
   (ADR 0017).
+- Le **Signal** (ADR 0026, `docs/signaux.md`) est le troisième consommateur
+  des faits, côté clients : un message nu — discriminant, ressource
+  (`resourceKind` stable en kebab-case + `resourceId`), Instant du fait,
+  jamais d'état — poussé en SSE sur `GET /api/signals` (`SignalsController`
+  et `SignalStreamResult` dans `LoreBank.SharedKernel.Api`, la seule route
+  du socle côté clients, dans la Description en `text/event-stream` sur le
+  schéma `Signal`) quand un integration event a été **livré** : la ligne
+  d'outbox marquée livrée est la notification — après tous ses handlers,
+  donc après la ligne du Ledger. Opt-in par l'event, qui implémente
+  `ISignalsClients` (`SharedKernel.Contracts`) et nomme sa ressource ; le
+  publisher l'écrit dans deux colonnes de la ligne (`resource_kind`,
+  `resource_id`), hors payload. Chaque instance de l'hôte suit ses outbox
+  (`SignalTailer`, dans la boucle de l'`OutboxDispatcher` après la
+  livraison, un curseur par module né au premier passage — le harnais
+  l'amorce avant d'agir) et pousse au `SignalHub` (port `ISignalStream` de
+  `SharedKernel.Application`), canal borné par abonné, débordement =
+  déconnexion, le navigateur reconnecte et relit. Filtre
+  `?resource=kind/guid` répétable (mal formé : 422
+  `INVALID_SIGNAL_RESOURCE`), ni `event:` ni `id:` ni rejeu, keep-alive en
+  commentaire (`Signals:KeepAliveSeconds`). Le socle n'autorise rien : le
+  port `ISignalPolicy` (Acteur + Signal → bool, défaut « tout passe ») est
+  l'endroit où le cloneur décide, comme `ICurrentActor`. Meter
+  `LoreBank.Signals` (abonnés, livrés), pas de trace par Signal. Le front
+  ouvre un `EventSource` par onglet (`SignalsProvider`, hook `useSignals`)
+  et relit son `GET` ; sa relecture immédiate après sa propre commande
+  reste. Garde-fous : `SignalHubTest`, `SignalStreamResultTest` (unitaire),
+  `SignalTailerTest`, `SignalContractTest` (socle, sur Probe),
+  `ModuleCompositionTest` (un `ISignalsClients` sans `[IntegrationEvent]`),
+  `SignalPublicationTest` (Bank, sur `SignalProbe` : ouvrir le flux, agir,
+  passe du processor puis du suiveur, lire le Signal).
 
 ## Conventions du domaine
 

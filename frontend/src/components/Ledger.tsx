@@ -7,47 +7,34 @@ import { Problem } from "./Problem";
 type LedgerResult = components["schemas"]["BankAccountLedgerResult"];
 
 // Les mouvements viennent du module Ledger, alimenté par les integration
-// events de Bank : ils arrivent un instant après la commande (l'outbox est
-// dépilée toutes les secondes). À chaque commande du parent (`version`), on
-// relit tout de suite puis une seconde fois un peu plus tard ; le bouton
-// couvre le reste.
+// events de Bank : ils arrivent un instant après la commande, par l'outbox.
+// Le parent relit (`version`) après chaque commande et à chaque Signal du
+// compte — le Signal part une fois la ligne du Ledger écrite, c'est lui qui
+// amène le mouvement à l'écran.
 export function Ledger({ accountId, version }: { accountId: string; version: number }) {
   const [ledger, setLedger] = useState<LedgerResult | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    function load() {
-      api.GET("/api/ledger/bank-accounts/{id}", { params: { path: { id: accountId } } }).then(({ data, error }) => {
-        if (cancelled) {
-          return;
-        }
+    api.GET("/api/ledger/bank-accounts/{id}", { params: { path: { id: accountId } } }).then(({ data, error }) => {
+      if (cancelled) {
+        return;
+      }
 
-        setLedger(data ?? null);
-        setProblem(error ?? null);
-      });
-    }
-
-    load();
-
-    const later = window.setTimeout(load, 1500);
+      setLedger(data ?? null);
+      setProblem(error ?? null);
+    });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(later);
     };
-  }, [accountId, version, tick]);
+  }, [accountId, version]);
 
   return (
     <section className="card">
-      <div className="row">
-        <h3>Mouvements (Ledger)</h3>
-        <button type="button" className="ghost" onClick={() => setTick((value) => value + 1)}>
-          Recharger
-        </button>
-      </div>
+      <h3>Mouvements (Ledger)</h3>
       <Problem problem={problem} />
       {ledger && ledger.movements.length === 0 && <p className="muted">Aucun mouvement.</p>}
       {ledger && ledger.movements.length > 0 && (

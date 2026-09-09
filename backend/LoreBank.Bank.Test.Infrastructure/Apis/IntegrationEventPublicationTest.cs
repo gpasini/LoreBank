@@ -86,6 +86,15 @@ public sealed class IntegrationEventPublicationTest : BaseHostTest<BankWebAppFac
         payload.GetProperty("accountId").GetGuid().Should().Be(accountId);
         payload.GetProperty("amount").GetDecimal().Should().Be(25.50m);
         payload.GetProperty("currency").GetString().Should().Be("EUR");
+        payload.EnumerateObject().Select(property => property.Name).Should().BeEquivalentTo(
+            "accountId",
+            "amount",
+            "currency"
+        );
+
+        // Les deux signalent les clients (ADR 0026) : le compte est la
+        // ressource, dans ses colonnes — jamais dans le payload.
+        rows.Should().OnlyContain(row => row.ResourceKind == "bank-account" && row.ResourceId == accountId);
 
         rows.Should().ContainSingle(row => row.Discriminant == "bank.money-withdrawn");
 

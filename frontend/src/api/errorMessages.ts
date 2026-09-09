@@ -18,6 +18,7 @@ export const errorMessages: Record<ErrorCode, (parameters: Record<string, unknow
   INVALID_BIC: ({ bic }) => `« ${String(bic)} » n'est pas un BIC valide.`,
   INVALID_CURRENCY: ({ currency }) => `« ${String(currency)} » n'est pas une devise connue.`,
   INVALID_IBAN: ({ iban }) => `« ${String(iban)} » n'est pas un IBAN valide.`,
+  INVALID_SIGNAL_RESOURCE: ({ resource }) => `« ${String(resource)} » n'est pas une ressource de Signal valide.`,
   "LEDGER.EMPTY_JOURNAL_ENTRY": () => "Une écriture comptable ne peut pas être vide.",
   "LEDGER.INVALID_LEDGER_ACCOUNT_REF": ({ value }) => `« ${String(value)} » n'est pas une référence de compte.`,
   "LEDGER.JOURNAL_ENTRY_NOT_FOUND": () => "Cette écriture comptable est introuvable.",
