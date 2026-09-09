@@ -108,7 +108,11 @@ communication inter-modules.
   `TransactionScope`, ligne d'inbox incluse — at-least-once, rejeu inoffensif,
   backoff puis poison (ADR 0014). Le discriminant (`bank.money-deposited`,
   premier segment = module publieur) est un nom stable choisi, jamais un nom
-  de type .NET. Les tables `__outbox`/`__inbox` naissent via `ModuleMigrator`.
+  de type .NET. Les tables `__outbox`/`__inbox` naissent via `ModuleMigrator`
+  (DDL idempotent, sans timeline de migration) ; plusieurs instances de
+  l'hôte se partagent chaque outbox par Réservation à bail, et les lignes
+  livrées ou traitées sont purgées après la Rétention — trois réglages
+  d'`OutboxOptions`, poison jamais purgé (ADR 0021).
   **Synchrone** : un port de lecture publié dans les Contrats
   (`IBankAccountsContract`), implémenté chez le propriétaire comme un reader —
   DTOs plats, `null` pour l'absence, lecture pure in-process. Garde-fous :

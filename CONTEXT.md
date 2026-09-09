@@ -125,6 +125,19 @@ rend la livraison at-least-once idempotente et porte le marquage poison après
 épuisement des retries.
 _Avoid_ : dédup maison, journal de consommation
 
+**Réservation** :
+L'appropriation, par une instance de l'hôte, d'un lot de lignes d'outbox en
+attente pour une durée bornée — le bail. Deux instances qui dépilent la même
+outbox se partagent les lignes au lieu de les traiter deux fois ; une
+instance qui disparaît rend les siennes à l'expiration du bail.
+_Avoid_ : lock, lease, claim, verrou de lot
+
+**Rétention** :
+La durée pendant laquelle une ligne d'outbox livrée ou une ligne d'inbox
+traitée reste en base avant d'être purgée. Les lignes en attente et les
+lignes poison ne sont jamais purgées.
+_Avoid_ : nettoyage, TTL, expiration
+
 **Description (OpenAPI)** :
 La surface Application d'un module, décrite pour le front : les statuts que
 ModuleController garantit, la forme unique d'erreur et ses codes. Dérivée du

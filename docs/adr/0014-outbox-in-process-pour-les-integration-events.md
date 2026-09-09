@@ -41,6 +41,10 @@ l'atomicité et l'échec bruyant d'un discriminant sans module ;
 `OutboxProcessorTest` la livraison, l'inoffensivité du rejeu, la transaction
 par handler, le poison et le « livré à personne ».
 
+Ce chemin est celui d'un hôte ; ce qui se passe quand plusieurs hôtes le
+parcourent — réservation du lot à bail — et le sort des lignes livrées —
+rétention et purge — sont l'objet de l'ADR 0021.
+
 ## Options écartées
 
 - **Un broker externe** (RabbitMQ, etc.) : réaliste, mais le template

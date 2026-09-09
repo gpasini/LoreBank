@@ -7,7 +7,11 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // pas du module — aucune migration EF à générer ni à recopier au clonage, et
 // tout module les a d'office (un module qui ne publie rien a une outbox
 // vide, c'est tout). Le démarrage de l'API, lui, ne crée toujours rien
-// (ADR 0006).
+// (ADR 0006). Ces tables n'ont pas de timeline de migration : le DDL du
+// socle est idempotent et ne fait que s'ajouter (ADR 0021) — le CREATE
+// TABLE porte la forme complète pour une base neuve, et chaque colonne ou
+// index venu après rattrape les bases existantes par son propre
+// IF NOT EXISTS, jamais en réécrivant le CREATE seul.
 public static class IntegrationEventTables
 {
     public static Task EnsureAsync(
@@ -27,17 +31,25 @@ public static class IntegrationEventTables
                       attempts integer NOT NULL,
                       dispatched_at timestamp with time zone,
                       poisoned_at timestamp with time zone,
-                      last_error text
+                      last_error text,
+                      reserved_until timestamp with time zone
                   );
+                  ALTER TABLE {OutboxTable(dbContext)}
+                      ADD COLUMN IF NOT EXISTS reserved_until timestamp with time zone;
                   CREATE INDEX IF NOT EXISTS ix___outbox_pending
                       ON {OutboxTable(dbContext)} (next_attempt_at)
                       WHERE dispatched_at IS NULL AND poisoned_at IS NULL;
+                  CREATE INDEX IF NOT EXISTS ix___outbox_dispatched
+                      ON {OutboxTable(dbContext)} (dispatched_at)
+                      WHERE dispatched_at IS NOT NULL;
                   CREATE TABLE IF NOT EXISTS {InboxTable(dbContext)} (
                       event_id uuid NOT NULL,
                       handler character varying(300) NOT NULL,
                       handled_at timestamp with time zone NOT NULL,
                       PRIMARY KEY (event_id, handler)
                   );
+                  CREATE INDEX IF NOT EXISTS ix___inbox_handled
+                      ON {InboxTable(dbContext)} (handled_at);
                   """,
             parameters: new Dictionary<string, object>(),
             cancellationToken: cancellationToken

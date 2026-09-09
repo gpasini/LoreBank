@@ -8,7 +8,9 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // service pour toutes les outbox, les modules ne fournissent que leur
 // contenu. Une passe qui échoue en bloc (base injoignable) est loggée et
 // retentée à la cadence suivante — les échecs par event, eux, sont gérés
-// ligne à ligne par le processor (backoff, poison).
+// ligne à ligne par le processor (backoff, poison). La purge de Rétention
+// (ADR 0021) suit la même boucle à sa propre cadence : dès le démarrage,
+// puis à l'intervalle — un hôte redémarré souvent purgerait sinon jamais.
 public sealed class OutboxDispatcher(
     OutboxProcessor processor,
     IOptions<OutboxOptions> options,
@@ -17,9 +19,15 @@ public sealed class OutboxDispatcher(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var purgeCadence = new PurgeCadence(options.Value.PurgeInterval);
+
         while (!stoppingToken.IsCancellationRequested) {
             try {
                 await processor.ProcessPendingAsync(stoppingToken);
+
+                if (purgeCadence.IsDue(DateTimeOffset.UtcNow)) {
+                    await processor.PurgeExpiredAsync(stoppingToken);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 return;

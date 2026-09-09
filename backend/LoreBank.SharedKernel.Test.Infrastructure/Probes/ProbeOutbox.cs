@@ -16,7 +16,8 @@ internal static class ProbeOutbox
         int Attempts,
         bool Dispatched,
         bool Poisoned,
-        string? LastError
+        string? LastError,
+        bool Reserved
     );
 
     internal static async Task CleanAsync(IntegrationTestWebAppFactory factory)
@@ -52,7 +53,8 @@ internal static class ProbeOutbox
             ) => {
                 command.CommandText =
                     $"""
-                     SELECT id, attempts, dispatched_at IS NOT NULL, poisoned_at IS NOT NULL, last_error
+                     SELECT id, attempts, dispatched_at IS NOT NULL, poisoned_at IS NOT NULL, last_error,
+                            reserved_until IS NOT NULL
                      FROM {dbContext.Schema}.__outbox WHERE discriminant = @discriminant
                      """;
 
@@ -72,7 +74,8 @@ internal static class ProbeOutbox
                     Attempts: reader.GetInt32(1),
                     Dispatched: reader.GetBoolean(2),
                     Poisoned: reader.GetBoolean(3),
-                    LastError: reader.IsDBNull(4) ? null : reader.GetString(4)
+                    LastError: reader.IsDBNull(4) ? null : reader.GetString(4),
+                    Reserved: reader.GetBoolean(5)
                 );
             }
         );
@@ -118,6 +121,81 @@ internal static class ProbeOutbox
                 parameter.ParameterName = "id";
                 parameter.Value = id;
                 command.Parameters.Add(parameter);
+
+                return await command.ExecuteNonQueryAsync();
+            }
+        );
+
+    // Pose ou lève un bail à la main : une réservation dans le futur simule
+    // une autre instance en plein traitement, dans le passé une instance
+    // disparue dont le bail a expiré.
+    internal static Task ReserveAsync(
+        IntegrationTestWebAppFactory factory,
+        Guid id,
+        TimeSpan fromNow
+    ) =>
+        ExecuteAsync(
+            factory: factory,
+            action: async (
+                dbContext,
+                command
+            ) => {
+                command.CommandText =
+                    $"""
+                     UPDATE {dbContext.Schema}.__outbox
+                     SET reserved_until = now() + make_interval(secs => @seconds)
+                     WHERE id = @id
+                     """;
+
+                var id_ = command.CreateParameter();
+                id_.ParameterName = "id";
+                id_.Value = id;
+                command.Parameters.Add(id_);
+
+                var seconds = command.CreateParameter();
+                seconds.ParameterName = "seconds";
+                seconds.Value = fromNow.TotalSeconds;
+                command.Parameters.Add(seconds);
+
+                return await command.ExecuteNonQueryAsync();
+            }
+        );
+
+    // Vieillit une ligne et ses traces d'inbox d'autant : la Rétention se
+    // prouve sans attendre, en antidatant ce que le processor a écrit.
+    internal static Task BackdateAsync(
+        IntegrationTestWebAppFactory factory,
+        Guid id,
+        TimeSpan by
+    ) =>
+        ExecuteAsync(
+            factory: factory,
+            action: async (
+                dbContext,
+                command
+            ) => {
+                command.CommandText =
+                    $"""
+                     UPDATE {dbContext.Schema}.__outbox
+                     SET occurred_at = occurred_at - make_interval(secs => @seconds),
+                         next_attempt_at = next_attempt_at - make_interval(secs => @seconds),
+                         dispatched_at = dispatched_at - make_interval(secs => @seconds),
+                         poisoned_at = poisoned_at - make_interval(secs => @seconds)
+                     WHERE id = @id;
+                     UPDATE {dbContext.Schema}.__inbox
+                     SET handled_at = handled_at - make_interval(secs => @seconds)
+                     WHERE event_id = @id;
+                     """;
+
+                var id_ = command.CreateParameter();
+                id_.ParameterName = "id";
+                id_.Value = id;
+                command.Parameters.Add(id_);
+
+                var seconds = command.CreateParameter();
+                seconds.ParameterName = "seconds";
+                seconds.Value = by.TotalSeconds;
+                command.Parameters.Add(seconds);
 
                 return await command.ExecuteNonQueryAsync();
             }

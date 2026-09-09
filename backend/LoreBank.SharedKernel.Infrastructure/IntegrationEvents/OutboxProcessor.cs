@@ -18,7 +18,11 @@ namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 // jusqu'au marquage poison. Le marquage « dispatché » de l'outbox est hors de
 // ces transactions (schéma du publieur, connexion distincte — la joindre
 // ferait escalader en distribué) : un crash entre les deux rejoue l'event, et
-// c'est l'inbox qui rend le rejeu inoffensif.
+// c'est l'inbox qui rend le rejeu inoffensif. Plusieurs instances de l'hôte
+// dépilent la même outbox par Réservation (ADR 0021) : la lecture du lot est
+// une appropriation à bail, en une requête courte — FOR UPDATE SKIP LOCKED
+// contre une passe simultanée, reserved_until contre celles qui suivent —
+// et chaque marquage rend la réservation.
 public sealed class OutboxProcessor(
     IServiceProvider serviceProvider,
     IEnumerable<IHostModule> modules,
@@ -30,7 +34,7 @@ public sealed class OutboxProcessor(
     public async Task ProcessPendingAsync(CancellationToken cancellationToken)
     {
         foreach (var module in modules) {
-            var rows = await ReadPendingAsync(
+            var rows = await ReserveBatchAsync(
                 module: module,
                 cancellationToken: cancellationToken
             );
@@ -42,6 +46,38 @@ public sealed class OutboxProcessor(
                     cancellationToken: cancellationToken
                 );
             }
+        }
+    }
+
+    // La Rétention (ADR 0021) : les lignes livrées et les traces d'inbox
+    // plus vieilles que la rétention disparaissent — jamais une ligne en
+    // attente (elle n'a pas de dispatched_at), jamais une ligne poison (elle
+    // reste pour un humain). Idempotente : deux instances qui purgent en
+    // même temps ne se gênent pas.
+    public async Task PurgeExpiredAsync(CancellationToken cancellationToken)
+    {
+        foreach (var module in modules) {
+            await using var scope = serviceProvider.CreateAsyncScope();
+
+            var dbContext = ModuleDbContexts.Resolve(
+                services: scope.ServiceProvider,
+                module: module
+            );
+
+            await ModuleSql.ExecuteNonQueryAsync(
+                dbContext: dbContext,
+                sql: $"""
+                      DELETE FROM {IntegrationEventTables.OutboxTable(dbContext)}
+                      WHERE dispatched_at IS NOT NULL
+                        AND dispatched_at < now() - make_interval(days => @retentionDays);
+                      DELETE FROM {IntegrationEventTables.InboxTable(dbContext)}
+                      WHERE handled_at < now() - make_interval(days => @retentionDays);
+                      """,
+                parameters: new Dictionary<string, object> {
+                    ["retentionDays"] = options.Value.RetentionDays,
+                },
+                cancellationToken: cancellationToken
+            );
         }
     }
 
@@ -214,7 +250,13 @@ public sealed class OutboxProcessor(
         }
     }
 
-    private async Task<IReadOnlyList<OutboxRow>> ReadPendingAsync(
+    // La réservation du lot : les lignes éligibles — en attente, ré-éligibles
+    // au backoff, sans bail en cours — reçoivent un bail en une seule
+    // instruction, donc une seule transaction, courte : SKIP LOCKED écarte
+    // celles qu'une passe simultanée est en train de réserver, et le bail
+    // posé les écarte des passes suivantes. RETURNING ne garantit pas
+    // l'ordre, il est rétabli en mémoire.
+    private async Task<IReadOnlyList<OutboxRow>> ReserveBatchAsync(
         IHostModule module,
         CancellationToken cancellationToken
     )
@@ -229,30 +271,46 @@ public sealed class OutboxProcessor(
         return await ModuleSql.ExecuteAsync(
             dbContext: dbContext,
             sql: $"""
-                  SELECT id, discriminant, payload, attempts FROM {IntegrationEventTables.OutboxTable(dbContext)}
-                  WHERE dispatched_at IS NULL AND poisoned_at IS NULL AND next_attempt_at <= now()
-                  ORDER BY occurred_at, id
-                  LIMIT 100
+                  UPDATE {IntegrationEventTables.OutboxTable(dbContext)}
+                  SET reserved_until = now() + make_interval(secs => @reservationSeconds)
+                  WHERE id IN (
+                      SELECT id FROM {IntegrationEventTables.OutboxTable(dbContext)}
+                      WHERE dispatched_at IS NULL AND poisoned_at IS NULL AND next_attempt_at <= now()
+                        AND (reserved_until IS NULL OR reserved_until < now())
+                      ORDER BY occurred_at, id
+                      LIMIT 100
+                      FOR UPDATE SKIP LOCKED
+                  )
+                  RETURNING id, discriminant, payload, attempts, occurred_at
                   """,
-            parameters: new Dictionary<string, object>(),
+            parameters: new Dictionary<string, object> {
+                ["reservationSeconds"] = options.Value.ReservationSeconds,
+            },
             execute: async (
                 command,
                 token
             ) => {
-                var rows = new List<OutboxRow>();
+                var rows = new List<(DateTime OccurredAt, OutboxRow Row)>();
 
                 await using var reader = await command.ExecuteReaderAsync(token);
 
                 while (await reader.ReadAsync(token)) {
-                    rows.Add(new OutboxRow(
-                        Id: reader.GetGuid(0),
-                        Discriminant: reader.GetString(1),
-                        Payload: reader.GetString(2),
-                        Attempts: reader.GetInt32(3)
+                    rows.Add((
+                        reader.GetDateTime(4),
+                        new OutboxRow(
+                            Id: reader.GetGuid(0),
+                            Discriminant: reader.GetString(1),
+                            Payload: reader.GetString(2),
+                            Attempts: reader.GetInt32(3)
+                        )
                     ));
                 }
 
-                return (IReadOnlyList<OutboxRow>)rows;
+                return (IReadOnlyList<OutboxRow>)rows
+                    .OrderBy(entry => entry.OccurredAt)
+                    .ThenBy(entry => entry.Row.Id)
+                    .Select(entry => entry.Row)
+                    .ToList();
             },
             cancellationToken: cancellationToken
         );
@@ -273,7 +331,11 @@ public sealed class OutboxProcessor(
 
         await ModuleSql.ExecuteNonQueryAsync(
             dbContext: dbContext,
-            sql: $"UPDATE {IntegrationEventTables.OutboxTable(dbContext)} SET dispatched_at = now() WHERE id = @id",
+            sql: $"""
+                  UPDATE {IntegrationEventTables.OutboxTable(dbContext)}
+                  SET dispatched_at = now(), reserved_until = NULL
+                  WHERE id = @id
+                  """,
             parameters: new Dictionary<string, object> {
                 ["id"] = row.Id,
             },
@@ -315,7 +377,8 @@ public sealed class OutboxProcessor(
                   SET attempts = @attempts,
                       last_error = @lastError,
                       next_attempt_at = now() + make_interval(secs => @delaySeconds),
-                      poisoned_at = CASE WHEN @poisoned THEN now() END
+                      poisoned_at = CASE WHEN @poisoned THEN now() END,
+                      reserved_until = NULL
                   WHERE id = @id
                   """,
             parameters: new Dictionary<string, object> {

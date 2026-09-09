@@ -210,6 +210,287 @@ public sealed class OutboxProcessorTest : BaseHostTest<SharedKernelWebAppFactory
         ))!.Dispatched.Should().BeTrue();
     }
 
+    [Test]
+    public async Task ProcessPendingAsync_ShouldReserveTheBatch_WhenAnotherPassRunsConcurrently()
+    {
+        // Arrange
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+        ProbeRecordingIntegrationEventHandler.Gate = new TaskCompletionSource();
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "réservation"
+        ));
+
+        // Act — la première passe réserve le lot et s'arrête dans le handler ;
+        // la seconde, lancée à côté comme le ferait une autre instance de
+        // l'hôte, doit rendre la main sans rien livrer.
+
+        var firstPass = ProcessPendingAsync();
+
+        await ProbeRecordingIntegrationEventHandler.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var secondPass = ProcessPendingAsync();
+
+        await secondPass.WaitAsync(TimeSpan.FromSeconds(5));
+
+        ProbeRecordingIntegrationEventHandler.Gate.SetResult();
+
+        await firstPass;
+
+        // Assert
+
+        ProbeRecordingIntegrationEventHandler.Received.Should().ContainSingle();
+        ProbeFailingIntegrationEventHandler.Invocations.Should().Be(1);
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        row!.Dispatched.Should().BeTrue();
+        row.Attempts.Should().Be(0);
+        row.Reserved.Should().BeFalse();
+
+        (await ProbeOutbox.CountInboxAsync(
+            factory: Factory,
+            eventId: row.Id
+        )).Should().Be(2);
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldSkipAReservedRow_UntilItsReservationExpires()
+    {
+        // Arrange
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "reprise"
+        ));
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        // Act — une autre instance tient la ligne : la passe la laisse.
+
+        await ProbeOutbox.ReserveAsync(
+            factory: Factory,
+            id: row!.Id,
+            fromNow: TimeSpan.FromHours(1)
+        );
+
+        await ProcessPendingAsync();
+
+        // Assert
+
+        ProbeRecordingIntegrationEventHandler.Received.Should().BeEmpty();
+
+        // Act — l'instance a disparu, son bail est échu : la passe reprend la ligne.
+
+        await ProbeOutbox.ReserveAsync(
+            factory: Factory,
+            id: row.Id,
+            fromNow: TimeSpan.FromHours(-1)
+        );
+
+        await ProcessPendingAsync();
+
+        // Assert
+
+        ProbeRecordingIntegrationEventHandler.Received.Should().ContainSingle();
+
+        (await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        ))!.Dispatched.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task ProcessPendingAsync_ShouldReleaseTheReservation_WhenAHandlerFails()
+    {
+        // Arrange
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "échec"
+        ));
+
+        // Act
+
+        await ProcessPendingAsync();
+
+        // Assert — le backoff seul décide de la prochaine tentative, pas le bail.
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        row!.Attempts.Should().Be(1);
+        row.Dispatched.Should().BeFalse();
+        row.Reserved.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldDeleteADispatchedRowAndItsInbox_WhenOlderThanRetention()
+    {
+        // Arrange
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "purge"
+        ));
+
+        await ProcessPendingAsync();
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        await ProbeOutbox.BackdateAsync(
+            factory: Factory,
+            id: row!.Id,
+            by: BeyondRetention
+        );
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert
+
+        (await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        )).Should().BeNull();
+
+        (await ProbeOutbox.CountInboxAsync(
+            factory: Factory,
+            eventId: row.Id
+        )).Should().Be(0);
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldKeepADispatchedRow_WhenWithinRetention()
+    {
+        // Arrange
+
+        ProbeFailingIntegrationEventHandler.ShouldFail = false;
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "récente"
+        ));
+
+        await ProcessPendingAsync();
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        row.Should().NotBeNull();
+
+        (await ProbeOutbox.CountInboxAsync(
+            factory: Factory,
+            eventId: row!.Id
+        )).Should().Be(2);
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldKeepAPoisonedRow_WhenOlderThanRetention()
+    {
+        // Arrange — MaxAttempts vaut 2 dans le harnais : deux passes échouées.
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "poison ancien"
+        ));
+
+        await ProcessPendingAsync();
+        await ProcessPendingAsync();
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        row!.Poisoned.Should().BeTrue();
+
+        await ProbeOutbox.BackdateAsync(
+            factory: Factory,
+            id: row.Id,
+            by: BeyondRetention
+        );
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert — une ligne poison reste pour un humain, quel que soit son âge.
+
+        (await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        ))!.Poisoned.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task PurgeExpiredAsync_ShouldKeepAPendingRow_WhenOlderThanRetention()
+    {
+        // Arrange
+
+        await PublishAsync(new ProbeIntegrationEvent(
+            ThingId: Guid.NewGuid(),
+            Label: "en attente"
+        ));
+
+        var row = await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        );
+
+        await ProbeOutbox.BackdateAsync(
+            factory: Factory,
+            id: row!.Id,
+            by: BeyondRetention
+        );
+
+        // Act
+
+        await PurgeExpiredAsync();
+
+        // Assert
+
+        (await ProbeOutbox.FindRowAsync(
+            factory: Factory,
+            discriminant: "probe.probe-happened"
+        ))!.Dispatched.Should().BeFalse();
+    }
+
+    // La rétention par défaut est de 7 jours ; le harnais ne la resserre
+    // pas, les tests antidatent au-delà.
+    private static readonly TimeSpan BeyondRetention = TimeSpan.FromDays(8);
+
+    private static Task PurgeExpiredAsync() =>
+        Factory.Services
+            .GetRequiredService<OutboxProcessor>()
+            .PurgeExpiredAsync(CancellationToken.None);
+
     private static Task ProcessPendingAsync() =>
         Factory.Services
             .GetRequiredService<OutboxProcessor>()
