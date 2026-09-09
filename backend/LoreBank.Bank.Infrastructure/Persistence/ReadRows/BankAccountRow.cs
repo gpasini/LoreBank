@@ -8,5 +8,6 @@ public sealed record BankAccountRow(
     string Iban,
     decimal BalanceAmount,
     string BalanceCurrency,
-    bool IsClosed
+    bool IsClosed,
+    string? OpenedBy
 );

@@ -619,7 +619,8 @@
           "iban",
           "balance",
           "currency",
-          "isClosed"
+          "isClosed",
+          "openedBy"
         ],
         "type": "object",
         "properties": {
@@ -638,6 +639,12 @@
           },
           "isClosed": {
             "type": "boolean"
+          },
+          "openedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -706,6 +713,7 @@
           "BANK.NON_EMPTY_ACCOUNT_CLOSURE",
           "CONCURRENT_UPDATE",
           "CURRENCY_MISMATCH",
+          "INVALID_ACTOR",
           "INVALID_BIC",
           "INVALID_CURRENCY",
           "INVALID_IBAN",

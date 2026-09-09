@@ -46,6 +46,20 @@ public sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAcco
             }
         );
 
+        // L'Anonyme est null hors du Domain (ADR 0023) : la forme de l'absence
+        // que les readers ont déjà, et qu'un identifiant réel ne peut pas
+        // contrefaire. Mappé sur le backing field nullable de l'agrégat, pas
+        // sur OpenedBy : un convertisseur EF n'est jamais appelé sur un NULL,
+        // c'est la propriété qui retraduit null en Anonyme.
+        builder
+            .Property<Actor?>("_openedBy")
+            .HasColumnName("opened_by")
+            .IsRequired(false)
+            .HasConversion(
+                convertToProviderExpression: actor => actor!.Id,
+                convertFromProviderExpression: value => Actor.Hydrate(value)
+            );
+
         builder
             .Property(account => account.IsClosed)
             .HasColumnName("is_closed");

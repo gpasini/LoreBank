@@ -4,4 +4,9 @@
         <PackageReference Include="MediatR"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Le port ICurrentActor rend un Actor du Domain (ADR 0023). -->
+        <ProjectReference Include="..\LoreBank.SharedKernel.Domain\LoreBank.SharedKernel.Domain.csproj"/>
+    </ItemGroup>
+
 </Project>

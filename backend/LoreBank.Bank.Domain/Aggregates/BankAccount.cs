@@ -7,14 +7,21 @@ namespace LoreBank.Bank.Domain.Aggregates;
 
 public sealed class BankAccount : AggregateRoot<BankAccountId>
 {
+    // L'Anonyme est null hors du Domain (ADR 0023) : ce champ est la seule
+    // place où le Domain le voit — EF matérialise la colonne nullable dedans,
+    // sans convertisseur à appeler sur un NULL, et OpenedBy le retraduit.
+    private readonly Actor? _openedBy;
+
     private BankAccount(
         BankAccountId id,
         Iban iban,
-        Money balance
+        Money balance,
+        Actor openedBy
     ) : base(id)
     {
         Iban = iban;
         Balance = balance;
+        _openedBy = openedBy.IsAnonymous ? null : openedBy;
     }
 
     // Réservé à la matérialisation EF Core, qui écrit ensuite les backing fields.
@@ -26,13 +33,18 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
 
     public Iban Iban { get; }
 
+    // L'Acteur qui a ouvert le compte (ADR 0023) : reçu de la transition,
+    // jamais demandé — Anonyme tant que personne n'authentifie.
+    public Actor OpenedBy => _openedBy ?? Actor.Anonymous;
+
     public Money Balance { get; private set; }
 
     public bool IsClosed { get; private set; }
 
     public static BankAccount Open(
         Iban iban,
-        string currency
+        string currency,
+        Actor openedBy
     )
     {
         var account = new BankAccount(
@@ -41,13 +53,15 @@ public sealed class BankAccount : AggregateRoot<BankAccountId>
             balance: Money.Of(
                 amount: 0m,
                 currency: currency
-            )
+            ),
+            openedBy: openedBy
         );
 
         account.AddDomainEvent(
             new BankAccountOpenedDomainEvent(
                 AccountId: account.Id,
-                Iban: iban
+                Iban: iban,
+                OpenedBy: openedBy
             )
         );
 

@@ -1,11 +1,13 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using LoreBank.Host.Modules;
+using LoreBank.SharedKernel.Api.Actors;
 using LoreBank.SharedKernel.Api.Filters;
 using LoreBank.SharedKernel.Api.Handlers;
 using LoreBank.SharedKernel.Api.Health;
 using LoreBank.SharedKernel.Api.OpenApi;
 using LoreBank.SharedKernel.Api.Validation;
+using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Application.Behaviors;
 using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure;
@@ -55,6 +57,13 @@ builder.Host.ConfigureContainer<ContainerBuilder>(container => {
 );
 
 var mvc = builder.Services.AddControllers(options => options.Filters.Add<DomainExceptionFilter>());
+
+// L'Acteur (ADR 0023) : le socle n'authentifie rien, il lit le principal que
+// le hosting expose — Anonyme tant qu'aucun schéma n'est monté. Le cloneur
+// qui branche son fournisseur ajoute AddAuthentication/UseAuthentication ici,
+// et les modules n'ont rien à changer.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentActor, HttpContextActor>();
 
 foreach (var module in modules) {
     mvc.AddApplicationPart(module.ControllerAssembly);

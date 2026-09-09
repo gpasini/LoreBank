@@ -413,6 +413,17 @@ aboutir sans que le client l'apprenne. Rejouer une commande dans ce cas peut la
 dédoubler. Le remède n'est pas un compteur de tentatives mais une clé
 d'idempotence portée par la commande — une décision qui vous appartient.
 
+**Pas de 401 ni de 403.** Le socle n'authentifie ni n'autorise rien : c'est
+un choix de fournisseur (Keycloak, Entra, Auth0…) que chaque cloneur ferait
+à sa place — ADR 0023. Ce que le socle porte, c'est l'**Acteur** : qui agit,
+identifié par l'identifiant opaque du fournisseur, Anonyme tant que personne
+n'authentifie, fourni aux handlers par le port `ICurrentActor` et lu sur le
+principal qu'ASP.NET Core expose de toute façon. Le jour où vous montez votre
+schéma (`AddAuthentication` + `UseAuthentication`, une `FallbackPolicy` pour
+fermer par défaut), les 401 et 403 qui apparaissent doivent rejoindre cette
+forme — un `code` sans préfixe, pas de `detail` — et la liste des statuts de
+la Description. Rien de tout cela n'existe aujourd'hui, volontairement.
+
 ## Côté front
 
 ### Le catalogue de traductions suit l'architecture

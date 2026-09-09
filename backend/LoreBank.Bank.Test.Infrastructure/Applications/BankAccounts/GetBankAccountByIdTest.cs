@@ -50,6 +50,7 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
         account.Balance.Should().Be(42.50m);
         account.Currency.Should().Be("EUR");
         account.IsClosed.Should().BeFalse();
+        account.OpenedBy.Should().BeNull();
     }
 
     [Test]

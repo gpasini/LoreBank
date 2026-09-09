@@ -85,7 +85,9 @@ communication inter-modules.
   `NotFoundException`, et les VO transverses (`Iban`, `Bic`, `Money`,
   `PositiveMoney` — le montant d'une opération, strictement positif : une
   transition qui prend un `Money` nu accepterait un montant négatif qui
-  inverse son sens). Le même
+  inverse son sens — et `Actor`, l'Acteur : qui agit, identifiant opaque du
+  fournisseur d'identité ou Anonyme, reçu en paramètre par une transition
+  qui enregistre son auteur, jamais demandé par le Domain — ADR 0023). Le même
   dossier porte `LoreBank.SharedKernel.Api`, qui accueille ce que tous les
   modules partagent côté HTTP : `Controllers/ModuleController` (la base des
   controllers de module — ADR 0011), `Problems/ApiProblem` (la forme unique d'une
@@ -227,6 +229,16 @@ communication inter-modules.
   toujours un `code`, qu'on soit passé par une commande ou par une lecture — le
   controller n'a donc aucun cas d'absence à traiter, et jamais de `NotFound()` à
   écrire. Corollaire : une query ne peut pas servir de sonde d'existence.
+  Le socle n'authentifie ni n'autorise rien — un choix de fournisseur laissé
+  au cloneur (ADR 0023) — mais fournit l'Acteur par le port `ICurrentActor`
+  de `LoreBank.SharedKernel.Application`, que le handler d'une commande prend
+  en dépendance pour le passer à la transition ; l'implémentation du socle
+  (`HttpContextActor`, `LoreBank.SharedKernel.Api`, enregistrée par l'hôte)
+  lit le principal exposé par ASP.NET Core — Anonyme sans schéma monté,
+  l'identifiant du principal dès que le cloneur monte le sien, sans rien
+  changer aux modules ; en base et dans un Result, l'Anonyme est `null`, et
+  le harnais d'un module agit « en tant que » par un fake du port
+  (`ConfigurableCurrentActor` côté Bank).
 - `ICommand` et `ICreationCommand` portent le marqueur `IMutatingRequest`, que
   `IQuery<TResponse>` n'a pas. C'est lui, et lui seul, qui décide de ce que le
   `TransactionBehavior` de `LoreBank.SharedKernel.Application` enveloppe : toute

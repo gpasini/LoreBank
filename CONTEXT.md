@@ -154,6 +154,14 @@ L'identifiant de trace W3C qu'une requête porte dans tous ses logs et dans sa
 réponse d'erreur, propagé depuis l'appelant quand il le fournit.
 _Avoid_ : correlation id, request id, trace identifier
 
+**Acteur** :
+Qui agit — humain ou système — identifié par l'identifiant opaque que le
+fournisseur d'identité lui donne, sans autre attribut. Toute requête en a un :
+Anonyme tant que personne n'authentifie. Le socle le nomme et le fournit ;
+il n'authentifie ni n'autorise — c'est au cloneur de brancher son
+fournisseur.
+_Avoid_ : user, utilisateur courant, principal, caller, identity, auteur
+
 **Description (OpenAPI)** :
 La surface Application d'un module, décrite pour le front : les statuts que
 ModuleController garantit, la forme unique d'erreur et ses codes. Dérivée du

@@ -37,7 +37,8 @@ public sealed class PipelineWiringTest : BaseIntegrationTest<BankWebAppFactory, 
             Iban: "FR7630006000011234567890189",
             Balance: 0m,
             Currency: "EUR",
-            IsClosed: false
+            IsClosed: false,
+            OpenedBy: null
         );
         BankAccountResult? result = null;
 

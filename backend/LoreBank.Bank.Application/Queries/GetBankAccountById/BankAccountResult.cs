@@ -7,5 +7,7 @@ public sealed record BankAccountResult(
     string Iban,
     decimal Balance,
     string Currency,
-    bool IsClosed
+    bool IsClosed,
+    // L'Acteur qui a ouvert le compte ; null pour un Anonyme (ADR 0023).
+    string? OpenedBy
 );

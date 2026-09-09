@@ -7,6 +7,7 @@ public sealed class BankAccountBuilder
 {
     private Iban _iban = Iban.Parse("FR7630006000011234567890189");
     private string _currency = "EUR";
+    private Actor _openedBy = Actor.Anonymous;
     private decimal _balance;
     private bool _isClosed;
 
@@ -19,6 +20,12 @@ public sealed class BankAccountBuilder
     public BankAccountBuilder WithCurrency(string currency)
     {
         _currency = currency;
+        return this;
+    }
+
+    public BankAccountBuilder OpenedBy(Actor actor)
+    {
+        _openedBy = actor;
         return this;
     }
 
@@ -38,7 +45,8 @@ public sealed class BankAccountBuilder
     {
         var account = BankAccount.Open(
             iban: _iban,
-            currency: _currency
+            currency: _currency,
+            openedBy: _openedBy
         );
 
         if (_balance > 0m) {

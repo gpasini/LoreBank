@@ -1,4 +1,5 @@
 using LoreBank.SharedKernel.Api.Controllers;
+using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,8 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Probes;
 // Description OpenAPI doit lire (DescriptionContractTest) : commande,
 // création, lecture, route mixte à propriété [RouteBound]. Ces dernières ne
 // s'exécutent jamais — la Description se lit sans appel — donc aucun handler
-// MediatR n'est câblé derrière.
+// MediatR n'est câblé derrière. Et l'Acteur courant (ActorContractTest) : le
+// template livré n'authentifie rien, une requête HTTP est Anonyme (ADR 0023).
 [Route("api/probe")]
 public sealed class ProbeController(ISender sender) : ModuleController(sender)
 {
@@ -31,6 +33,12 @@ public sealed class ProbeController(ISender sender) : ModuleController(sender)
 
     [HttpPost("bindings")]
     public IActionResult Bind(ProbeBindingRequest request) => NoContent();
+
+    [HttpGet("actor")]
+    public ActionResult<ProbeActorResult> Actor([FromServices] ICurrentActor currentActor) => new ProbeActorResult(
+        Anonymous: currentActor.Actor.IsAnonymous,
+        Id: currentActor.Actor.IsAnonymous ? null : currentActor.Actor.Id
+    );
 
     [HttpGet("crash")]
     public IActionResult Crash() => throw new InvalidOperationException("boom");
