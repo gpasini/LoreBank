@@ -1,7 +1,7 @@
-experimental_monorepo_root = true
-
-[env]
-MISE_EXPERIMENTAL = "1"
+# Un mise antérieur ignorerait `monorepo_root` en silence (plus aucune tâche
+# `//backend:*`) : la borne le fait échouer bruyamment à la place.
+min_version = "2026.9.0"
+monorepo_root = true
 
 [monorepo]
 config_roots = [
