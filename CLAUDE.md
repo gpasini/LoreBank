@@ -25,7 +25,12 @@ communication inter-modules.
   `audit` (`npm audit --audit-level=high`) côté front. `mise run check` à
   la racine rejoue tout ; `mise run pre-commit` les rapides, installable en
   hook par `mise generate git-pre-commit --write`. Les exemptions
-  d'analyseurs vivent dans `.editorconfig` avec leur pourquoi.
+  d'analyseurs vivent dans `.editorconfig` avec leur pourquoi. La
+  **couverture** (ADR 0029) est une mesure hors des portes, jamais
+  seuillée : `mise run //backend:coverage` rend `backend/coverage/report/`
+  (`coverlet.collector` déclaré une fois dans `Directory.Build.props`,
+  exclusions dans `coverage.runsettings`, ReportGenerator dans le manifest
+  d'outils), et la CI en met le résumé par assembly dans la page du run.
 - Les versions de packages sont centralisées dans
   `backend/Directory.Packages.props` (central package management) : un csproj
   référence sans attribut `Version`, et les pins — licence (FluentAssertions

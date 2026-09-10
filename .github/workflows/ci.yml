@@ -44,6 +44,19 @@ jobs:
       - name: Test
         run: mise run test
 
+      # La couverture est une mesure, pas une porte (ADR 0029) : hors de
+      # `mise run check`, elle ne rougit jamais. Le résumé par assembly va
+      # dans la page du run, le HTML en artefact.
+      - name: Coverage
+        run: |
+          mise run coverage
+          cat coverage/report/Summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/coverage/report
+
   # Le Client TypeScript se génère depuis le fichier commité et doit compiler :
   # c'est ce job qui matérialise « le front est complet sur les codes d'erreur
   # ou ne compile pas » (src/api/errorMessages.ts est typé sur ErrorCode).

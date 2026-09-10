@@ -11,6 +11,8 @@
         <PackageVersion Include="Autofac" Version="8.4.0"/>
         <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="11.0.2"/>
         <!-- Pinné en 7.x : dernière version sous licence Apache 2.0. -->
+        <!-- Le data collector de couverture (ADR 0029), référencé par Directory.Build.props sur les projets de test. -->
+        <PackageVersion Include="coverlet.collector" Version="6.0.4"/>
         <PackageVersion Include="FluentAssertions" Version="7.2.0"/>
         <!-- Pinné en 12.x : dernière version sous licence Apache 2.0. -->
         <PackageVersion Include="MediatR" Version="12.5.0"/>

@@ -9,6 +9,8 @@ artifacts/
 TestResults/
 *.coverage
 *.trx
+# La carte de couverture (ADR 0029), produite par `mise run coverage`
+backend/coverage/
 
 # Front (le Client généré est ignoré par frontend/.gitignore)
 node_modules/

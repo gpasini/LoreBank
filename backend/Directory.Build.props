@@ -28,6 +28,17 @@
          d'API bannies fait échouer le build d'un Domain ou d'une Application —
          socle inclus — qui lirait l'horloge en direct ; les symboles et le
          message vivent dans BannedSymbols.txt. -->
+    <!-- La couverture est une mesure, pas une porte (ADR 0029) : le data
+         collector est déclaré ici, une fois pour tous les projets de test,
+         et ne collecte que si `mise run coverage` le demande
+         (option collect « XPlat Code Coverage », exclusions dans coverage.runsettings). -->
+    <ItemGroup Condition="$(MSBuildProjectName.Contains('.Test.'))">
+        <PackageReference Include="coverlet.collector">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Domain')) Or $(MSBuildProjectName.EndsWith('.Application'))">
         <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all"/>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt"/>

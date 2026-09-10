@@ -234,3 +234,11 @@ sur le poste — même commande, un step de CI par tâche : build sans warning
 pas ce que le build ou un test d'architecture tient déjà ; ce qu'aucune
 porte ne tient est dit tel quel (le Style Rider, la couverture).
 _Avoid_ : check, lint, quality gate, hook
+
+**Couverture** :
+La carte de ce que la suite exécute, par assembly et par ligne, hors code
+généré, migrations, Probe et tests — mesurée par le data collector,
+rendue par ReportGenerator, publiée dans la page du run de CI. Une mesure
+qui dit où regarder, jamais une Porte : aucun seuil, hors de
+`mise run check`.
+_Avoid_ : seuil de couverture, coverage gate, pourcentage à tenir

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Les exclusions de la carte de couverture (ADR 0029) : ce que la mesure
+     compterait sans qu'un test le vise — le code généré (obj/, dont la source
+     du générateur OpenAPI de .NET 10), les migrations que ModuleMigrator
+     rejoue, le module Probe (le terrain du harnais) et les projets de test. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[LoreBank.Probe.*]*,[*.Test.*]*</Exclude>
+          <ExcludeByFile>**/obj/**,**/Persistence/Migrations/**</ExcludeByFile>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

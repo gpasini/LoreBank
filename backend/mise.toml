@@ -28,6 +28,16 @@ if ! git diff --exit-code -- openapi/; then
 fi
 """
 
+[tasks.coverage]
+description = "La carte de couverture (ADR 0029) — une mesure, pas une porte : coverage/report/index.html et SummaryGithub.md"
+depends = ["build"]
+run = """
+set -e
+rm -rf coverage
+dotnet test LoreBank.slnx --no-build --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory coverage/raw
+dotnet tool run reportgenerator "-reports:coverage/raw/**/coverage.cobertura.xml" -targetdir:coverage/report "-reporttypes:Html;MarkdownAssembliesSummary" -verbosity:Warning
+"""
+
 [tasks.migrate]
 description = "Applique les migrations de tous les modules (l'API ne migre jamais au démarrage)"
 run = "dotnet run --project LoreBank.Host -- migrate"

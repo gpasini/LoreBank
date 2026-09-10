@@ -96,10 +96,11 @@ Description, deux `StartsWith` sans `StringComparison`.
 - **Un analyseur tiers** (Sonar, Roslynator, Meziantou) : les conventions
   qui comptent ici vivent dans les tests d'architecture ; un analyseur
   générique ajouterait des règles à exempter, pas de la doctrine.
-- **Une couverture seuillée**, ou même collectée : un pourcentage ne dit
-  rien du filet réel (un test par transition, par reader, par contrat) ;
-  `coverlet.collector` est retiré plutôt que laissé sans usage, et la
-  question est posée à part (issue 20).
+- **Une couverture seuillée** : un pourcentage ne dit rien du filet réel
+  (un test par transition, par reader, par contrat). Ce point a d'abord
+  écarté aussi la collecte et retiré `coverlet.collector` sans usage ;
+  l'ADR 0029 le remplace — la couverture est collectée et publiée comme
+  une mesure, jamais comme une porte.
 - **Une porte de licences** : elle demande un outil et une allowlist, c'est
   la politique du cloneur ; les pins (FluentAssertions 7.x, MediatR 12.x)
   restent des commentaires dans `Directory.Packages.props`.

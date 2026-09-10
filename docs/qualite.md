@@ -51,8 +51,24 @@ cloneur qui ne le veut pas ne l'installe pas.
 - La section « Style » de `CLAUDE.md` — un paramètre par ligne, arguments
   nommés — vit en `resharper_*` dans `.editorconfig` : Rider la formate, la
   relecture la tient, Roslyn ne la connaît pas.
-- La couverture de code (issue 20) et les licences (les pins restent des
-  commentaires dans `Directory.Packages.props`).
+- Les licences (les pins restent des commentaires dans
+  `Directory.Packages.props`).
+- La couverture de code : mesurée et publiée, jamais seuillée — voir
+  ci-dessous.
+
+## La couverture : une mesure, pas une porte
+
+`mise run //backend:coverage` rejoue la suite avec le data collector et
+rend `backend/coverage/report/` (gitignoré) : `index.html` pour lire ligne
+à ligne, `Summary.md` par assembly. En CI, le step Coverage du job backend
+écrit ce résumé dans la page du run et publie le HTML en artefact
+`coverage-report`. Aucun seuil, hors de `mise run check` : la carte dit où
+regarder, elle ne rougit pas (ADR 0029).
+
+La mesure exclut ce qu'aucun test ne vise — le code généré (`obj/`, dont la
+source du générateur OpenAPI), les migrations que `ModuleMigrator` rejoue,
+le module Probe, les projets de test — dans `backend/coverage.runsettings`.
+Rien d'autre : une exclusion de plus déguiserait la carte.
 
 ## Les exemptions
 
@@ -71,5 +87,7 @@ modificateurs) et `IDE0130` (namespace = dossier) sont élevées à `warning` ;
   (`charset = utf-8`) : `mise run format` après `dotnet-ef migrations add`
   (skill `nouvelle-migration-schema`).
 - `dotnet format` compile la solution : compter une à deux minutes à froid.
+- `mise run coverage` rejoue toute la suite, instrumentée : en CI, c'est
+  une minute de plus après le step Test, jamais à sa place.
 - Biome lit `frontend/.gitignore` (`vcs.useIgnoreFile`) : le Client généré
   `src/api/schema.d.ts` n'est ni linté ni formaté.
