@@ -44,7 +44,12 @@ et la batterie `ModuleCompositionTest` le couvre d'office.
    `ConfigureModuleContainer` (pas `ConfigureTestServices` : la dernière
    inscription Autofac gagne, et le `Module` de l'Infrastructure s'exécute
    après), remise à zéro dans `ResetFakes` — et un
-   `DbSetup : DbSetupBase` (partial, constructeur `(IServiceProvider)`). Le
+   `DbSetup : DbSetupBase` (partial, constructeur `(IServiceProvider)`),
+   dont les partielles par agrégat, les gestes et les builders viennent
+   avec les use cases (skill `nouvelle-commande`, ADR 0030). Un module
+   consommateur qui arrange par les commandes d'un publieur référence son
+   `Test.Infrastructure` pour ses builders (voir le csproj de
+   `Ledger.Test.Infrastructure`). Le
    `GlobalUsings.cs` du Test.Infrastructure déclare
    `[assembly: Parallelizable(ParallelScope.None)]`.
 7. **Le contenu** vient des autres skills : agrégat et VO (`nouvel-agregat`,

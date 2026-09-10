@@ -14,7 +14,7 @@ public sealed class DepositMoneyTest : BaseIntegrationTest<BankWebAppFactory, Db
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync();
+        await DbSetup.CreateBankAccount().RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -56,15 +56,13 @@ public sealed class DepositMoneyTest : BaseIntegrationTest<BankWebAppFactory, Db
 
         // Un dépôt négatif débiterait le compte en contournant le contrôle de
         // solde du retrait : refusé par PositiveMoney avant l'agrégat.
-        await DbSetup.CreateBankAccountAsync();
-
-        var accountId = DbSetup.GetLastBankAccountId();
+        await DbSetup.CreateBankAccount().RunAsync();
 
         // Act & Assert
 
         var act = () => Sender.Send(
             new DepositMoneyCommand(
-                AccountId: accountId.Value,
+                AccountId: DbSetup.GetLastBankAccountId().Value,
                 Amount: -100m,
                 Currency: "EUR"
             )

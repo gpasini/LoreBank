@@ -1,4 +1,3 @@
-using LoreBank.Bank.Application.Commands.CloseBankAccount;
 using LoreBank.Bank.Application.Queries.ListBankAccounts;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Domain.Exceptions;
@@ -31,11 +30,10 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
 
         Factory.TimeProvider.Instant = Instant;
 
-        await DbSetup.CreateBankAccountAsync(
-            iban: "FR7630006000011234567890189",
-            currency: "EUR",
-            balance: 42.50m
-        );
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("FR7630006000011234567890189").WithCurrency("EUR"))
+            .Deposit(deposit => deposit.WithAmount(42.50m))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -54,20 +52,20 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
         account.OpenedAt.Should().Be(Instant);
     }
 
+    // Deux scénarios, pour tenir l'id de chaque compte : un geste comble son
+    // prérequis depuis le dernier créé, la clôture vise donc bien le second.
     [Test]
     public async Task ListBankAccounts_ShouldOrderByIban_AndReportClosures()
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "NL91ABNA0417164300");
+        await DbSetup.CreateBankAccount(account => account.WithIban("NL91ABNA0417164300")).RunAsync();
 
         var later = DbSetup.GetLastBankAccountId();
 
-        await DbSetup.CreateBankAccountAsync(iban: "BE68539007547034");
+        await DbSetup.CreateBankAccount(account => account.WithIban("BE68539007547034")).Close().RunAsync();
 
         var earlier = DbSetup.GetLastBankAccountId();
-
-        await Sender.Send(new CloseBankAccountCommand(earlier.Value));
 
         // Act
 
@@ -90,10 +88,9 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(
-            iban: "CH9300762011623852957",
-            currency: "EUR"
-        );
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("CH9300762011623852957").WithCurrency("EUR"))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -128,11 +125,7 @@ public sealed class ListBankAccountsTest : BaseIntegrationTest<BankWebAppFactory
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "AT611904300234573201");
-
-        var closed = DbSetup.GetLastBankAccountId();
-
-        await Sender.Send(new CloseBankAccountCommand(closed.Value));
+        await DbSetup.CreateBankAccount(account => account.WithIban("AT611904300234573201")).Close().RunAsync();
 
         // Act
 

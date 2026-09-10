@@ -28,7 +28,7 @@ public sealed class BankAccountsContractReaderTest : BaseIntegrationTest<BankWeb
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "FR7630006000011234567890189");
+        await DbSetup.CreateBankAccount(account => account.WithIban("FR7630006000011234567890189")).RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 

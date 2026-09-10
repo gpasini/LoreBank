@@ -13,7 +13,7 @@ public sealed class CloseBankAccountTest : BaseIntegrationTest<BankWebAppFactory
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync();
+        await DbSetup.CreateBankAccount().RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -33,7 +33,10 @@ public sealed class CloseBankAccountTest : BaseIntegrationTest<BankWebAppFactory
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(balance: 70m);
+        await DbSetup
+            .CreateBankAccount()
+            .Deposit(deposit => deposit.WithAmount(70m))
+            .RunAsync();
 
         // Act & Assert
 

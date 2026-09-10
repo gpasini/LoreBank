@@ -65,4 +65,19 @@ public abstract class BaseIntegrationTest<TFactory, TDbSetup> : BaseIntegrationT
         type: typeof(TDbSetup),
         args: ScopeServices
     )!;
+
+    // Un geste sans `RunAsync()` n'est pas un `Task` oublié (CS4014) mais un
+    // setup qui renvoie sans rien faire : un test qui finit avec des étapes en
+    // attente a arrangé moins qu'il ne le lit — on le dit ici, où l'oubli
+    // rougit au lieu de laisser passer un test vert sur un état vide.
+    [TearDown]
+    public void DbSetupTearDown()
+    {
+        if (DbSetup is { HasPendingSteps: true }) {
+            throw new InvalidOperationException(
+                "Le DbSetup finit le test avec des étapes en attente : le scénario n'a pas été joué, "
+                + "il manque un `await DbSetup....RunAsync()`."
+            );
+        }
+    }
 }

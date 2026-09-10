@@ -59,6 +59,10 @@ obtenir un sans passer par la factory.
    l'ordre, l'Acteur et l'Instant reçus relus tels quels (sans fake : ce sont
    des valeurs) — et une ligne par exception dans l'`ExceptionCodesTest` du
    module.
+10. **Sa partielle de `DbSetup`** (`Test.Infrastructure/Setups/DbSetup.<Agrégat>.cs`,
+    ADR 0030) : la liste des ids créés, `GetLast<Agrégat>Id()` et
+    `Get<Agrégat>Async()` via le repository — tous deux par `Arranged` ; ses
+    gestes arrivent avec ses commandes (skill `nouvelle-commande`).
 
 ## Répartition des invariants
 

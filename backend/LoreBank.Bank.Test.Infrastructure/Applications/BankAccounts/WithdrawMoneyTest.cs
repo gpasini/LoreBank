@@ -14,7 +14,10 @@ public sealed class WithdrawMoneyTest : BaseIntegrationTest<BankWebAppFactory, D
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(balance: 100m);
+        await DbSetup
+            .CreateBankAccount()
+            .Deposit(deposit => deposit.WithAmount(100m))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -40,7 +43,10 @@ public sealed class WithdrawMoneyTest : BaseIntegrationTest<BankWebAppFactory, D
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(balance: 70m);
+        await DbSetup
+            .CreateBankAccount()
+            .Deposit(deposit => deposit.WithAmount(70m))
+            .RunAsync();
 
         // Act & Assert
 
@@ -63,7 +69,10 @@ public sealed class WithdrawMoneyTest : BaseIntegrationTest<BankWebAppFactory, D
         // Un retrait négatif créditerait le compte (le contrôle de solde ne
         // voit jamais un montant négatif comme supérieur au solde) : refusé
         // par PositiveMoney avant l'agrégat.
-        await DbSetup.CreateBankAccountAsync(balance: 70m);
+        await DbSetup
+            .CreateBankAccount()
+            .Deposit(deposit => deposit.WithAmount(70m))
+            .RunAsync();
 
         // Act & Assert
 

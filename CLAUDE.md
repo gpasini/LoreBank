@@ -591,12 +591,26 @@ communication inter-modules.
   `ResetFakes`, appelé par `BaseHostTest` au SetUp et au TearDown (point
   unique, pas de reset à recopier par fixture — la surcharge appelle la base,
   qui efface les fakes du socle comme l'horloge) ; et un
-  `DbSetup : DbSetupBase` (classe partielle par agrégat, `CreateXxxAsync()`,
-  `GetLastXxxId()`), qui crée les données via les vrais use cases. Ses
-  fixtures dérivent `BaseIntegrationTest<BankWebAppFactory, DbSetup>`
-  directement — pas de classe de base par module. Les arranges
-  sont async : bloquer (`.Result`) sous le `TransactionScope` ambiant
-  emballerait tout échec en `AggregateException`.
+  `DbSetup : DbSetupBase` (une classe partielle par agrégat), qui crée les
+  données via les vrais use cases en **scénario différé** (ADR 0030) :
+  chaque geste (`CreateBankAccount`, `Deposit`, `Close`… — un par
+  commande ; `RecordDeposit` chez Ledger — un par integration event
+  consommé) prend le builder de son entrée (`Builders/`, `<Commande>Builder`
+  ou `<Event>Builder` : défauts valides, `With…()`, prérequis nullable posé
+  par `Of(id)`), comble le prérequis depuis le dernier créé, empile une
+  étape et renvoie le setup ; `RunAsync()` rejoue les étapes dans l'ordre
+  (`await DbSetup.CreateBankAccount().Deposit(d => d.WithAmount(50m))
+  .RunAsync()`), enveloppe un échec avec le rang et le nom de l'étape, et
+  laisse le setup réutilisable ; les accesseurs (`GetLastBankAccountId()`,
+  `GetBankAccountAsync()` via le repository) lèvent tant qu'une étape
+  attend, et le TearDown rougit sur un scénario jamais joué. Un
+  consommateur réutilise les builders du publieur par référence de test à
+  test (Ledger → Bank.Test.Infrastructure). Ses fixtures dérivent
+  `BaseIntegrationTest<BankWebAppFactory, DbSetup>` directement — pas de
+  classe de base par module. Les arranges restent async : bloquer
+  (`.Result`) sous le `TransactionScope` ambiant emballerait tout échec en
+  `AggregateException` — c'est le différé qui rend le chaînage possible.
+  Garde-fou : `DbSetupBaseTest`.
 - Les assemblies de test d'intégration déclarent
   `[assembly: Parallelizable(ParallelScope.None)]` : les fakes sont des
   singletons mutables non synchronisés, l'exécution en série est une hypothèse

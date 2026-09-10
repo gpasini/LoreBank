@@ -1,6 +1,4 @@
-using LoreBank.Bank.Contracts.IntegrationEvents;
 using LoreBank.Ledger.Application.Exceptions;
-using LoreBank.Ledger.Application.IntegrationEvents;
 using LoreBank.Ledger.Application.Queries.ListLedgerMovements;
 using LoreBank.Ledger.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Application;
@@ -9,10 +7,11 @@ using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 namespace LoreBank.Ledger.Test.Infrastructure.Applications.Ledger;
 
 // Les écritures du Ledger naissent des integration events : l'arrange joue
-// les handlers eux-mêmes — le vrai use case d'écriture du module — sous le
-// TransactionScope rollbacké de la fixture. La mécanique de la Liste
-// (bornes, jokers, facettes disjonctives) est prouvée par le socle
-// (ListContractTest) ; ici, que le Ledger l'emprunte, sous sa ressource.
+// les handlers eux-mêmes — le vrai use case d'écriture du module — par les
+// gestes du DbSetup, sous le TransactionScope rollbacké de la fixture. La
+// mécanique de la Liste (bornes, jokers, facettes disjonctives) est prouvée
+// par le socle (ListContractTest) ; ici, que le Ledger l'emprunte, sous sa
+// ressource.
 public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFactory, DbSetup>
 {
     private readonly static DateTimeOffset RecordingInstant = new(
@@ -44,16 +43,14 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "FR7630006000011234567890189");
-
-        var accountId = DbSetup.GetLastBankAccountId();
-
         Factory.TimeProvider.Instant = RecordingInstant;
 
-        await DepositAsync(
-            accountId: accountId,
-            amount: 25.50m
-        );
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("FR7630006000011234567890189"))
+            .RecordDeposit(deposit => deposit.WithAmount(25.50m))
+            .RunAsync();
+
+        var accountId = DbSetup.GetLastBankAccountId();
 
         // Act
 
@@ -75,32 +72,26 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
     // L'ordre est celui de la comptabilisation (ADR 0024), du plus récent au
     // plus ancien : le retrait, comptabilisé en second mais à un Instant
     // antérieur, sort en dernier — l'identifiant d'écriture ne décide de rien.
+    // L'Instant se pose hors du scénario : deux Instants, deux scénarios.
     [Test]
     public async Task ListLedgerMovements_ShouldOrderByRecordingInstant_NewestFirst()
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "IT60X0542811101000000123456");
-
-        var accountId = DbSetup.GetLastBankAccountId();
-
         Factory.TimeProvider.Instant = RecordingInstant;
 
-        await DepositAsync(
-            accountId: accountId,
-            amount: 25.50m
-        );
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("IT60X0542811101000000123456"))
+            .RecordDeposit(deposit => deposit.WithAmount(25.50m))
+            .RunAsync();
 
         Factory.TimeProvider.Instant = RecordingInstant.AddHours(-1);
 
-        await WithdrawAsync(
-            accountId: accountId,
-            amount: 10m
-        );
+        await DbSetup.RecordWithdrawal(withdrawal => withdrawal.WithAmount(10m)).RunAsync();
 
         // Act
 
-        var page = await Sender.Send(new ListLedgerMovementsQuery { AccountId = accountId });
+        var page = await Sender.Send(new ListLedgerMovementsQuery { AccountId = DbSetup.GetLastBankAccountId() });
 
         // Assert
 
@@ -122,22 +113,14 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "DE89370400440532013000");
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("DE89370400440532013000"))
+            .RecordDeposit(deposit => deposit.WithAmount(25.50m))
+            .RecordDeposit(deposit => deposit.WithAmount(4.50m))
+            .RecordWithdrawal(withdrawal => withdrawal.WithAmount(10m))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
-
-        await DepositAsync(
-            accountId: accountId,
-            amount: 25.50m
-        );
-        await DepositAsync(
-            accountId: accountId,
-            amount: 4.50m
-        );
-        await WithdrawAsync(
-            accountId: accountId,
-            amount: 10m
-        );
 
         // Act
 
@@ -179,18 +162,13 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "NL91ABNA0417164300");
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("NL91ABNA0417164300"))
+            .RecordDeposit(deposit => deposit.WithAmount(1m))
+            .RecordDeposit(deposit => deposit.WithAmount(2m))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
-
-        await DepositAsync(
-            accountId: accountId,
-            amount: 1m
-        );
-        await DepositAsync(
-            accountId: accountId,
-            amount: 2m
-        );
 
         var wanted = (await Sender.Send(new ListLedgerMovementsQuery { AccountId = accountId })).Items
             .Single(movement => movement.Amount == 2m);
@@ -215,7 +193,7 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync(iban: "BE68539007547034");
+        await DbSetup.CreateBankAccount(account => account.WithIban("BE68539007547034")).RunAsync();
 
         // Act
 
@@ -226,28 +204,4 @@ public sealed class ListLedgerMovementsTest : BaseIntegrationTest<LedgerWebAppFa
         page.Items.Should().BeEmpty();
         page.TotalCount.Should().Be(0);
     }
-
-    private Task DepositAsync(
-        Guid accountId,
-        decimal amount
-    ) => GetService<MoneyDepositedIntegrationEventHandler>().HandleAsync(
-        integrationEvent: new MoneyDepositedIntegrationEvent(
-            AccountId: accountId,
-            Amount: amount,
-            Currency: "EUR"
-        ),
-        cancellationToken: CancellationToken.None
-    );
-
-    private Task WithdrawAsync(
-        Guid accountId,
-        decimal amount
-    ) => GetService<MoneyWithdrawnIntegrationEventHandler>().HandleAsync(
-        integrationEvent: new MoneyWithdrawnIntegrationEvent(
-            AccountId: accountId,
-            Amount: amount,
-            Currency: "EUR"
-        ),
-        cancellationToken: CancellationToken.None
-    );
 }

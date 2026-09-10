@@ -68,7 +68,8 @@ public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory,
 
     // « Agir en tant que » (ADR 0023) : le test pose l'Acteur sur le fake du
     // port avant l'arrange — un contexte de la requête, pas un paramètre du
-    // use case. ResetFakes le remet sur Anonyme entre deux tests.
+    // use case. ResetFakes le remet sur Anonyme entre deux tests. Ce que le
+    // Domain a enregistré se lit sur l'agrégat lui-même, par le DbSetup.
     [Test]
     public async Task OpenBankAccount_ShouldRecordTheActor_WhenSomeoneIsAuthenticated()
     {
@@ -76,15 +77,13 @@ public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory,
 
         GetService<ConfigurableCurrentActor>().Actor = Actor.Of("alice");
 
-        await DbSetup.CreateBankAccountAsync();
-
         // Act
 
-        var account = await Sender.Send(new GetBankAccountByIdQuery(DbSetup.GetLastBankAccountId().Value));
+        await DbSetup.CreateBankAccount().RunAsync();
 
         // Assert
 
-        account.OpenedBy.Should().Be("alice");
+        (await DbSetup.GetBankAccountAsync()).OpenedBy.Should().Be(Actor.Of("alice"));
     }
 
     // L'Instant est reçu, jamais demandé (ADR 0024) : le handler le demande à
@@ -107,30 +106,24 @@ public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory,
 
         Factory.TimeProvider.Instant = instant;
 
-        await DbSetup.CreateBankAccountAsync();
-
         // Act
 
-        var account = await Sender.Send(new GetBankAccountByIdQuery(DbSetup.GetLastBankAccountId().Value));
+        await DbSetup.CreateBankAccount().RunAsync();
 
         // Assert
 
-        account.OpenedAt.Should().Be(instant);
+        (await DbSetup.GetBankAccountAsync()).OpenedAt.Should().Be(instant);
     }
 
     [Test]
     public async Task OpenBankAccount_ShouldRecordAnAnonymousActor_WhenNobodyIsAuthenticated()
     {
-        // Arrange
-
-        await DbSetup.CreateBankAccountAsync();
-
         // Act
 
-        var account = await Sender.Send(new GetBankAccountByIdQuery(DbSetup.GetLastBankAccountId().Value));
+        await DbSetup.CreateBankAccount().RunAsync();
 
         // Assert
 
-        account.OpenedBy.Should().BeNull();
+        (await DbSetup.GetBankAccountAsync()).OpenedBy.Should().Be(Actor.Anonymous);
     }
 }

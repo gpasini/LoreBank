@@ -43,16 +43,25 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 5. Tests d'intégration (`Applications/<Agrégat>/XxxTest.cs`, sur
    `BaseIntegrationTest<XxxWebAppFactory, DbSetup>`) : le cas nominal vérifié
    **par une query** — l'état d'après ne s'obtient que par une lecture — et
-   chaque rejet métier avec son exception. Arranges via `DbSetup`, toujours
-   `await` : bloquer sous le scope ambiant emballe l'échec en
+   chaque rejet métier avec son exception. Arranges par le scénario du
+   `DbSetup` (ADR 0030) : `await DbSetup.CreateXxx().Yyy(b => b.With…())
+   .RunAsync()` — les gestes empilent, seul le terminal est attendu ; jamais
+   de `.Result` sous le scope ambiant, qui emballe l'échec en
    `AggregateException`. Un test qui attend un Acteur ou un Instant précis
    les pose sur les fakes avant l'arrange (`ConfigurableCurrentActor` du
    module, `Factory.TimeProvider.Instant` du socle) et relit exactement
    cette valeur — jamais « autour de maintenant » ; `ResetFakes` efface.
 6. Une nouvelle route se traverse aussi en HTTP réel : un cas dans le
    `CqsContractTest` du module (204 ou 201 + `Location`, corps vide).
-7. Si le use case sert d'arrange à d'autres tests, l'ajouter au `DbSetup` du
-   module (`CreateXxxAsync`, via les vrais use cases).
+7. Le builder et le geste de la commande (ADR 0030) : un
+   `<Commande>Builder` dans `Test.Infrastructure/Builders/` — champs privés
+   à défauts valides, `With<Propriété>()`, le prérequis (l'agrégat visé) en
+   nullable lisible posé par `Of(id)`, `Build()` qui lève s'il manque — et
+   un geste au présent nu, sans `Async`, dans la partielle
+   `DbSetup.<Agrégat>.cs` : `Enqueue(nameof(Geste), step)`, le builder
+   configuré et le prérequis comblé **dans l'étape** (le dernier créé, ou un
+   par défaut), envoi par `Sender`, `return this`. Une création empile son
+   id pour `GetLast<Agrégat>Id()`.
 8. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
    diff (la nouvelle opération, son body sans la propriété `[RouteBound]`)
    et le commiter avec le changement — la CI échoue s'il manque.
@@ -77,6 +86,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 | La Description dit 204 / 201 + `Location`, le body sans la propriété `[RouteBound]` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
 | Une nouvelle exception métier est dans l'enum `ErrorCode` du Client | `ErrorCodesDescriptionTest` ; côté front, `npm run typecheck` sur `errorMessages.ts` |
 | L'Application demande l'Instant à `TimeProvider`, jamais à l'horloge (ADR 0024) | le build : l'analyseur d'API bannies rougit en `RS0030` dans tout projet `.Application` |
+| Le scénario du `DbSetup` : étapes dans l'ordre, prérequis comblé à l'exécution, échec enveloppé, accesseurs gardés (ADR 0030) | `DbSetupBaseTest` (socle) ; un `RunAsync()` non attendu est un CS4014 tenu en erreur ; un scénario jamais joué rougit au TearDown |
 
 Renommer une propriété du record est un breaking change HTTP que le
 compilateur ne voit pas : ce sont les payloads réels de `CqsContractTest` qui

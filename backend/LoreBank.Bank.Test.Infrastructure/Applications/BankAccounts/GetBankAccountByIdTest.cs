@@ -1,4 +1,3 @@
-using LoreBank.Bank.Application.Commands.CloseBankAccount;
 using LoreBank.Bank.Application.Exceptions;
 using LoreBank.Bank.Application.Queries.GetBankAccountById;
 using LoreBank.Bank.Test.Infrastructure.Setups;
@@ -45,11 +44,10 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
 
         Factory.TimeProvider.Instant = Instant;
 
-        await DbSetup.CreateBankAccountAsync(
-            iban: "FR7630006000011234567890189",
-            currency: "EUR",
-            balance: 42.50m
-        );
+        await DbSetup
+            .CreateBankAccount(account => account.WithIban("FR7630006000011234567890189").WithCurrency("EUR"))
+            .Deposit(deposit => deposit.WithAmount(42.50m))
+            .RunAsync();
 
         var accountId = DbSetup.GetLastBankAccountId();
 
@@ -73,15 +71,11 @@ public sealed class GetBankAccountByIdTest : BaseIntegrationTest<BankWebAppFacto
     {
         // Arrange
 
-        await DbSetup.CreateBankAccountAsync();
-
-        var accountId = DbSetup.GetLastBankAccountId();
-
-        await Sender.Send(new CloseBankAccountCommand(accountId.Value));
+        await DbSetup.CreateBankAccount().Close().RunAsync();
 
         // Act
 
-        var account = await Sender.Send(new GetBankAccountByIdQuery(accountId.Value));
+        var account = await Sender.Send(new GetBankAccountByIdQuery(DbSetup.GetLastBankAccountId().Value));
 
         // Assert
 

@@ -1,25 +1,44 @@
-using LoreBank.Bank.Application.Commands.OpenBankAccount;
+using LoreBank.Bank.Test.Infrastructure.Builders;
 
 namespace LoreBank.Ledger.Test.Infrastructure.Setups;
 
 // Les comptes servent d'ancrage au port de lecture publié par Bank : ils se
 // créent par les vrais use cases de Bank — un projet de test n'est pas tenu
-// par la frontière des Contrats, c'est l'hôte entier qu'il exerce.
+// par la frontière des Contrats, c'est l'hôte entier qu'il exerce — avec le
+// builder de commande de Bank, réutilisé par référence de test à test
+// (ADR 0030). Le geste reste celui de Ledger : de Bank, il ne garde que
+// l'id.
 public partial class DbSetup
 {
     private readonly List<Guid> _bankAccountIds = [];
 
-    public async Task CreateBankAccountAsync(string iban = "FR7630006000011234567890189")
+    public DbSetup CreateBankAccount(Action<OpenBankAccountCommandBuilder>? configure = null)
     {
-        var accountId = await Sender.Send(
-            new OpenBankAccountCommand(
-                Iban: iban,
-                Currency: "EUR"
-            )
+        Enqueue(
+            name: nameof(CreateBankAccount),
+            step: () => OpenAsync(configure)
         );
 
-        _bankAccountIds.Add(accountId);
+        return this;
     }
 
-    public Guid GetLastBankAccountId() => _bankAccountIds.Last();
+    public Guid GetLastBankAccountId() => Arranged(() => _bankAccountIds.Last());
+
+    private async Task OpenAsync(Action<OpenBankAccountCommandBuilder>? configure)
+    {
+        var builder = new OpenBankAccountCommandBuilder();
+
+        configure?.Invoke(builder);
+
+        _bankAccountIds.Add(await Sender.Send(builder.Build()));
+    }
+
+    private async Task<Guid> LastOrNewAccountIdAsync()
+    {
+        if (_bankAccountIds.Count == 0) {
+            await OpenAsync(configure: null);
+        }
+
+        return _bankAccountIds.Last();
+    }
 }

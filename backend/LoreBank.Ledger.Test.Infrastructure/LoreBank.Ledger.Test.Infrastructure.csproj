@@ -10,6 +10,14 @@
     <ItemGroup>
         <ProjectReference Include="..\LoreBank.Ledger.Application\LoreBank.Ledger.Application.csproj" />
         <ProjectReference Include="..\LoreBank.SharedKernel.Test.Infrastructure\LoreBank.SharedKernel.Test.Infrastructure.csproj" />
+        <!--
+          Une référence de test à test (ADR 0030) : le Ledger arrange ses comptes
+          par les commandes de Bank, avec les builders de commande de Bank — qui
+          vivent dans son Test.Infrastructure, jamais dans son Application. NUnit
+          ne découvre que les fixtures de l'assembly cible : celles de Bank ne
+          s'exécutent pas ici.
+        -->
+        <ProjectReference Include="..\LoreBank.Bank.Test.Infrastructure\LoreBank.Bank.Test.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
