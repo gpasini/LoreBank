@@ -1,6 +1,6 @@
 ---
 name: ajouter-fonctionnalite
-description: À utiliser quand une fonctionnalité est à implémenter depuis une issue du tracker local — « implémente l'issue NN », « déroule .scratch/<feature> » — ou quand un développement qui traverse plusieurs couches démarre sans plan. Orchestre les skills briques dans l'ordre et s'arrête à la vérification.
+description: À utiliser quand une fonctionnalité est à implémenter depuis une issue GitHub du repo — « implémente l'issue #NN », « déroule le ticket NN » — ou quand un développement qui traverse plusieurs couches démarre sans plan. Orchestre les skills briques dans l'ordre et s'arrête à la vérification.
 ---
 
 # Ajouter une fonctionnalité
@@ -14,18 +14,20 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
 
 ## Recette
 
-1. **Prendre l'issue** : le ticket vit dans `.scratch/<feature>/issues/NN-<slug>.md`
-   (convention `docs/agents/issue-tracker.md`), avec `spec.md` à côté. Seule
-   une issue `Status: ready-for-agent` se déroule. La passer à
-   `Status: claimed` avant tout travail.
+1. **Prendre l'issue** : `gh issue view NN --comments` (convention
+   `docs/agents/issue-tracker.md`), et l'issue de spec qu'elle cite en
+   chapeau. Seule une issue portant le label `ready-for-agent` se déroule.
+   La revendiquer avant tout travail : `gh issue edit NN --add-assignee @me`.
 2. **Vérifier le terrain** : lire `CONTEXT.md` (employer le vocabulaire du
    glossaire, pas ses synonymes) et les ADR que le chantier touche
    (`docs/adr/`). Ce que l'issue affirme sur le code existant se vérifie dans
    le code — une contradiction avec un ADR se signale, elle ne s'écrase pas.
 3. **Exiger, pas deviner** : si l'issue laisse une décision structurante
-   ouverte (quel module, quelle transition, quelle forme de lecture), la
-   passer à `Status: needs-info` avec les questions sous `## Comments`, et
-   s'arrêter. Une hypothèse silencieuse coûte plus cher qu'un aller-retour.
+   ouverte (quel module, quelle transition, quelle forme de lecture), poser
+   les questions en commentaire (`gh issue comment NN`), basculer le label
+   (`gh issue edit NN --add-label needs-info --remove-label ready-for-agent`)
+   et s'arrêter. Une hypothèse silencieuse coûte plus cher qu'un
+   aller-retour.
 4. **Dérouler les briques**, chacune par sa skill, dans l'ordre des
    dépendances :
 
@@ -51,22 +53,24 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    `ApplicationConventionTest`, contrats HTTP) sont le filet de tout ce
    qu'une consigne aurait pu manquer. Un fichier hors format se corrige par
    `mise run format`, jamais à la main.
-6. **Clore** : sous `## Comments` de l'issue, un récapitulatif — fichiers
-   créés, use cases exposés, tests ajoutés, écarts éventuels avec la spec —
-   puis `Status: ready-for-human`.
+6. **Clore** : un commentaire de récapitulatif (`gh issue comment NN`) —
+   fichiers créés, use cases exposés, tests ajoutés, écarts éventuels avec
+   la spec — puis `gh issue edit NN --add-label ready-for-human
+   --remove-label ready-for-agent`. Pas de `gh issue close` : c'est la revue
+   humaine qui ferme, une fois le diff intégré.
 
 ## Pièges
 
 - Le périmètre est celui de l'issue : une amélioration adjacente repérée en
-  route devient une **nouvelle issue** (`Status: needs-triage`), pas un
-  élargissement silencieux du diff.
+  route devient une **nouvelle issue** (`gh issue create --label
+  needs-triage`), pas un élargissement silencieux du diff.
 - Les briques se déroulent dans l'ordre du tableau : une commande écrite avant
   son agrégat force à inventer le domaine depuis le bord HTTP.
 - L'issue est la mémoire du chantier : ce qui a été décidé en la déroulant
-  s'écrit dans ses `## Comments`, pas seulement dans la conversation.
+  s'écrit dans ses commentaires GitHub, pas seulement dans la conversation.
 
 ## Avant de terminer
 
 L'étape 5 passée pour de vrai (la sortie des commandes fait foi), l'issue
-close à l'étape 6 — et rien de commité : le diff reste en working tree pour la
-revue.
+récapitulée et passée en `ready-for-human` à l'étape 6 — et rien de commité :
+le diff reste en working tree pour la revue.

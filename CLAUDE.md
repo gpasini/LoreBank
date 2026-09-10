@@ -645,8 +645,10 @@ garde-fous — les tests du socle qui rougissent si sa règle casse.
 
 ### Issue tracker
 
-Les issues vivent en fichiers markdown sous `.scratch/<feature>/` dans ce
-repo. Voir `docs/agents/issue-tracker.md`.
+Les issues vivent dans les GitHub issues du repo, pilotées par le CLI `gh`.
+Une issue de spec (label `documentation`) sert de chapeau à une
+fonctionnalité et renvoie à ses tickets. Voir
+`docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
