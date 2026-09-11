@@ -45,7 +45,8 @@ mise exec -- npm run dev
 
 Les conventions d'architecture et de code sont décrites dans
 [CLAUDE.md](CLAUDE.md), et des skills Claude Code accompagnent les gestes
-récurrents dans `.claude/skills/`.
+récurrents dans `.claude/skills/`. [AGENTS.md](AGENTS.md) y renvoie, pour les
+agents qui suivent cette convention plutôt que celle de Claude Code.
 
 ## Documentation
 
