@@ -159,6 +159,16 @@ public sealed class QualityGateFreezeTest
         path4: "ci.yml"
     );
 
+    // Le plafond de CLAUDE.md (ADR 0034), avec du mou : une phrase réécrite
+    // ne doit pas le toucher, une section nouvelle doit le franchir. Un
+    // décompte exact rougirait pour rien et s'apprendrait à contourner.
+    private const int DoctrineCeiling = 165;
+
+    private static string Doctrine => Path.Combine(
+        path1: SourceTree.Root,
+        path2: "CLAUDE.md"
+    );
+
     private static string QualityDoc => Path.Combine(
         path1: SourceTree.Root,
         path2: "docs",
@@ -355,6 +365,19 @@ public sealed class QualityGateFreezeTest
             geste: "ajouter le code à la section « Les exemptions » de docs/qualite.md, avec son pourquoi"
         ));
     }
+
+    [Test]
+    public void Doctrine_ShouldStayUnderItsCeiling_WhenItIsRead() =>
+        File.ReadAllLines(Doctrine)
+            .Length
+            .Should()
+            .BeLessThanOrEqualTo(
+                DoctrineCeiling,
+                because: Because(
+                    rule: $"CLAUDE.md est un routeur, pas un manuel (ADR 0034) : il ne porte que ce qui vaut pour toute tâche, ce qu'aucun garde-fou ne tient, et le routage — une règle tenue par un test n'y entre pas, sauf si la découvrir tard oblige à défaire plutôt qu'à corriger",
+                    geste: "faire de la place en sortant une règle qui a son garde-fou, ou relever le plafond dans QualityGateFreezeTest en disant pourquoi"
+                )
+            );
 
     private static string Because(
         string rule,

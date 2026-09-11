@@ -56,6 +56,17 @@ cloneur qui ne le veut pas ne l'installe pas.
   `Directory.Packages.props`).
 - La couverture de code : mesurée et publiée, jamais seuillée — voir
   ci-dessous.
+- **Le SDK vient de mise**, jamais du PATH : le mauvais SDK compile, puis
+  diverge. `backend/global.json` sélectionne la version, rien ne vérifie par
+  quel binaire on passe.
+- **Les erreurs métier sont des exceptions, pas un `Result`** — et les
+  paramètres qu'une `DomainException` passe à sa base sont des primitives,
+  jamais un value object (ADR 0012, `docs/erreurs.md`). Aucun test ne voit
+  ni l'un ni l'autre.
+- **Une commande ne traverse pas deux modules** : le `TransactionScope`
+  ambiant n'est pas un garde-fou de frontière — selon l'ordre d'ouverture
+  des connexions, Npgsql laisse passer ou escalade en distribué. C'est une
+  règle d'architecture, pas une contrainte technique.
 - Le **RED observé** avant le code (ADR 0032) : un test écrit après coup est
   vert, et la couverture monte — aucune porte ne distingue un test qui
   spécifie d'un test qui confirme. Le récap de l'issue en porte la trace

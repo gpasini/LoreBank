@@ -171,25 +171,23 @@ $geste" '{
 '''
 
 [tasks."hook:skills"]
-description = "Hook SessionStart : pose la table chemin → skill dans le contexte"
+description = "Hook SessionStart : énumère les skills réellement installées"
 quiet = true
 run = '''
-cat <<'TABLE'
-Procédures de construction de ce repo (.claude/skills/) — invoque la skill
-avant d'écrire : elle porte la recette, ses garde-fous et son « Avant de
-terminer ». L'ordre y est celui de l'ADR 0032 — squelette, test, RED observé,
-corps.
+# La table est dérivée de `.claude/skills/`, jamais codée en dur : une table
+# écrite à la main ment dès qu'une skill est ajoutée ou renommée. Le routage
+# geste → skill, lui, vit dans CLAUDE.md (ADR 0034) — celui-ci dit seulement
+# ce qui est réellement installé.
+echo "Skills de ce repo (.claude/skills/). Invoque celle du geste avant"
+echo "d'écrire : elle porte la recette, ses garde-fous, et l'ordre de"
+echo "l'ADR 0032 — squelette, test, RED observé, corps. Le routage complet"
+echo "est dans CLAUDE.md."
+echo
 
-| Ce que tu t'apprêtes à toucher | Skill |
-|---|---|
-| une issue GitHub à dérouler de bout en bout | ajouter-fonctionnalite |
-| *.Domain/ValueObjects/ | nouveau-value-object |
-| *.Domain/Aggregates/, *.Domain/Events/ | nouvel-agregat |
-| *.Domain/EventHandlers/, *.Domain/Services/ | nouveau-domain-event-handler |
-| *.Application/Commands/ | nouvelle-commande |
-| *.Application/Queries/, *.Infrastructure/Readers/ | nouvelle-query |
-| *.Infrastructure/Persistence/Migrations/ | nouvelle-migration-schema |
-| *.Infrastructure/Persistence/DataMigrations/ | nouvelle-data-migration |
-| un bounded context entier qui n'existe pas | nouveau-module |
-TABLE
+for fichier in .claude/skills/*/SKILL.md; do
+  [ -e "$fichier" ] || continue
+  nom=$(sed -n 's/^name: *//p' "$fichier" | head -1)
+  description=$(sed -n 's/^description: *//p' "$fichier" | head -1)
+  printf -- '- %s : %s\n' "$nom" "$description"
+done
 '''
