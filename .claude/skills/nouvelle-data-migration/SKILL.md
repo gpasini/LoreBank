@@ -32,9 +32,16 @@ backfiller / resserrer tient en une release.
 4. Le test de rejeu (`Persistence/DataMigrations/XxxTest.cs` du
    Test.Infrastructure du module, sur `BaseHostTest`) : arranger des lignes en
    SQL brut — elles ne peuvent pas passer par les use cases, c'est la raison
-   d'être de la migration —, exécuter la migration, relire. Deux cas au
+   d'être de la migration —, exécuter la migration, relire. Les quatre gestes
+   viennent de `DataMigrationProbe<TDbContext>` (`ExecuteAsync`, `ReadAsync`,
+   `ReplayAsync`, `WithNullableColumnAsync`) : aucune plomberie ADO à écrire,
+   le SQL reçoit le schéma du module. Deux cas au
    minimum : la ligne transformée, et la ligne témoin laissée intacte.
-   Nettoyage des lignes arrangées au SetUp **et** au TearDown.
+   Nettoyage des lignes arrangées au SetUp **et** au TearDown. Si la migration
+   lit une forme intermédiaire que la base migrée jusqu'au bout ne connaît
+   plus — le maillon central du triptyque —, envelopper l'arrange et le rejeu
+   dans `WithNullableColumnAsync` : la contrainte est relâchée le temps de
+   l'action et rétablie dans un finally.
 5. Appliquer : `mise run migrate` — chaque migration passe dans sa propre
    transaction, ligne de journal comprise (`<schéma>.__data_migrations_history`) :
    halte à l'échec sur un état cohérent, reprise au run suivant.

@@ -461,7 +461,10 @@ communication inter-modules.
   suivant, et le dispatcher d'events de son scope est neutre — une migration
   ne produit aucun fait métier, ses events ont déjà eu lieu. Pas de `Down` —
   revenir en arrière est une restauration de sauvegarde. Chaque migration de
-  données a un test qui la rejoue sur des données arrangées en SQL brut, et
+  données a un test qui la rejoue sur des données arrangées en SQL brut — par
+  `DataMigrationProbe<TDbContext>`, la surface du harnais : arranger, rejouer,
+  relire, et relâcher une contrainte le temps du rejeu, rétablie dans un
+  finally, pour le maillon central du triptyque —, et
   `DataMigrationRunnerTest` épingle côté socle le tout-ou-rien et la
   neutralisation des events. Procédure — classe, helpers, timestamp, test de
   rejeu : skill `nouvelle-data-migration`.

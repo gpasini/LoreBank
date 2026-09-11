@@ -3,17 +3,16 @@ using LoreBank.Bank.Infrastructure.Persistence.DataMigrations;
 using LoreBank.Bank.Test.Infrastructure.Setups;
 using LoreBank.SharedKernel.Test.Infrastructure.Fakes;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LoreBank.Bank.Test.Infrastructure.Persistence.DataMigrations;
 
 // Le rejeu du maillon central du triptyque (ADR 0013) : la migration lit une
 // forme intermédiaire — la colonne encore nullable — que la timeline complète
-// du conteneur ne connaît plus. Le test la recrée le temps de la fixture
-// (DROP NOT NULL au SetUp, SET NOT NULL au TearDown, lignes arrangées
-// supprimées avant) : c'est le prix d'un backfill prouvé sur une base migrée
-// jusqu'au bout. Hérite de BaseHostTest : la migration écrit pour de vrai.
+// du conteneur ne connaît plus. La sonde la recrée le temps du rejeu et
+// rétablit la contrainte dans un finally : c'est le prix d'un backfill prouvé
+// sur une base migrée jusqu'au bout, et il ne se paie plus en TearDown qu'il
+// faut penser à écrire. Hérite de BaseHostTest : la migration écrit pour de
+// vrai.
 [TestFixture]
 [TestOf(typeof(BackfillBankAccountOpenedAt))]
 public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFactory>
@@ -43,24 +42,10 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
     );
 
     [SetUp]
-    public async Task SetUp()
-    {
-        await DeleteArrangedRowsAsync();
-        await ExecuteRawSqlAsync(
-            sqlFor: dbContext => $"ALTER TABLE {dbContext.Schema}.bank_accounts ALTER COLUMN opened_at DROP NOT NULL",
-            parameters: []
-        );
-    }
+    public async Task SetUp() => await DeleteArrangedRowsAsync();
 
     [TearDown]
-    public async Task TearDown()
-    {
-        await DeleteArrangedRowsAsync();
-        await ExecuteRawSqlAsync(
-            sqlFor: dbContext => $"ALTER TABLE {dbContext.Schema}.bank_accounts ALTER COLUMN opened_at SET NOT NULL",
-            parameters: []
-        );
-    }
+    public async Task TearDown() => await DeleteArrangedRowsAsync();
 
     [Test]
     public async Task ExecuteAsync_ShouldDateTheAccountWithTheMigrationInstant_WhenARowPredatesTheColumn()
@@ -69,15 +54,19 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
 
         var undatedId = Guid.NewGuid();
 
-        await InsertAccountAsync(
-            id: undatedId,
-            iban: UndatedIban,
-            openedAt: null
-        );
-
         // Act
 
-        await RunMigrationAsync();
+        await WithUndatedColumnAsync(async () =>
+            {
+                await InsertAccountAsync(
+                    id: undatedId,
+                    iban: UndatedIban,
+                    openedAt: null
+                );
+
+                await ReplayAsync();
+            }
+        );
 
         // Assert
 
@@ -91,106 +80,77 @@ public sealed class BackfillBankAccountOpenedAtTest : BaseHostTest<BankWebAppFac
 
         var witnessId = Guid.NewGuid();
 
-        await InsertAccountAsync(
-            id: witnessId,
-            iban: WitnessIban,
-            openedAt: WitnessInstant
-        );
-
         // Act
 
-        await RunMigrationAsync();
+        await WithUndatedColumnAsync(async () =>
+            {
+                await InsertAccountAsync(
+                    id: witnessId,
+                    iban: WitnessIban,
+                    openedAt: WitnessInstant
+                );
+
+                await ReplayAsync();
+            }
+        );
 
         // Assert
 
         (await ReadOpenedAtAsync(witnessId)).Should().Be(WitnessInstant);
     }
 
-    private static async Task RunMigrationAsync()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
+    // Le relâchement tient le temps du rejeu seulement : à la sortie, le
+    // backfill a daté toute ligne nue, donc la contrainte se repose.
+    private static Task WithUndatedColumnAsync(Func<Task> action) =>
+        DataMigrationProbe<BankDbContext>.WithNullableColumnAsync(
+            factory: Factory,
+            table: "bank_accounts",
+            column: "opened_at",
+            action: action
+        );
 
-        await new BackfillBankAccountOpenedAt(
-            context: dbContext,
-            timeProvider: new ConfigurableTimeProvider { Instant = MigrationInstant }
-        ).ExecuteAsync(CancellationToken.None);
-    }
+    private static Task ReplayAsync() =>
+        DataMigrationProbe<BankDbContext>.ReplayAsync(
+            factory: Factory,
+            migrationFor: dbContext => new BackfillBankAccountOpenedAt(
+                context: dbContext,
+                timeProvider: new ConfigurableTimeProvider { Instant = MigrationInstant }
+            )
+        );
 
-    private static async Task InsertAccountAsync(
+    private static Task InsertAccountAsync(
         Guid id,
         string iban,
         DateTimeOffset? openedAt
-    ) => await ExecuteRawSqlAsync(
-        sqlFor: dbContext => $"INSERT INTO {dbContext.Schema}.bank_accounts (id, iban, balance_amount, balance_currency, is_closed, opened_at) "
-                             + "VALUES (@id, @iban, 0, 'EUR', false, @openedAt)",
-        parameters: new Dictionary<string, object> {
-            ["id"] = id,
-            ["iban"] = iban,
-            ["openedAt"] = openedAt.HasValue ? openedAt.Value : DBNull.Value,
-        }
-    );
-
-    private static async Task<DateTimeOffset?> ReadOpenedAtAsync(Guid id)
-    {
-        using var scope = Factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = $"SELECT opened_at FROM {dbContext.Schema}.bank_accounts WHERE id = @id";
-
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "id";
-            parameter.Value = id;
-            command.Parameters.Add(parameter);
-
-            var value = await command.ExecuteScalarAsync();
-
-            return value is DateTime dateTime ? new DateTimeOffset(dateTime) : null;
-        } finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
-
-    private static async Task DeleteArrangedRowsAsync() => await ExecuteRawSqlAsync(
-        sqlFor: dbContext => $"DELETE FROM {dbContext.Schema}.bank_accounts WHERE iban IN (@undated, @witness)",
-        parameters: new Dictionary<string, object> {
-            ["undated"] = UndatedIban,
-            ["witness"] = WitnessIban,
-        }
-    );
-
-    private static async Task ExecuteRawSqlAsync(
-        Func<BankDbContext, string> sqlFor,
-        Dictionary<string, object> parameters
-    )
-    {
-        using var scope = Factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<BankDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = sqlFor(dbContext);
-
-            foreach (var (name, value) in parameters) {
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = name;
-                parameter.Value = value;
-                command.Parameters.Add(parameter);
+    ) =>
+        DataMigrationProbe<BankDbContext>.ExecuteAsync(
+            factory: Factory,
+            sqlFor: schema =>
+                $"INSERT INTO {schema}.bank_accounts (id, iban, balance_amount, balance_currency, is_closed, opened_at) "
+                + "VALUES (@id, @iban, 0, 'EUR', false, @openedAt)",
+            parameters: new Dictionary<string, object> {
+                ["id"] = id,
+                ["iban"] = iban,
+                ["openedAt"] = openedAt.HasValue ? openedAt.Value : DBNull.Value,
             }
+        );
 
-            await command.ExecuteNonQueryAsync();
-        } finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
+    private static Task<DateTimeOffset?> ReadOpenedAtAsync(Guid id) =>
+        DataMigrationProbe<BankDbContext>.ReadAsync<DateTimeOffset?>(
+            factory: Factory,
+            sqlFor: schema => $"SELECT opened_at FROM {schema}.bank_accounts WHERE id = @id",
+            parameters: new Dictionary<string, object> {
+                ["id"] = id,
+            }
+        );
+
+    private static Task DeleteArrangedRowsAsync() =>
+        DataMigrationProbe<BankDbContext>.ExecuteAsync(
+            factory: Factory,
+            sqlFor: schema => $"DELETE FROM {schema}.bank_accounts WHERE iban IN (@undated, @witness)",
+            parameters: new Dictionary<string, object> {
+                ["undated"] = UndatedIban,
+                ["witness"] = WitnessIban,
+            }
+        );
 }

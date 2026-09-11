@@ -31,28 +31,30 @@ internal static class ProbeSql
 
     internal static Task<int> ExecuteAsync(
         IntegrationTestWebAppFactory factory,
-        string sql
+        string sql,
+        IReadOnlyDictionary<string, object>? parameters = null
     ) =>
         OutboxProbe.OnDbContextAsync<ProbeDbContext, int>(
             factory: factory,
             action: dbContext => ModuleSql.ExecuteNonQueryAsync(
                 dbContext: dbContext,
                 sql: sql,
-                parameters: new Dictionary<string, object>(),
+                parameters: parameters ?? new Dictionary<string, object>(),
                 cancellationToken: CancellationToken.None
             )
         );
 
     internal static Task<long> CountAsync(
         IntegrationTestWebAppFactory factory,
-        string sql
+        string sql,
+        IReadOnlyDictionary<string, object>? parameters = null
     ) =>
         OutboxProbe.OnDbContextAsync<ProbeDbContext, long>(
             factory: factory,
             action: dbContext => ModuleSql.ExecuteAsync(
                 dbContext: dbContext,
                 sql: sql,
-                parameters: new Dictionary<string, object>(),
+                parameters: parameters ?? new Dictionary<string, object>(),
                 execute: async (
                     command,
                     token

@@ -109,50 +109,24 @@ public sealed class DataMigrationRunnerTest : BaseHostTest<SharedKernelWebAppFac
         ProbeRecordingDataMigration.LastDispatcherType.Should().Be<NoOpDomainEventDispatcher>();
     }
 
-    private static async Task<long> CountRowsWithLabelAsync(string label)
-    {
-        using var scope = Factory.Services.CreateScope();
+    // Le geste SQL du socle, par ProbeSql : le test du runner prouve le
+    // tout-ou-rien, pas une migration — il n'a rien à faire de la sonde de
+    // rejeu.
+    private static Task<long> CountRowsWithLabelAsync(string label) =>
+        ProbeSql.CountAsync(
+            factory: Factory,
+            sql: "SELECT count(*) FROM probe.probe_things WHERE label = @label",
+            parameters: new Dictionary<string, object> {
+                ["label"] = label,
+            }
+        );
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText = $"SELECT count(*) FROM {dbContext.Schema}.probe_things WHERE label = @label";
-
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "label";
-            parameter.Value = label;
-            command.Parameters.Add(parameter);
-
-            return (long) (await command.ExecuteScalarAsync())!;
-        } finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
-
-    private static async Task CleanUpProbeTracesAsync()
-    {
-        using var scope = Factory.Services.CreateScope();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<ProbeDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            command.CommandText =
-                $"""
-                 DELETE FROM {dbContext.Schema}.probe_things WHERE label LIKE 'probe-data-migration%';
-                 DELETE FROM {dbContext.Schema}.__data_migrations_history WHERE migration_id LIKE '999999999999%';
-                 """;
-
-            await command.ExecuteNonQueryAsync();
-        } finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
-    }
+    private static Task CleanUpProbeTracesAsync() =>
+        ProbeSql.ExecuteAsync(
+            factory: Factory,
+            sql: """
+                 DELETE FROM probe.probe_things WHERE label LIKE 'probe-data-migration%';
+                 DELETE FROM probe.__data_migrations_history WHERE migration_id LIKE '999999999999%';
+                 """
+        );
 }

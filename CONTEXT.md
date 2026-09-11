@@ -114,6 +114,15 @@ garde-fou de publication d'un module se réduit à agir puis affirmer. N'expose
 ni retries, ni poison, ni inbox : des invariants du socle, pas d'un module.
 _Avoid_ : helper SQL d'outbox, lecteur d'outbox
 
+**DataMigrationProbe** :
+La surface de rejeu des migrations de données offerte aux modules : arranger
+des lignes en SQL brut, rejouer la migration, relire une colonne — et
+relâcher une contrainte le temps du rejeu, rétablie dans un finally, pour le
+maillon central du triptyque. Le test d'une migration n'écrit plus de
+plomberie ADO ; le geste d'emprunt reste celui du socle, invisible des
+assemblies de test de module.
+_Avoid_ : helper SQL de test, base de test de migration
+
 **Hydrate** :
 La factory de réhydratation d'un value object : reprend la valeur stockée
 telle quelle, sans normaliser ni valider — la validation vit dans les
