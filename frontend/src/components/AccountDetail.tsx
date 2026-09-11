@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { bankAccountKind } from "../App";
 import { type ApiProblem, api } from "../api/client";
 import type { components } from "../api/schema";
 import { iban, instant, money } from "../format";
@@ -9,6 +8,11 @@ import { Ledger } from "./Ledger";
 import { Problem } from "./Problem";
 
 type Account = components["schemas"]["BankAccountResult"];
+
+// La ressource que Bank signale : le genre stable de ses jumeaux publiés
+// (MoneyDepositedIntegrationEvent.ResourceKind). Il vit avec le composant
+// qui s'y abonne ; App l'importe d'ici pour la Liste.
+export const bankAccountKind = "bank-account";
 
 // Le détail d'un compte et ses trois transitions. Une commande ne renvoie
 // rien : après chacune, on relit le compte (GET) et on prévient le parent pour

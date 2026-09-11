@@ -2,7 +2,8 @@
 
 > Statut : accepté — 2026-09-11. Complète l'ADR 0028, dont la ligne « par
 > construction » de la table Garde-fous devient un test ; étendu d'un axe par
-> l'ADR 0032 (le résidu) et par l'ADR 0035 (la concordance du SDK).
+> l'ADR 0032 (le résidu) et par l'ADR 0035 (la concordance du SDK) ; le front
+> gagne son propre Gel, dans son langage, avec l'ADR 0036.
 
 L'ADR 0028 a outillé les Portes, l'ADR 0029 a fait de la Couverture une
 mesure. Restait un angle mort : **rien ne relisait les fichiers qui les
@@ -58,7 +59,8 @@ qu'aucun franchissement n'a de cas légitime connu :
   que rien ne le dise ;
 - les **quatre** symboles de `BannedSymbols.txt` — les symboles seuls, pas
   les messages : on ne gèle pas de la prose ;
-- les **huit** entrées de `[tasks.check]`, et pour chacune, son step dans
+- les entrées de `[tasks.check]` — **huit** à l'origine, dix depuis que le
+  front a ses tests et son build (ADR 0036) —, et pour chacune, son step dans
   `.github/workflows/ci.yml`. Une Porte supprimée est le desserrage maximal,
   et c'est ce qui remplace le « par construction » de l'ADR 0028 ;
 - la **concordance du SDK** entre `backend/mise.toml` et `backend/global.json`

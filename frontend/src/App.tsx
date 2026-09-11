@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type ApiProblem, api } from "./api/client";
 import type { components } from "./api/schema";
-import { AccountDetail } from "./components/AccountDetail";
+import { AccountDetail, bankAccountKind } from "./components/AccountDetail";
 import { AccountList } from "./components/AccountList";
 import { OpenAccountForm } from "./components/OpenAccountForm";
 import { Problem } from "./components/Problem";
@@ -12,10 +12,6 @@ import { useListing } from "./listing/useListing";
 import { useSignals } from "./signals/SignalsProvider";
 
 type Page = components["schemas"]["ListPageOfBankAccountSummaryResult"];
-
-// La ressource que Bank signale : le genre stable de ses jumeaux publiés
-// (MoneyDepositedIntegrationEvent.ResourceKind).
-export const bankAccountKind = "bank-account";
 
 // Les facettes de la Liste des comptes, nommées comme les filtres de la
 // query (ListBankAccountsQuery) : le nom lie l'une à l'autre.

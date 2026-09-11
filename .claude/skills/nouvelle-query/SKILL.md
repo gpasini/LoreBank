@@ -103,7 +103,8 @@ seule forme dans le socle, jamais une liste nue ni une enveloppe maison :
    de la Page et de l'item.
 7. Le front assemble les briques de `frontend/src/listing/` (`useListing`,
    `SearchBox`, `Facets`, `Pager`) pour sa query, avec ses libellés de
-   facettes (`App.tsx`, la Liste des comptes, est l'exemple).
+   facettes (`App.tsx`, la Liste des comptes, est l'exemple) — skill
+   `nouvel-ecran`.
 
 ## Exemple de référence
 

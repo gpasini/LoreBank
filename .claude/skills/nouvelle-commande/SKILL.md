@@ -93,7 +93,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 | Erreur métier → 422/404 codé | `ErrorContractTest`, `ExceptionCodesTest` du module |
 | Deux commandes concurrentes sur le même agrégat : la seconde est refusée en 409 `CONCURRENT_UPDATE`, rien à écrire dans le handler (ADR 0020) | `ModuleRepositoryTest` (socle), `ConcurrentUpdateTest` (module de référence) |
 | La Description dit 204 / 201 + `Location`, le body sans la propriété `[RouteBound]` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
-| Une nouvelle exception métier est dans l'enum `ErrorCode` du Client | `ErrorCodesDescriptionTest` ; côté front, `npm run typecheck` sur `errorMessages.ts` |
+| Une nouvelle exception métier est dans l'enum `ErrorCode` du Client | `ErrorCodesDescriptionTest` ; côté front, `npm run typecheck` sur `errorMessages.ts` — l'écran qui l'envoie suit la skill `nouvel-ecran` |
 | L'Application demande l'Instant à `TimeProvider`, jamais à l'horloge (ADR 0024) | le build : l'analyseur d'API bannies rougit en `RS0030` dans tout projet `.Application` |
 | Le scénario du `DbSetup` : étapes dans l'ordre, prérequis comblé à l'exécution, échec enveloppé, accesseurs gardés (ADR 0030) | `DbSetupBaseTest` (socle) ; un `RunAsync()` non attendu est un CS4014 tenu en erreur ; un scénario jamais joué rougit au TearDown |
 

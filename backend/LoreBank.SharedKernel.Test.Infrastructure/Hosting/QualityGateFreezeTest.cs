@@ -130,6 +130,8 @@ public sealed class QualityGateFreezeTest
         "mise run //frontend:generate",
         "mise run //frontend:typecheck",
         "mise run //frontend:check",
+        "mise run //frontend:test",
+        "mise run //frontend:build",
         "mise run //frontend:audit",
         "mkdir -p .claude && touch .claude/.gates-ran",
     ];

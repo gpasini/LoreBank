@@ -17,6 +17,14 @@ run = "npm run typecheck"
 description = "Gate de lint et de format (Biome) : rougit si `mise run format` changerait un fichier"
 run = "npm run check"
 
+[tasks.test]
+description = "Gate de tests du front (vitest, jsdom) : socle, écrans, conventions et Gel du front"
+run = "npm run test"
+
+[tasks.build]
+description = "Gate de build : ce que tsc accepte et que Vite refuse ne passe pas"
+run = "npm run build"
+
 [tasks.format]
 description = "Formate et applique les corrections sûres de Biome"
 run = "npm run format"

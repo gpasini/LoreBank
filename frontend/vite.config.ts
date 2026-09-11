@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
@@ -13,6 +14,17 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": env.VITE_API_PROXY ?? "http://localhost:5103",
       },
+    },
+    // Les tests tournent dans jsdom, colocalisés (*.test.ts, *.test.tsx) ;
+    // les helpers vivent dans src/test/ (docs/front.md).
+    test: {
+      environment: "jsdom",
+      include: ["src/**/*.test.{ts,tsx}"],
+      setupFiles: ["src/test/setup.ts"],
+      // Une origine absolue : le Client construit des Request, et Node
+      // refuse une URL relative. Le stub de fetch (src/test/) ne lit que le
+      // chemin.
+      env: { VITE_API_URL: "http://api.test" },
     },
   };
 });

@@ -30,6 +30,8 @@ run = [
     "mise run //frontend:generate",
     "mise run //frontend:typecheck",
     "mise run //frontend:check",
+    "mise run //frontend:test",
+    "mise run //frontend:build",
     "mise run //frontend:audit",
     # L'horodatage que lit `hook:verify` (ADR 0033) : écrit en dernier, donc
     # seulement si tout est vert. Ce n'est pas une Porte — le Gel distingue

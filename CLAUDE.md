@@ -87,6 +87,7 @@ ligne.
 | Le modèle persisté change | `nouvelle-migration-schema` | ADR 0006 |
 | Des lignes existantes à transformer | `nouvelle-data-migration` | ADR 0013 |
 | Un bounded context qui n'existe pas | `nouveau-module` | ADR 0001, 0005, 0007, 0008, 0009 |
+| Un écran du front — lecture, commandes, Signal, Liste | `nouvel-ecran` | ADR 0036 |
 | Dérouler une issue de bout en bout | `ajouter-fonctionnalite` | `docs/agents/issue-tracker.md` |
 
 Les skills vivent dans `.claude/skills/`, en Markdown : elles se lisent sans
@@ -102,6 +103,7 @@ le test qui rougit si elle casse.
 | La Description OpenAPI et le Client | `docs/openapi.md` · ADR 0019 |
 | Les portes de qualité, le Gel, la couverture | `docs/qualite.md` · ADR 0028, 0029, 0031 |
 | Le Signal (SSE) | `docs/signaux.md` · ADR 0026 |
+| Le front : la frontière socle / exemple, ses tests, son Gel | `docs/front.md` · ADR 0036 |
 | La Télémétrie | `docs/telemetrie.md` · ADR 0025 |
 | Le montage d'un module dans l'hôte | ADR 0001, 0005, 0007, 0008, 0009 |
 | Les integration events, outbox et inbox | ADR 0014, 0015, 0021 |

@@ -7,7 +7,7 @@ mise dans les deux cas. Décision et alternatives : ADR 0028.
 
 `mise run check` à la racine rejoue toutes les portes dans l'ordre de la CI ;
 chaque step de `.github/workflows/ci.yml` est `mise run <tâche>`, rien de
-plus. Une neuvième entrée ferme la liste sans être une porte : elle date le
+plus. Une onzième entrée ferme la liste sans être une porte : elle date le
 passage, pour le hook qui rappelle de lancer `check` (ADR 0033).
 
 ## Les portes
@@ -20,6 +20,8 @@ passage, pour le hook qui rappelle de lancer `check` (ADR 0033).
 | Suite complète | `mise run //backend:test` | — |
 | Types du front (le Client généré compile) | `mise run //frontend:typecheck` | — |
 | Lint et format du front (Biome) | `mise run //frontend:check` | `mise run //frontend:format` |
+| Tests du front — socle, écrans, conventions, Gel du front (ADR 0036) | `mise run //frontend:test` | — |
+| Build du front — ce que `tsc` accepte et que Vite refuse | `mise run //frontend:build` | — |
 | Vulnérabilités npm, `high` et plus, dev incluses | `mise run //frontend:audit` | `npm audit fix`, ou une montée de version ciblée |
 
 Depuis `backend/` ou `frontend/`, le préfixe tombe : `mise run format`,
@@ -45,7 +47,8 @@ cloneur qui ne le veut pas ne l'installe pas.
   `NuGetAuditMode=all` et `NuGetAuditLevel=low`. Pas de step à part.
 - **Les conventions d'architecture** (Domain, Application, composition des
   modules) : `DomainConventionTest`, `ApplicationConventionTest`,
-  `ModuleCompositionTest` — un analyseur les dirait moins bien.
+  `ModuleCompositionTest` — un analyseur les dirait moins bien. Côté front,
+  `conventions.test.ts` et `gel.test.ts` (`docs/front.md`, ADR 0036).
 
 ## Ce qu'aucune porte ne tient
 
@@ -72,6 +75,10 @@ règle qui vaut un test.
   recette de `nouvel-agregat` dicte déjà l'`ExceptionCodesTest`.
 - Un `Result` maison nommé **hors de l'heuristique** de
   `DomainConventionTest` (`Reply`, `Answer`…) : la relecture le tient.
+- Côté front, **un type de l'API écrit à la main** qui redécrit un Result :
+  il compile et diverge en silence, aucun scan ne le distingue d'un type
+  d'écran légitime (ADR 0036). La relecture le tient ; `docs/front.md` le
+  dit.
 
 Trois règles ont quitté cette liste le 2026-09-11 (ADR 0035) : les erreurs
 métier comme exceptions à paramètres scalaires — le constructeur de

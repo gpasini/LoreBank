@@ -87,7 +87,7 @@ data: {"discriminant":"bank.money-deposited","resourceKind":"bank-account","reso
   n'importe quelle instance ; il ne voit pas ce qui a été livré avant que
   la sienne démarre.
 
-Le front d'exemple ouvre **un** `EventSource` par onglet, non filtré
+Le front ouvre **un** `EventSource` par onglet, non filtré
 (`SignalsProvider`), et chaque composant s'abonne à la ressource qu'il
 affiche (`useSignals("bank-account", accountId, refresh)`). La relecture
 immédiate après sa propre commande reste : le Signal ne remplace pas le

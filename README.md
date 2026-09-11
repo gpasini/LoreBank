@@ -30,7 +30,7 @@ mise exec -- dotnet run --project LoreBank.Host
 
 Avant de pousser, `mise run check` à la racine rejoue toutes les portes de
 qualité de la CI (build sans warning, format, Description OpenAPI à jour,
-suite complète, front typé, linté, formaté, audité — `docs/qualite.md`) ;
+suite complète, front typé, linté, formaté, testé, construit, audité — `docs/qualite.md`) ;
 `mise generate git-pre-commit --write` installe les rapides en hook.
 
 Côté front, les types de l'API se génèrent depuis

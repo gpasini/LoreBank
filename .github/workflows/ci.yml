@@ -85,6 +85,13 @@ jobs:
       - name: Lint and format
         run: mise run check
 
+      - name: Test
+        run: mise run test
+
+      # Ce que tsc accepte et que Vite refuse (une résolution, un asset).
+      - name: Build
+        run: mise run build
+
       # Dépendances de dev incluses : elles s'exécutent sur le poste et ici.
       - name: Audit
         run: mise run audit

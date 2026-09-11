@@ -51,7 +51,7 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
 5. **Vérification finale** : `mise run check` à la racine — toutes les
    portes de qualité dans l'ordre de la CI (ADR 0028, `docs/qualite.md`) :
    build sans warning, format, Description à jour, **suite complète** verte,
-   front typé, linté, formaté, audité — les tests d'architecture du socle
+   front typé, linté, formaté, testé, construit, audité — les tests d'architecture du socle
    (`ModuleCompositionTest`, `DomainConventionTest`,
    `ApplicationConventionTest`, contrats HTTP) sont le filet de tout ce
    qu'une consigne aurait pu manquer. Un fichier hors format se corrige par
