@@ -17,6 +17,14 @@ public sealed class SharedKernelInfrastructureModule : Module
             .As<IDomainEventDispatcher>()
             .InstancePerLifetimeScope();
 
+        // L'accès aux tables d'integration events et ses deux politiques de
+        // scope : un par hôte, consommé par le publisher, le processor et le
+        // suiveur de Signal.
+        builder
+            .RegisterType<IntegrationEventStores>()
+            .AsSelf()
+            .SingleInstance();
+
         // Par scope, comme le DbContext dont il emprunte la connexion : le
         // publisher écrit l'outbox dans la transaction de la commande courante.
         builder

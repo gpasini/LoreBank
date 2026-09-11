@@ -1,6 +1,5 @@
-using System.Data.Common;
+using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
@@ -8,12 +7,14 @@ namespace LoreBank.SharedKernel.Test.Infrastructure.Setups;
 // La surface d'observation d'outbox offerte aux modules publieurs : leur
 // garde-fou « mes jumeaux partent vraiment dans mon outbox » (ADR 0014) se
 // réduit à agir en HTTP, lire les lignes, affirmer discriminant, payload et
-// ressource de Signal (ADR 0026) —
-// plus de plomberie ADO à recopier par module (voir
-// IntegrationEventPublicationTest, le consommateur de référence). Attempts,
-// poison, rejeu et inbox n'y sont volontairement pas : ce sont des
-// invariants du socle, prouvés par OutboxProcessorTest sur le terrain probe
-// — pas ceux d'un module.
+// ressource de Signal (ADR 0026) — plus de plomberie ADO à recopier par
+// module (voir IntegrationEventPublicationTest, le consommateur de
+// référence). Attempts, poison, rejeu et inbox n'y sont volontairement pas :
+// ce sont des invariants du socle, prouvés par OutboxProcessorTest sur le
+// terrain probe — pas ceux d'un module.
+//
+// La sonde ne sait plus comment une ligne est faite : elle lit par le store
+// du socle et ne garde que la projection qu'un module a le droit de voir.
 public static class OutboxProbe
 {
     public sealed record Row(
@@ -24,84 +25,78 @@ public static class OutboxProbe
         Guid? ResourceId
     );
 
-    public static Task<IReadOnlyList<Row>> ReadRowsAsync<TDbContext>(IntegrationTestWebAppFactory factory)
+    public static async Task<IReadOnlyList<Row>> ReadRowsAsync<TDbContext>(IntegrationTestWebAppFactory factory)
         where TDbContext : ModuleDbContext
-        =>
-        ExecuteAsync(
+    {
+        var rows = await OnOutboxAsync<TDbContext, IReadOnlyList<Outbox.Row>>(
             factory: factory,
-            action: async (
-                TDbContext dbContext,
-                DbCommand command
-            ) =>
-            {
-                command.CommandText =
-                    $"SELECT discriminant, payload, dispatched_at IS NOT NULL, resource_kind, resource_id FROM {dbContext.Schema}.__outbox";
-
-                var rows = new List<Row>();
-
-                await using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync()) {
-                    rows.Add(new Row(
-                        Discriminant: reader.GetString(0),
-                        Payload: reader.GetString(1),
-                        Dispatched: reader.GetBoolean(2),
-                        ResourceKind: reader.IsDBNull(3) ? null : reader.GetString(3),
-                        ResourceId: reader.IsDBNull(4) ? null : reader.GetGuid(4)
-                    ));
-                }
-
-                return (IReadOnlyList<Row>) rows;
-            }
+            action: outbox => outbox.ReadAllAsync(CancellationToken.None)
         );
+
+        return rows
+            .Select(row => new Row(
+                    Discriminant: row.Discriminant,
+                    Payload: row.Payload,
+                    Dispatched: row.Dispatched,
+                    ResourceKind: row.ResourceKind,
+                    ResourceId: row.ResourceId
+                )
+            )
+            .ToList();
+    }
 
     // Vide l'outbox entière du module : les fixtures HTTP écrivent pour de
     // vrai dans le conteneur partagé, un test ne compte que ses propres
     // lignes en nettoyant avant et après. L'exécution en série
     // (Parallelizable.None, vérifié par BaseHostTest) rend le vidage sans
-    // danger.
+    // danger. Vider n'est pas un geste de production : il passe par le geste
+    // SQL du socle et le nom de table du store, pas par un verbe.
     public static Task CleanAsync<TDbContext>(IntegrationTestWebAppFactory factory)
         where TDbContext : ModuleDbContext
         =>
-        ExecuteAsync(
+        OnDbContextAsync<TDbContext, int>(
             factory: factory,
-            action: async (
-                TDbContext dbContext,
-                DbCommand command
-            ) =>
-            {
-                command.CommandText = $"DELETE FROM {dbContext.Schema}.__outbox";
-
-                return await command.ExecuteNonQueryAsync();
-            }
+            action: dbContext => ModuleSql.ExecuteNonQueryAsync(
+                dbContext: dbContext,
+                sql: $"DELETE FROM {Outbox.TableOf(dbContext)}",
+                parameters: new Dictionary<string, object>(),
+                cancellationToken: CancellationToken.None
+            )
         );
 
-    // Le cœur de toutes les observations d'outbox du harnais, ProbeOutbox
-    // compris : scope, DbContext du module résolu, connexion empruntée —
-    // jamais ouverte en propre, une seconde connexion sous un
-    // TransactionScope ambiant escaladerait en distribué — refermée dans un
-    // finally (EF compte les ouvertures).
-    internal static async Task<T> ExecuteAsync<TDbContext, T>(
+    // Le store d'un module, dans un scope à soi : le cœur de toutes les
+    // observations d'outbox du harnais, ProbeOutbox compris. La connexion est
+    // empruntée par le store lui-même — jamais ouverte ici.
+    internal static Task<T> OnOutboxAsync<TDbContext, T>(
         IntegrationTestWebAppFactory factory,
-        Func<TDbContext, DbCommand, Task<T>> action
+        Func<Outbox, Task<T>> action
+    )
+        where TDbContext : ModuleDbContext
+        =>
+        OnDbContextAsync<TDbContext, T>(
+            factory: factory,
+            action: dbContext => action(new Outbox(dbContext))
+        );
+
+    internal static Task<T> OnInboxAsync<TDbContext, T>(
+        IntegrationTestWebAppFactory factory,
+        Func<Inbox, Task<T>> action
+    )
+        where TDbContext : ModuleDbContext
+        =>
+        OnDbContextAsync<TDbContext, T>(
+            factory: factory,
+            action: dbContext => action(new Inbox(dbContext))
+        );
+
+    internal static async Task<T> OnDbContextAsync<TDbContext, T>(
+        IntegrationTestWebAppFactory factory,
+        Func<TDbContext, Task<T>> action
     )
         where TDbContext : ModuleDbContext
     {
         using var scope = factory.Services.CreateScope();
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
-
-        await dbContext.Database.OpenConnectionAsync();
-
-        try {
-            await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-
-            return await action(
-                arg1: dbContext,
-                arg2: command
-            );
-        } finally {
-            await dbContext.Database.CloseConnectionAsync();
-        }
+        return await action(scope.ServiceProvider.GetRequiredService<TDbContext>());
     }
 }

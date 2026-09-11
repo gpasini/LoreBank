@@ -12,35 +12,47 @@ using Microsoft.Extensions.Options;
 namespace LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 
 // Une passe de livraison, séparée du hosted service qui la cadence pour que
-// les tests la pilotent déterministiquement. Livraison at-least-once : chaque
-// handler s'exécute dans son propre scope DI et son propre TransactionScope,
-// ligne d'inbox incluse — un handler qui échoue n'annule ni les autres ni la
-// commande d'origine, il remet la ligne d'outbox en attente avec backoff,
-// jusqu'au marquage poison. Le marquage « dispatché » de l'outbox est hors de
-// ces transactions (schéma du publieur, connexion distincte — la joindre
+// les tests la pilotent déterministiquement. Ce fichier n'écrit plus une
+// ligne de SQL : la forme des lignes appartient aux stores (Outbox, Inbox),
+// ce qui reste ici est l'orchestration et la politique.
+//
+// Livraison at-least-once : chaque handler s'exécute dans son propre scope DI
+// et son propre TransactionScope, ligne d'inbox incluse — un handler qui
+// échoue n'annule ni les autres ni la commande d'origine, il remet la ligne
+// d'outbox en attente avec backoff, jusqu'au marquage poison. Le marquage
+// « dispatché » de l'outbox est hors de ces transactions (porte
+// InOwnScopeAsync : schéma du publieur, connexion distincte — la joindre
 // ferait escalader en distribué) : un crash entre les deux rejoue l'event, et
 // c'est l'inbox qui rend le rejeu inoffensif. Plusieurs instances de l'hôte
-// dépilent la même outbox par Réservation (ADR 0021) : la lecture du lot est
-// une appropriation à bail, en une requête courte — FOR UPDATE SKIP LOCKED
-// contre une passe simultanée, reserved_until contre celles qui suivent —
-// et chaque marquage rend la réservation. Chaque exécution de handler est
-// tracée (OutboxTracing, ADR 0025) : scope, transaction et ligne d'inbox
-// sous une même activité, enfant de la commande d'origine.
+// dépilent la même outbox par Réservation (ADR 0021), le bail venant des
+// options. Chaque exécution de handler est tracée (OutboxTracing, ADR 0025) :
+// scope, transaction et ligne d'inbox sous une même activité, enfant de la
+// commande d'origine.
 public sealed class OutboxProcessor(
     IServiceProvider serviceProvider,
     IEnumerable<IHostModule> modules,
     IEnumerable<IntegrationEventHandlerRegistration> registrations,
+    IntegrationEventStores stores,
     IOptions<OutboxOptions> options,
     OutboxMetrics metrics,
     ILogger<OutboxProcessor> logger
 )
 {
+    private const int BatchSize = 100;
+
     public async Task ProcessPendingAsync(CancellationToken cancellationToken)
     {
         foreach (var module in modules) {
-            var rows = await ReserveBatchAsync(
+            var rows = await stores.InOwnScopeAsync(
                 module: module,
-                cancellationToken: cancellationToken
+                action: (
+                    outbox,
+                    _
+                ) => outbox.ReserveAsync(
+                    lease: options.Value.ReservationDuration,
+                    batchSize: BatchSize,
+                    cancellationToken: cancellationToken
+                )
             );
 
             foreach (var row in rows) {
@@ -58,34 +70,30 @@ public sealed class OutboxProcessor(
         }
     }
 
-    // La Rétention (ADR 0021) : les lignes livrées et les traces d'inbox
-    // plus vieilles que la rétention disparaissent — jamais une ligne en
-    // attente (elle n'a pas de dispatched_at), jamais une ligne poison (elle
-    // reste pour un humain). Idempotente : deux instances qui purgent en
-    // même temps ne se gênent pas.
+    // La Rétention (ADR 0021) : les lignes livrées et les traces d'inbox plus
+    // vieilles que la rétention disparaissent — jamais une ligne en attente,
+    // jamais une ligne poison (elle reste pour un humain). Les deux tables
+    // sont balayées dans le même scope, et chaque suppression est idempotente :
+    // deux instances qui purgent en même temps ne se gênent pas.
     public async Task PurgeExpiredAsync(CancellationToken cancellationToken)
     {
         foreach (var module in modules) {
-            await using var scope = serviceProvider.CreateAsyncScope();
-
-            var dbContext = ModuleDbContexts.Resolve(
-                services: scope.ServiceProvider,
-                module: module
-            );
-
-            await ModuleSql.ExecuteNonQueryAsync(
-                dbContext: dbContext,
-                sql: $"""
-                      DELETE FROM {IntegrationEventTables.OutboxTable(dbContext)}
-                      WHERE dispatched_at IS NOT NULL
-                        AND dispatched_at < now() - make_interval(days => @retentionDays);
-                      DELETE FROM {IntegrationEventTables.InboxTable(dbContext)}
-                      WHERE handled_at < now() - make_interval(days => @retentionDays);
-                      """,
-                parameters: new Dictionary<string, object> {
-                    ["retentionDays"] = options.Value.RetentionDays,
-                },
-                cancellationToken: cancellationToken
+            await stores.InOwnScopeAsync(
+                module: module,
+                action: async (
+                    outbox,
+                    inbox
+                ) =>
+                {
+                    await outbox.PurgeAsync(
+                        retentionDays: options.Value.RetentionDays,
+                        cancellationToken: cancellationToken
+                    );
+                    await inbox.PurgeAsync(
+                        retentionDays: options.Value.RetentionDays,
+                        cancellationToken: cancellationToken
+                    );
+                }
             );
 
             // La synthèse à la cadence de purge (ADR 0022) : les lignes poison
@@ -106,42 +114,19 @@ public sealed class OutboxProcessor(
         }
     }
 
-    // La mesure d'une outbox : un comptage par module, bon marché tant que la
-    // Rétention tient la table petite, rafraîchi dans les jauges du socle.
+    // La mesure d'une outbox : le store compte, le processor pousse dans les
+    // jauges du socle — un store ne connaît pas les métriques.
     private async Task<OutboxDepth> MeasureAsync(
         IHostModule module,
         CancellationToken cancellationToken
     )
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-
-        var dbContext = ModuleDbContexts.Resolve(
-            services: scope.ServiceProvider,
-            module: module
-        );
-
-        var depth = await ModuleSql.ExecuteAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  SELECT count(*) FILTER (WHERE dispatched_at IS NULL AND poisoned_at IS NULL),
-                         count(*) FILTER (WHERE poisoned_at IS NOT NULL)
-                  FROM {IntegrationEventTables.OutboxTable(dbContext)}
-                  """,
-            parameters: new Dictionary<string, object>(),
-            execute: async (
-                command,
-                token
-            ) =>
-            {
-                await using var reader = await command.ExecuteReaderAsync(token);
-                await reader.ReadAsync(token);
-
-                return new OutboxDepth(
-                    Pending: reader.GetInt64(0),
-                    Poisoned: reader.GetInt64(1)
-                );
-            },
-            cancellationToken: cancellationToken
+        var depth = await stores.InOwnScopeAsync(
+            module: module,
+            action: (
+                outbox,
+                _
+            ) => outbox.MeasureAsync(cancellationToken)
         );
 
         metrics.Record(
@@ -154,7 +139,7 @@ public sealed class OutboxProcessor(
 
     private async Task ProcessRowAsync(
         IHostModule publisherModule,
-        OutboxRow row,
+        Outbox.Reserved row,
         CancellationToken cancellationToken
     )
     {
@@ -197,10 +182,15 @@ public sealed class OutboxProcessor(
         }
 
         if (firstFailure is null) {
-            await MarkDispatchedAsync(
-                publisherModule: publisherModule,
-                row: row,
-                cancellationToken: cancellationToken
+            await stores.InOwnScopeAsync(
+                module: publisherModule,
+                action: (
+                    outbox,
+                    _
+                ) => outbox.MarkDispatchedAsync(
+                    id: row.Id,
+                    cancellationToken: cancellationToken
+                )
             );
         } else {
             await RecordFailureAsync(
@@ -215,10 +205,12 @@ public sealed class OutboxProcessor(
     // La transaction du handler : scope DI neuf, TransactionScope au niveau
     // du TransactionBehavior (ReadCommitted), inbox lue et écrite par la
     // connexion du DbContext du module consommateur — le même connecteur que
-    // les écritures du handler, donc tout commite ou rien.
+    // les écritures du handler, donc tout commite ou rien. C'est pourquoi
+    // l'inbox se construit ici, sur ce DbContext, et non par les deux portes
+    // d'IntegrationEventStores.
     private async Task HandleAsync(
         IntegrationEventHandlerRegistration registration,
-        OutboxRow row,
+        Outbox.Reserved row,
         CancellationToken cancellationToken
     )
     {
@@ -233,15 +225,15 @@ public sealed class OutboxProcessor(
             asyncFlowOption: TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var dbContext = ConsumerDbContextFor(
-            registration: registration,
-            scope: scope.ServiceProvider
+        var inbox = new Inbox(ConsumerDbContextFor(
+                registration: registration,
+                scope: scope.ServiceProvider
+            )
         );
 
-        if (await IsAlreadyHandledAsync(
-                dbContext: dbContext,
-                registration: registration,
-                row: row,
+        if (await inbox.IsHandledAsync(
+                eventId: row.Id,
+                handler: registration.HandlerType.FullName!,
                 cancellationToken: cancellationToken
             )) {
             transaction.Complete();
@@ -259,16 +251,9 @@ public sealed class OutboxProcessor(
             cancellationToken: cancellationToken
         );
 
-        await ModuleSql.ExecuteNonQueryAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  INSERT INTO {IntegrationEventTables.InboxTable(dbContext)} (event_id, handler, handled_at)
-                  VALUES (@eventId, @handler, now())
-                  """,
-            parameters: InboxKeyOf(
-                registration: registration,
-                row: row
-            ),
+        await inbox.MarkHandledAsync(
+            eventId: row.Id,
+            handler: registration.HandlerType.FullName!,
             cancellationToken: cancellationToken
         );
 
@@ -285,29 +270,6 @@ public sealed class OutboxProcessor(
         purpose: "l'inbox du consommateur vit dans le schéma de son module, désigné par la registration "
         + $"de {registration.HandlerType.Name}"
     );
-
-    private static Task<bool> IsAlreadyHandledAsync(
-        ModuleDbContext dbContext,
-        IntegrationEventHandlerRegistration registration,
-        OutboxRow row,
-        CancellationToken cancellationToken
-    ) =>
-        ModuleSql.ExecuteAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  SELECT count(*) FROM {IntegrationEventTables.InboxTable(dbContext)}
-                  WHERE event_id = @eventId AND handler = @handler
-                  """,
-            parameters: InboxKeyOf(
-                registration: registration,
-                row: row
-            ),
-            execute: async (
-                command,
-                token
-            ) => (long) (await command.ExecuteScalarAsync(token))! > 0,
-            cancellationToken: cancellationToken
-        );
 
     // Même chemin que DomainEventDispatcher : l'interface fermée est invoquée
     // par réflexion, et la TargetInvocationException est déballée pour rendre
@@ -334,104 +296,12 @@ public sealed class OutboxProcessor(
         }
     }
 
-    // La réservation du lot : les lignes éligibles — en attente, ré-éligibles
-    // au backoff, sans bail en cours — reçoivent un bail en une seule
-    // instruction, donc une seule transaction, courte : SKIP LOCKED écarte
-    // celles qu'une passe simultanée est en train de réserver, et le bail
-    // posé les écarte des passes suivantes. RETURNING ne garantit pas
-    // l'ordre, il est rétabli en mémoire.
-    private async Task<IReadOnlyList<OutboxRow>> ReserveBatchAsync(
-        IHostModule module,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var scope = serviceProvider.CreateAsyncScope();
-
-        var dbContext = ModuleDbContexts.Resolve(
-            services: scope.ServiceProvider,
-            module: module
-        );
-
-        return await ModuleSql.ExecuteAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  UPDATE {IntegrationEventTables.OutboxTable(dbContext)}
-                  SET reserved_until = now() + make_interval(secs => @reservationSeconds)
-                  WHERE id IN (
-                      SELECT id FROM {IntegrationEventTables.OutboxTable(dbContext)}
-                      WHERE dispatched_at IS NULL AND poisoned_at IS NULL AND next_attempt_at <= now()
-                        AND (reserved_until IS NULL OR reserved_until < now())
-                      ORDER BY occurred_at, id
-                      LIMIT 100
-                      FOR UPDATE SKIP LOCKED
-                  )
-                  RETURNING id, discriminant, payload, attempts, occurred_at, trace_parent
-                  """,
-            parameters: new Dictionary<string, object> {
-                ["reservationSeconds"] = options.Value.ReservationSeconds,
-            },
-            execute: async (
-                command,
-                token
-            ) =>
-            {
-                var rows = new List<(DateTime OccurredAt, OutboxRow Row)>();
-
-                await using var reader = await command.ExecuteReaderAsync(token);
-
-                while (await reader.ReadAsync(token)) {
-                    rows.Add((
-                        reader.GetDateTime(4),
-                        new OutboxRow(
-                            Id: reader.GetGuid(0),
-                            Discriminant: reader.GetString(1),
-                            Payload: reader.GetString(2),
-                            Attempts: reader.GetInt32(3),
-                            TraceParent: reader.IsDBNull(5) ? null : reader.GetString(5)
-                        )
-                    ));
-                }
-
-                return (IReadOnlyList<OutboxRow>) rows
-                    .OrderBy(entry => entry.OccurredAt)
-                    .ThenBy(entry => entry.Row.Id)
-                    .Select(entry => entry.Row)
-                    .ToList();
-            },
-            cancellationToken: cancellationToken
-        );
-    }
-
-    private async Task MarkDispatchedAsync(
-        IHostModule publisherModule,
-        OutboxRow row,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var scope = serviceProvider.CreateAsyncScope();
-
-        var dbContext = ModuleDbContexts.Resolve(
-            services: scope.ServiceProvider,
-            module: publisherModule
-        );
-
-        await ModuleSql.ExecuteNonQueryAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  UPDATE {IntegrationEventTables.OutboxTable(dbContext)}
-                  SET dispatched_at = now(), reserved_until = NULL
-                  WHERE id = @id
-                  """,
-            parameters: new Dictionary<string, object> {
-                ["id"] = row.Id,
-            },
-            cancellationToken: cancellationToken
-        );
-    }
-
+    // La politique de reprise : le backoff exponentiel et le seuil de poison
+    // se décident ici, à partir des options — le store écrit les valeurs
+    // qu'on lui donne.
     private async Task RecordFailureAsync(
         IHostModule publisherModule,
-        OutboxRow row,
+        Outbox.Reserved row,
         Exception failure,
         CancellationToken cancellationToken
     )
@@ -449,49 +319,19 @@ public sealed class OutboxProcessor(
             );
         }
 
-        await using var scope = serviceProvider.CreateAsyncScope();
-
-        var dbContext = ModuleDbContexts.Resolve(
-            services: scope.ServiceProvider,
-            module: publisherModule
-        );
-
-        await ModuleSql.ExecuteNonQueryAsync(
-            dbContext: dbContext,
-            sql: $"""
-                  UPDATE {IntegrationEventTables.OutboxTable(dbContext)}
-                  SET attempts = @attempts,
-                      last_error = @lastError,
-                      next_attempt_at = now() + make_interval(secs => @delaySeconds),
-                      poisoned_at = CASE WHEN @poisoned THEN now() END,
-                      reserved_until = NULL
-                  WHERE id = @id
-                  """,
-            parameters: new Dictionary<string, object> {
-                ["id"] = row.Id,
-                ["attempts"] = attempts,
-                ["lastError"] = failure.ToString(),
-                ["delaySeconds"] = options.Value.BackoffDelaySecondsFor(attempts),
-                ["poisoned"] = poisoned,
-            },
-            cancellationToken: cancellationToken
+        await stores.InOwnScopeAsync(
+            module: publisherModule,
+            action: (
+                outbox,
+                _
+            ) => outbox.RecordFailureAsync(
+                id: row.Id,
+                attempts: attempts,
+                lastError: failure.ToString(),
+                delaySeconds: options.Value.BackoffDelaySecondsFor(attempts),
+                poisoned: poisoned,
+                cancellationToken: cancellationToken
+            )
         );
     }
-
-    private static Dictionary<string, object> InboxKeyOf(
-        IntegrationEventHandlerRegistration registration,
-        OutboxRow row
-    ) =>
-        new() {
-            ["eventId"] = row.Id,
-            ["handler"] = registration.HandlerType.FullName!,
-        };
-
-    private sealed record OutboxRow(
-        Guid Id,
-        string Discriminant,
-        string Payload,
-        int Attempts,
-        string? TraceParent
-    );
 }

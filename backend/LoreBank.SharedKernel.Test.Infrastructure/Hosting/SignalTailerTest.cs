@@ -197,8 +197,8 @@ public sealed class SignalTailerTest : BaseHostTest<SharedKernelWebAppFactory>
             logger: NullLogger<SignalHub>.Instance
         );
         var otherTailer = new SignalTailer(
-            serviceProvider: Factory.Services,
             modules: Factory.Services.GetRequiredService<IEnumerable<IHostModule>>(),
+            stores: Factory.Services.GetRequiredService<IntegrationEventStores>(),
             hub: otherHub
         );
 

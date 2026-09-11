@@ -28,6 +28,10 @@
     <ItemGroup>
         <!-- Le parsing de ModuleAssemblyName est interne : ses cas d'échec se testent sur des chaînes. -->
         <InternalsVisibleTo Include="LoreBank.SharedKernel.Test.Unit"/>
+        <!-- Les stores d'integration events et le geste SQL du socle sont internes : leur seul
+             appelant hors production est le harnais, qui observe ce qu'ils ont écrit plutôt que
+             de réécrire leurs colonnes. -->
+        <InternalsVisibleTo Include="LoreBank.SharedKernel.Test.Infrastructure"/>
     </ItemGroup>
 
 </Project>

@@ -124,7 +124,10 @@ communication inter-modules.
   `LoreBank.SharedKernel.Infrastructure` complète la paire côté plomberie : ce
   que tous les modules partagent en implémentation — le `DomainEventDispatcher`,
   la base `ModuleDbContext`, le seam de montage `IHostModule` et la machinerie
-  des integration events (`IntegrationEvents/` : outbox, inbox, dispatcher).
+  des integration events (`IntegrationEvents/` : les stores `Outbox` et
+  `Inbox` — chacun porte le DDL et les colonnes de sa table, écrits une
+  seule fois —, l'accès `IntegrationEventStores` qui nomme les deux
+  politiques de scope, le publisher et le dispatcher).
   `LoreBank.SharedKernel.Contracts` (projet volontairement sans aucune
   référence) porte les marqueurs du langage publié : `IIntegrationEvent`,
   `[IntegrationEvent]`, `IIntegrationEventHandler<T>` et le port
@@ -141,11 +144,16 @@ communication inter-modules.
   `TransactionScope`, ligne d'inbox incluse — at-least-once, rejeu inoffensif,
   backoff puis poison (ADR 0014). Le discriminant (`bank.money-deposited`,
   premier segment = module publieur) est un nom stable choisi, jamais un nom
-  de type .NET. Les tables `__outbox`/`__inbox` naissent via `ModuleMigrator`
-  (DDL idempotent, sans timeline de migration) ; plusieurs instances de
+  de type .NET. Les tables `__outbox`/`__inbox` naissent via `ModuleMigrator`,
+  qui pose le schéma puis demande à chaque store son DDL (idempotent, sans
+  timeline de migration) ; plusieurs instances de
   l'hôte se partagent chaque outbox par Réservation à bail, et les lignes
   livrées ou traitées sont purgées après la Rétention — trois réglages
-  d'`OutboxOptions`, poison jamais purgé (ADR 0021).
+  d'`OutboxOptions`, poison jamais purgé (ADR 0021). Aucun de ces gestes
+  n'écrit son SQL sur place : la forme d'une ligne vit dans son store, le
+  processor ne garde que l'orchestration et la politique (backoff, seuil de
+  poison, jauges), et le harnais observe par le même store au lieu de
+  réécrire les colonnes.
   **Synchrone** : un port de lecture publié dans les Contrats
   (`IBankAccountsContract`), implémenté chez le propriétaire comme un reader —
   DTOs plats, `null` pour l'absence, lecture pure in-process. Garde-fous :

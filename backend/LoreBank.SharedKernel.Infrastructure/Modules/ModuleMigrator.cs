@@ -1,4 +1,5 @@
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
+using LoreBank.SharedKernel.Infrastructure.Persistence;
 using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -53,7 +54,20 @@ public static class ModuleMigrator
             // L'outbox et l'inbox du module, tables du socle créées ici comme
             // le journal des data migrations : aucune migration EF à générer
             // par module, et le démarrage de l'API ne crée toujours rien.
-            await IntegrationEventTables.EnsureAsync(
+            // Chaque store porte le DDL de sa table ; le schéma, qui n'est ni
+            // à l'une ni à l'autre, est posé ici — un module sans migration EF
+            // n'en a pas encore.
+            await ModuleSql.ExecuteNonQueryAsync(
+                dbContext: runner.DbContext,
+                sql: $"CREATE SCHEMA IF NOT EXISTS {runner.DbContext.Schema};",
+                parameters: new Dictionary<string, object>(),
+                cancellationToken: CancellationToken.None
+            );
+            await Outbox.EnsureTableAsync(
+                dbContext: runner.DbContext,
+                cancellationToken: CancellationToken.None
+            );
+            await Inbox.EnsureTableAsync(
                 dbContext: runner.DbContext,
                 cancellationToken: CancellationToken.None
             );

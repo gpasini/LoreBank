@@ -84,9 +84,13 @@ _Avoid_ : domain event publié, message, notification
 **Outbox** :
 La table d'un module publieur où ses integration events s'écrivent dans la
 transaction de la commande, identifiés par un discriminant stable choisi
-(jamais un nom de type .NET). Un dispatcher de l'hôte la dépile hors
+(jamais un nom de type .NET), et le store qui la porte : son DDL, ses
+colonnes et les gestes qui les touchent — insérer, réserver, marquer,
+échouer, mesurer, purger, relire — écrits une seule fois. Le store se
+construit sur le DbContext d'un module et ne décide rien : le backoff et le
+seuil de poison sont la politique du dispatcher, qui la dépile hors
 transaction.
-_Avoid_ : file d'attente, bus
+_Avoid_ : file d'attente, bus, table d'outbox (seule)
 
 **ModuleDbContexts** :
 La résolution « nom de module → DbContext » du socle, écrite une fois :
@@ -121,9 +125,21 @@ _Avoid_ : constructeur de lecture, FromDatabase, désérialisation
 **Inbox** :
 La table d'un module consommateur où le socle journalise les integration
 events traités, dans la transaction du handler consommateur — c'est elle qui
-rend la livraison at-least-once idempotente et porte le marquage poison après
-épuisement des retries.
+rend la livraison at-least-once idempotente — et son store, jumeau de celui
+de l'outbox : la paire (event, handler) y est la clé. Le marquage poison,
+lui, vit sur la ligne d'outbox après épuisement des retries.
 _Avoid_ : dédup maison, journal de consommation
+
+**IntegrationEventStores** :
+L'accès aux stores d'un module monté, et les deux politiques de scope
+nommées : dans le scope de l'appelant — la ligne part avec la transaction
+de la commande ou pas du tout, c'est la porte du publisher — ou dans un
+scope à soi, donc hors de toute transaction de handler, la porte du
+dispatcher et du suiveur de Signal. C'est la seule chose qu'un appelant a à
+choisir, et c'est une décision transactionnelle. L'inbox du chemin de
+livraison n'y passe pas : le dispatcher possède déjà le scope où elle
+s'écrit.
+_Avoid_ : factory de store, accès outbox, helper de scope
 
 **Réservation** :
 L'appropriation, par une instance de l'hôte, d'un lot de lignes d'outbox en
