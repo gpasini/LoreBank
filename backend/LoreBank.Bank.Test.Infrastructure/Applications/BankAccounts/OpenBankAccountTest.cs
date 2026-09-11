@@ -68,14 +68,15 @@ public sealed class OpenBankAccountTest : BaseIntegrationTest<BankWebAppFactory,
 
     // « Agir en tant que » (ADR 0023) : le test pose l'Acteur sur le fake du
     // port avant l'arrange — un contexte de la requête, pas un paramètre du
-    // use case. ResetFakes le remet sur Anonyme entre deux tests. Ce que le
+    // use case. Le fake vient du harnais du socle, comme l'horloge, et son
+    // ResetFakes le remet sur Anonyme entre deux tests. Ce que le
     // Domain a enregistré se lit sur l'agrégat lui-même, par le DbSetup.
     [Test]
     public async Task OpenBankAccount_ShouldRecordTheActor_WhenSomeoneIsAuthenticated()
     {
         // Arrange
 
-        GetService<ConfigurableCurrentActor>().Actor = Actor.Of("alice");
+        Factory.CurrentActor.Actor = Actor.Of("alice");
 
         // Act
 

@@ -1,7 +1,6 @@
 using Autofac;
 using LoreBank.Bank.Domain.Services;
 using LoreBank.Bank.Test.Infrastructure.Fakes;
-using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,20 +17,11 @@ public sealed class BankWebAppFactory : IntegrationTestWebAppFactory
             .AsSelf()
             .As<IWelcomeLetterSender>()
             .SingleInstance();
-
-        // Agir « en tant que » (ADR 0023) : remplace l'implémentation de
-        // l'hôte — la dernière inscription Autofac gagne.
-        builder
-            .RegisterType<ConfigurableCurrentActor>()
-            .AsSelf()
-            .As<ICurrentActor>()
-            .SingleInstance();
     }
 
     public override void ResetFakes()
     {
         base.ResetFakes();
         Services.GetRequiredService<ConfigurableWelcomeLetterSender>().Reset();
-        Services.GetRequiredService<ConfigurableCurrentActor>().Reset();
     }
 }

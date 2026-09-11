@@ -307,7 +307,10 @@ communication inter-modules.
   l'identifiant du principal dès que le cloneur monte le sien, sans rien
   changer aux modules ; en base et dans un Result, l'Anonyme est `null`, et
   le harnais d'un module agit « en tant que » par un fake du port
-  (`ConfigurableCurrentActor` côté Bank). L'Instant suit le même chemin
+  (`ConfigurableCurrentActor`, fourni par le harnais du socle à tout hôte de
+  test sauf au sien — le seul qui garde `HttpContextActor`, parce qu'il le
+  prouve ; `ActorCompositionTest` tient cet opt-out, que le contrat seul ne
+  verrait pas, le fake rendant Anonyme par défaut comme le vrai). L'Instant suit le même chemin
   (ADR 0024) : le handler d'une commande ou d'un integration event prend
   `TimeProvider` — le `TimeProvider.System` de la BCL, enregistré par
   l'hôte, sans port du socle par-dessus — et passe `GetUtcNow()` à la
@@ -601,7 +604,9 @@ communication inter-modules.
   `ConfigureContainer` ajouté après celui de l'hôte — et les remet à zéro dans
   `ResetFakes`, appelé par `BaseHostTest` au SetUp et au TearDown (point
   unique, pas de reset à recopier par fixture — la surcharge appelle la base,
-  qui efface les fakes du socle comme l'horloge) ; et un
+  qui efface les fakes du socle : l'horloge, la policy des Signaux et
+  l'Acteur, tous trois fournis par le harnais, aucun à réécrire par module) ;
+  et un
   `DbSetup : DbSetupBase` (une classe partielle par agrégat), qui crée les
   données via les vrais use cases en **scénario différé** (ADR 0030) :
   chaque geste (`CreateBankAccount`, `Deposit`, `Close`… — un par

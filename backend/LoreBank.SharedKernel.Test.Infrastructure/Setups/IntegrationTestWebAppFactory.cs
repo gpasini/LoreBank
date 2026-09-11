@@ -1,4 +1,5 @@
 using Autofac;
+using LoreBank.SharedKernel.Application;
 using LoreBank.SharedKernel.Application.Signals;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using LoreBank.SharedKernel.Test.Infrastructure.Fakes;
@@ -32,6 +33,18 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     // La policy des Signaux du harnais (ADR 0026) : un test y pose qui reçoit
     // quoi, ResetFakes l'efface — tout passe.
     public ConfigurableSignalPolicy SignalPolicy => Services.GetRequiredService<ConfigurableSignalPolicy>();
+
+    // L'Acteur du harnais (ADR 0023) : un test y pose qui agit avant son
+    // arrange, ResetFakes le remet sur Anonyme.
+    public ConfigurableCurrentActor CurrentActor => Services.GetRequiredService<ConfigurableCurrentActor>();
+
+    // Un test de contrat ne tourne pas contre un hôte qui fake le port qu'il
+    // teste : la factory du socle passe à false pour garder HttpContextActor,
+    // dont ActorContractTest prouve qu'il rend Anonyme sans schéma monté.
+    // Aucun autre hôte n'a de raison de le faire — un module veut agir « en
+    // tant que ». L'oubli serait silencieux (le fake rend Anonyme par
+    // défaut, comme le vrai) : ActorCompositionTest le tient.
+    protected virtual bool FakesCurrentActor => true;
 
     // Les modules que cette factory monte en plus de HostModules.All — le
     // ProbeModule du harnais du socle (ADR 0017), jamais un module métier.
@@ -148,6 +161,15 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
             .SingleInstance()
         );
 
+        if (FakesCurrentActor) {
+            builder.ConfigureContainer<ContainerBuilder>(container => container
+                .RegisterType<ConfigurableCurrentActor>()
+                .AsSelf()
+                .As<ICurrentActor>()
+                .SingleInstance()
+            );
+        }
+
         builder.ConfigureContainer<ContainerBuilder>(ConfigureModuleContainer);
 
         return base.CreateHost(builder);
@@ -164,6 +186,10 @@ public abstract class IntegrationTestWebAppFactory : WebApplicationFactory<Progr
     {
         TimeProvider.Reset();
         SignalPolicy.Reset();
+
+        if (FakesCurrentActor) {
+            CurrentActor.Reset();
+        }
     }
 
     public async Task StartAsync() => await _dbContainer.StartAsync();

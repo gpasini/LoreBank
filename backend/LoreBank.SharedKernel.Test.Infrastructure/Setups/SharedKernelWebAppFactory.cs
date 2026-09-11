@@ -23,6 +23,10 @@ public sealed class SharedKernelWebAppFactory : IntegrationTestWebAppFactory
 
     public override IReadOnlyCollection<IHostModule> AdditionalModules => _additionalModules;
 
+    // Le seul hôte de test qui garde l'implémentation réelle du port de
+    // l'Acteur : c'est ici qu'ActorContractTest la prouve.
+    protected override bool FakesCurrentActor => false;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);

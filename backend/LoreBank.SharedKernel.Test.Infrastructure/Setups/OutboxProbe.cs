@@ -25,6 +25,17 @@ public static class OutboxProbe
         Guid? ResourceId
     );
 
+    // Une passe de livraison, pilotée à la main : la cadence de fond est
+    // neutralisée par le harnais, et un module qui prouve qu'il emprunte le
+    // chemin fait passer le dispatcher lui-même. Jumeau de
+    // SignalProbe.TailAsync — un module n'a pas à connaître le nom du
+    // service qui dépile. Non générique : la passe traverse toutes les
+    // outbox montées, pas celle d'un module.
+    public static Task DeliverAsync(IntegrationTestWebAppFactory factory) =>
+        factory.Services
+            .GetRequiredService<OutboxProcessor>()
+            .ProcessPendingAsync(CancellationToken.None);
+
     public static async Task<IReadOnlyList<Row>> ReadRowsAsync<TDbContext>(IntegrationTestWebAppFactory factory)
         where TDbContext : ModuleDbContext
     {

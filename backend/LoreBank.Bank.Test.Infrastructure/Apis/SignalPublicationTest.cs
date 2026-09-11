@@ -70,9 +70,7 @@ public sealed class SignalPublicationTest : BaseHostTest<BankWebAppFactory>
             }
         )).EnsureSuccessStatusCode();
 
-        await Factory.Services
-            .GetRequiredService<OutboxProcessor>()
-            .ProcessPendingAsync(CancellationToken.None);
+        await OutboxProbe.DeliverAsync(Factory);
         await SignalProbe.TailAsync(Factory);
 
         // Assert — le Signal dit quoi et où, jamais comment.

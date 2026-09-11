@@ -108,10 +108,11 @@ requêtent des rows keyless.
 _Avoid_ : helper ADO, SqlExecutor, copie locale du geste d'emprunt
 
 **OutboxProbe** :
-La surface d'observation d'outbox du harnais : lit les lignes (discriminant,
-payload, livré) et vide l'outbox d'un module désigné par son DbContext — le
-garde-fou de publication d'un module se réduit à agir puis affirmer. N'expose
-ni retries, ni poison, ni inbox : des invariants du socle, pas d'un module.
+La surface d'outbox du harnais : fait passer une livraison, lit les lignes
+(discriminant, payload, livré) et vide l'outbox d'un module désigné par son
+DbContext — le garde-fou de publication d'un module se réduit à agir, faire
+passer, affirmer, sans connaître le nom du service qui dépile. N'expose ni
+retries, ni poison, ni inbox : des invariants du socle, pas d'un module.
 _Avoid_ : helper SQL d'outbox, lecteur d'outbox
 
 **DataMigrationProbe** :

@@ -100,9 +100,7 @@ public sealed class IntegrationEventPublicationTest : BaseHostTest<BankWebAppFac
 
         // Act — une passe du dispatcher.
 
-        await Factory.Services
-            .GetRequiredService<OutboxProcessor>()
-            .ProcessPendingAsync(CancellationToken.None);
+        await OutboxProbe.DeliverAsync(Factory);
 
         // Assert
 

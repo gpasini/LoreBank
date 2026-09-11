@@ -80,9 +80,7 @@ public sealed class CqsContractTest : BaseHostTest<LedgerWebAppFactory>
 
         Factory.TimeProvider.Instant = RecordingInstant;
 
-        await Factory.Services
-            .GetRequiredService<OutboxProcessor>()
-            .ProcessPendingAsync(CancellationToken.None);
+        await OutboxProbe.DeliverAsync(Factory);
 
         var response = await _client.GetAsync($"api/ledger/bank-accounts/{accountId}/movements");
 
