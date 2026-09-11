@@ -25,7 +25,13 @@ communication inter-modules.
   `audit` (`npm audit --audit-level=high`) côté front. `mise run check` à
   la racine rejoue tout ; `mise run pre-commit` les rapides, installable en
   hook par `mise generate git-pre-commit --write`. Les exemptions
-  d'analyseurs vivent dans `.editorconfig` avec leur pourquoi. La
+  d'analyseurs vivent dans `.editorconfig` avec leur pourquoi, et sont
+  **gelées** (ADR 0031, `docs/qualite.md`) : `QualityGateFreezeTest` épingle
+  la liste des desserrages admis — exemptions, exclusions de couverture,
+  propriétés de build, symboles bannis, liste des portes — et interdit ce
+  qui la contourne (un test ignoré, un `SuppressMessage`, un `NoWarn`, un
+  `#pragma` hors code généré). Desserrer reste légitime ; le geste est
+  explicite. La
   **couverture** (ADR 0029) est une mesure hors des portes, jamais
   seuillée : `mise run //backend:coverage` rend `backend/coverage/report/`
   (`coverlet.collector` déclaré une fois dans `Directory.Build.props`,

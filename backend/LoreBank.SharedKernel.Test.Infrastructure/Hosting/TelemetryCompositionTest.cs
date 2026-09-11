@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using LoreBank.Host;
+using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using Microsoft.Extensions.Configuration;
 
 namespace LoreBank.SharedKernel.Test.Infrastructure.Hosting;
@@ -17,12 +18,8 @@ public sealed class TelemetryCompositionTest
     [Test]
     public void OnlyTheHostAndThisHarness_ShouldReferenceOpenTelemetry()
     {
-        var referencing = Directory
-            .EnumerateFiles(
-                path: BackendDirectory(),
-                searchPattern: "*.csproj",
-                searchOption: SearchOption.AllDirectories
-            )
+        var referencing = SourceTree
+            .BackendSources("*.csproj")
             .Where(csproj => XDocument.Load(csproj)
                 .Descendants("PackageReference")
                 .Any(reference => reference.Attribute("Include")?.Value.StartsWith(value: "OpenTelemetry", comparisonType: StringComparison.Ordinal) == true)
@@ -66,22 +63,5 @@ public sealed class TelemetryCompositionTest
             .Build();
 
         Telemetry.ExportsTo(configuration).Should().BeTrue();
-    }
-
-    // Le harnais tourne depuis bin/ : la racine du backend est le dossier
-    // qui porte la solution.
-    private static string BackendDirectory()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !File.Exists(Path.Combine(
-                   path1: directory.FullName,
-                   path2: "LoreBank.slnx"
-               ))) {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-               ?? throw new InvalidOperationException("LoreBank.slnx introuvable au-dessus du dossier de test.");
     }
 }

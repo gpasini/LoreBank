@@ -68,7 +68,8 @@ regarder, elle ne rougit pas (ADR 0029).
 La mesure exclut ce qu'aucun test ne vise — le code généré (`obj/`, dont la
 source du générateur OpenAPI), les migrations que `ModuleMigrator` rejoue,
 le module Probe, les projets de test — dans `backend/coverage.runsettings`.
-Rien d'autre : une exclusion de plus déguiserait la carte.
+Rien d'autre : une exclusion de plus déguiserait la carte, et le Gel la
+tient.
 
 ## Les exemptions
 
@@ -80,6 +81,22 @@ règle par règle : une sévérité de catégorie ne bat pas celle
 qu'`AnalysisMode` pose sur chaque règle. `IDE0036` (ordre des
 modificateurs) et `IDE0130` (namespace = dossier) sont élevées à `warning` ;
 `IDE0036` n'est appliquée que par `dotnet format`, pas par le build.
+
+Elles sont **gelées** (ADR 0031). `QualityGateFreezeTest`
+(`LoreBank.SharedKernel.Test.Infrastructure/Hosting/`) épingle la liste
+exacte des treize lignes `dotnet_diagnostic` avec leur section *et* leur
+sévérité — les exemptions comme les deux élévations, qu'un passage à
+`suggestion` désarmerait tout aussi silencieusement. En ajouter une est donc
+un geste en trois temps : `.editorconfig` avec son pourquoi, la liste gelée
+du test, et cette section — le test rougit tant que le code n'est pas nommé
+ici.
+
+Le même Gel tient les exclusions de `coverage.runsettings`, les cinq
+propriétés de `Directory.Build.props` qui décident de ce que le build
+refuse, les symboles de `BannedSymbols.txt` et la liste des Portes
+elle-même ; et il interdit ce qui contournerait `.editorconfig` — un test
+ignoré, un `SuppressMessage`, un `NoWarn` de projet, un `#pragma warning
+disable` hors du code généré par EF, une sévérité de catégorie.
 
 ## Pièges
 

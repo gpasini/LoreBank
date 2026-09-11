@@ -261,6 +261,16 @@ pas ce que le build ou un test d'architecture tient déjà ; ce qu'aucune
 porte ne tient est dit tel quel (le Style Rider, la couverture).
 _Avoid_ : check, lint, quality gate, hook
 
+**Gel** :
+La liste des desserrages admis, tenue par un test du socle : les exemptions
+d'analyseurs de `.editorconfig` avec leur section et leur sévérité, les
+exclusions de la Couverture, les propriétés qui décident de ce que le build
+refuse, les symboles bannis, et la liste des Portes elle-même. Ce qui n'y
+est pas est interdit — un test ignoré, un avertissement supprimé sur place.
+Desserrer une Porte reste légitime ; le geste est explicite, jamais un diff
+d'une ligne.
+_Avoid_ : baseline, allowlist, liste d'exceptions, freeze
+
 **Couverture** :
 La carte de ce que la suite exécute, par assembly et par ligne, hors code
 généré, migrations, Probe et tests — mesurée par le data collector,

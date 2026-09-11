@@ -1,6 +1,8 @@
 # Les portes de qualité : outillées, pas seulement écrites
 
-> Statut : accepté — 2026-09-09.
+> Statut : accepté — 2026-09-09 ; complété par l'ADR 0031 — la ligne
+> « par construction » de sa table Garde-fous devient un test, et les
+> desserrages des Portes elles-mêmes sont gelés.
 
 La doctrine du repo était écrite — « build sans warning », une section
 « Style » dans `CLAUDE.md`, un `.editorconfig` de 170 lignes — mais seule sa
@@ -85,7 +87,7 @@ Description, deux `StartsWith` sans `StringComparison`.
 | Un paquet NuGet vulnérable, direct ou transitif | `mise run //backend:build` — NU1901–1904 en erreur au restore |
 | Un fichier du front hors format ou une règle Biome violée | `mise run //frontend:check` |
 | Une dépendance npm vulnérable en `high` ou plus | `mise run //frontend:audit` |
-| Une porte qui existe sur le poste mais pas en CI, ou l'inverse | par construction : chaque step de `.github/workflows/ci.yml` est `mise run <tâche>` |
+| Une porte qui existe sur le poste mais pas en CI, ou l'inverse | `QualityGateFreezeTest` — le Gel épingle les entrées de `[tasks.check]` et exige le step `mise run <tâche>` correspondant (ADR 0031) |
 
 ## Options écartées
 
