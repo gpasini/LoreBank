@@ -540,6 +540,13 @@ communication inter-modules.
 
 ## Tests
 
+- **Le test avant le code** (ADR 0032) : squelette minimal qui compile →
+  test → **RED observé** → corps. Un RED, c'est un test qui compile et
+  échoue sur son assertion, jamais une erreur de compilation ; un test écrit
+  après coup est taillé sur le code qu'il vient d'écrire et aucune porte ne
+  le voit. Un test qui **spécifie** s'écrit avant, un test qui **épingle**
+  un contrat (clés JSON, Description) s'écrit après. Les recettes des skills
+  portent l'ordre, le récap de l'issue porte la preuve.
 - NUnit 4 pour l'exécution, FluentAssertions (pinné en 7.x, dernière version
   sous licence Apache 2.0) pour les assertions : `x.Should().Be(...)`,
   `act.Should().Throw<...>()`. Une classe de test par méthode d'agrégat

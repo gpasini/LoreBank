@@ -22,14 +22,21 @@ backfiller / resserrer tient en une release.
    context) : DataMigration(context)` — timestamp UTC à 14 chiffres
    (`yyyyMMddHHmmss`, la forme des ids EF), choisi pour placer la migration
    **au bon endroit de la timeline** par rapport aux migrations de schéma
-   qu'elle doit suivre ou précéder.
-2. `ExecuteAsync` : lire par `QueryAsync` (le SQL de bordure est permis pour
+   qu'elle doit suivre ou précéder. **`ExecuteAsync` reste vide** (`throw new
+   NotImplementedException()`) : c'est le squelette.
+2. **Le test de rejeu**, écrit maintenant, contre ce vide — voir l'étape 5
+   pour sa forme complète. **Il doit rougir** : rien n'est transformé. C'est
+   le RED de l'ADR 0032, et il vaut ici plus qu'ailleurs — une migration de
+   données s'écrit contre un état du stock qu'on ne reverra jamais, et un
+   test taillé après coup sur la transformation qu'on vient d'écrire ne dit
+   rien du stock réel.
+3. `ExecuteAsync` : lire par `QueryAsync` (le SQL de bordure est permis pour
    les formes intermédiaires que le modèle vivant ne matérialise plus —
    `{Schema}` s'interpole via la base), transformer par le code vivant (le VO
    normalise, calcule, valide), réécrire par `ExecuteSqlAsync` — et seulement
    les lignes qui changent.
-3. Pas de `Down` : revenir en arrière est une restauration de sauvegarde.
-4. Le test de rejeu (`Persistence/DataMigrations/XxxTest.cs` du
+4. Pas de `Down` : revenir en arrière est une restauration de sauvegarde.
+5. La forme du test de rejeu (`Persistence/DataMigrations/XxxTest.cs` du
    Test.Infrastructure du module, sur `BaseHostTest`) : arranger des lignes en
    SQL brut — elles ne peuvent pas passer par les use cases, c'est la raison
    d'être de la migration —, exécuter la migration, relire. Les quatre gestes
@@ -42,7 +49,7 @@ backfiller / resserrer tient en une release.
    plus — le maillon central du triptyque —, envelopper l'arrange et le rejeu
    dans `WithNullableColumnAsync` : la contrainte est relâchée le temps de
    l'action et rétablie dans un finally.
-5. Appliquer : `mise run migrate` — chaque migration passe dans sa propre
+6. Appliquer : `mise run migrate` — chaque migration passe dans sa propre
    transaction, ligne de journal comprise (`<schéma>.__data_migrations_history`) :
    halte à l'échec sur un état cohérent, reprise au run suivant.
 
@@ -61,7 +68,7 @@ qui normalise, la réécriture des seules lignes qui changent.
 | Journalisée après la migration du harnais | `ModuleCompositionTest` |
 | Tout-ou-rien par migration, events neutralisés pendant le run | `DataMigrationRunnerTest` (socle) |
 | Entrelacement schéma/données par timestamp | `MigrationTimelineTest` (socle) |
-| La transformation fait ce qu'elle dit | le test de rejeu — étape 4, son seul garde-fou |
+| La transformation fait ce qu'elle dit | le test de rejeu — étape 2, son seul garde-fou |
 
 ## Pièges
 
@@ -77,6 +84,6 @@ qui normalise, la réécriture des seules lignes qui changent.
 
 ## Avant de terminer
 
-Build sans warning, le test de rejeu de l'étape 4 vert (transformation et
-témoin), et `ModuleCompositionTest` vert — il prouve le timestamp, le
+Build sans warning, le test de rejeu de l'étape 2 **rouge d'abord, puis**
+vert (transformation et témoin), et `ModuleCompositionTest` vert — il prouve le timestamp, le
 rangement et la journalisation de bout en bout.

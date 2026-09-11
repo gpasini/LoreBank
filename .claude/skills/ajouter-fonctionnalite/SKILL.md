@@ -43,8 +43,11 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    | Lecture exposée en HTTP | `nouvelle-query` |
 
    Chaque skill porte sa recette, ses garde-fous et son « Avant de
-   terminer » : les honorer brique par brique, sans reporter les tests à la
-   fin.
+   terminer » : les honorer brique par brique. Leur **ordre** est celui de
+   l'ADR 0032 — squelette, test, **RED observé**, corps — et il n'est pas
+   négociable : un test écrit après le code est taillé sur lui, et aucune
+   porte ne voit la différence. Noter le rouge de chaque brique au passage,
+   il est exigé à l'étape 6.
 5. **Vérification finale** : `mise run check` à la racine — toutes les
    portes de qualité dans l'ordre de la CI (ADR 0028, `docs/qualite.md`) :
    build sans warning, format, Description à jour, **suite complète** verte,
@@ -55,7 +58,12 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    `mise run format`, jamais à la main.
 6. **Clore** : un commentaire de récapitulatif (`gh issue comment NN`) —
    fichiers créés, use cases exposés, tests ajoutés, écarts éventuels avec
-   la spec — puis `gh issue edit NN --add-label ready-for-human
+   la spec — **plus une section « RED observés »** : un tableau brique /
+   test / message d'échec, une ligne par brique (et une seule ligne s'il n'y
+   en a qu'une). C'est la seule trace que laisse un RED, et elle ne
+   s'invente pas après coup : elle se recopie du run rouge. Une brique
+   exemptée (`nouvelle-migration-schema`) le dit dans sa ligne. Puis
+   `gh issue edit NN --add-label ready-for-human
    --remove-label ready-for-agent`. Pas de `gh issue close` : c'est la revue
    humaine qui ferme, une fois le diff intégré.
 
@@ -71,6 +79,7 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
 
 ## Avant de terminer
 
-L'étape 5 passée pour de vrai (la sortie des commandes fait foi), l'issue
-récapitulée et passée en `ready-for-human` à l'étape 6 — et rien de commité :
-le diff reste en working tree pour la revue.
+L'étape 5 passée pour de vrai (la sortie des commandes fait foi), un RED
+observé par brique et recopié dans le récap, l'issue passée en
+`ready-for-human` à l'étape 6 — et rien de commité : le diff reste en working
+tree pour la revue.

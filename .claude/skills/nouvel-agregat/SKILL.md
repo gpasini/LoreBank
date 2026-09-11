@@ -14,12 +14,23 @@ obtenir un sans passer par la factory.
 
 ## Recette
 
-1. **Id typé** dans `Aggregates/` : `sealed class XxxId(Guid value) :
-   SimpleValueObject<Guid>` avec factory `New()`.
-2. **Classe** `sealed class Xxx : AggregateRoot<XxxId>`, constructeur
-   `private` — plus la concession EF : un second constructeur privé sans
-   paramètre (`base(null!)`, propriétés à `null!`) réservé à la
-   matérialisation.
+1. **Le squelette** : l'**id typé** dans `Aggregates/` (`sealed class
+   XxxId(Guid value) : SimpleValueObject<Guid>` avec factory `New()`), la
+   **classe** `sealed class Xxx : AggregateRoot<XxxId>` avec son
+   constructeur `private` — plus la concession EF : un second constructeur
+   privé sans paramètre (`base(null!)`, propriétés à `null!`) réservé à la
+   matérialisation — et les **signatures** de la factory de naissance et des
+   transitions, corps vides (`throw new NotImplementedException()`), avec
+   les exceptions de l'étape 8, que les tests nomment. Juste de quoi
+   compiler.
+2. **Les tests**, écrits maintenant, contre ce vide : une classe par méthode
+   (`Domain/<Agrégat>/<Méthode>Test.cs`) — cycle nominal, chaque invariant
+   rejeté avec son exception, events émis dans l'ordre, l'Acteur et l'Instant
+   reçus relus tels quels (sans fake : ce sont des valeurs) — et une ligne
+   par exception dans l'`ExceptionCodesTest` du module. **Ils doivent
+   rougir** — le RED de l'ADR 0032 — avant qu'un seul invariant soit écrit :
+   c'est la liste des invariants que le test dresse, et l'agrégat qui s'y
+   plie, jamais l'inverse.
 3. **Naissance** : factory statique (`Open`, `Create`…) qui construit, puis
    émet l'event de naissance via `AddDomainEvent`.
 4. **Transitions** : une méthode par opération métier (`Deposit`, `Close`…) —
@@ -54,12 +65,7 @@ obtenir un sans passer par la factory.
    `Exceptions/`. Le constructeur peut prendre des VO, mais le dictionnaire
    passé à la base ne porte que des **primitives** à clés camelCase
    (`["balance"] = balance.Amount`) — jamais de texte.
-9. **Tests** : une classe par méthode (`Domain/<Agrégat>/<Méthode>Test.cs`) —
-   cycle nominal, chaque invariant rejeté avec son exception, events émis dans
-   l'ordre, l'Acteur et l'Instant reçus relus tels quels (sans fake : ce sont
-   des valeurs) — et une ligne par exception dans l'`ExceptionCodesTest` du
-   module.
-10. **Sa partielle de `DbSetup`** (`Test.Infrastructure/Setups/DbSetup.<Agrégat>.cs`,
+9. **Sa partielle de `DbSetup`** (`Test.Infrastructure/Setups/DbSetup.<Agrégat>.cs`,
     ADR 0030) : la liste des ids créés, `GetLast<Agrégat>Id()` et
     `Get<Agrégat>Async()` via le repository — tous deux par `Arranged` ; ses
     gestes arrivent avec ses commandes (skill `nouvelle-commande`).
@@ -102,6 +108,6 @@ exceptions et id typé dans le même projet.
 
 ## Avant de terminer
 
-Build sans warning, et les tests de l'étape 9 verts : cycle nominal, chaque
-invariant rejeté avec son exception, ordre des events accumulés vérifié,
-codes épinglés.
+Build sans warning, et les tests de l'étape 2 **rouges d'abord, puis**
+verts : cycle nominal, chaque invariant rejeté avec son exception, ordre des
+events accumulés vérifié, codes épinglés.

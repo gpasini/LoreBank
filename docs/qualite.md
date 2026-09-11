@@ -55,6 +55,12 @@ cloneur qui ne le veut pas ne l'installe pas.
   `Directory.Packages.props`).
 - La couverture de code : mesurée et publiée, jamais seuillée — voir
   ci-dessous.
+- Le **RED observé** avant le code (ADR 0032) : un test écrit après coup est
+  vert, et la couverture monte — aucune porte ne distingue un test qui
+  spécifie d'un test qui confirme. Le récap de l'issue en porte la trace
+  (section « RED observés » de `ajouter-fonctionnalite`), ce qui ne couvre
+  que le travail passé par le chapeau. Le Gel tient en revanche le résidu :
+  un `NotImplementedException` commité rougit.
 
 ## La couverture : une mesure, pas une porte
 

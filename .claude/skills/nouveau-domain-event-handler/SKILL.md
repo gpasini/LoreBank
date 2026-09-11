@@ -13,9 +13,18 @@ dans des handlers du Domain (`EventHandlers/`) qui ne dépendent que de
 
 ## Recette
 
-1. Le port dans `Services/` du Domain : interface, méthodes
-   `Task …Async(…, CancellationToken)`.
-2. Le handler, `sealed`, dans `EventHandlers/` :
+1. **Le squelette** : le port dans `Services/` du Domain (interface, méthodes
+   `Task …Async(…, CancellationToken)`), et le handler de l'étape 3 réduit à
+   sa signature — `throw new NotImplementedException()`. Juste de quoi
+   compiler.
+2. **Le test unitaire du handler**, écrit maintenant : appeler le handler
+   avec un event et un fake du port
+   (`BankAccountOpenedDomainEventHandlerTest`, `FakeWelcomeLetterSender`),
+   et affirmer que le port est appelé avec les bons arguments. **Il doit
+   rougir** — le RED de l'ADR 0032 — avant que le handler ne délègue quoi
+   que ce soit : c'est le test qui dit quels arguments le port reçoit, pas
+   le handler qui le dicte au test.
+3. Le handler, `sealed`, dans `EventHandlers/` :
 
 ```csharp
 public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender welcomeLetterSender)
@@ -31,17 +40,17 @@ public sealed class BankAccountOpenedDomainEventHandler(IWelcomeLetterSender wel
 }
 ```
 
-3. Une donnée absente de l'event ? Enrichir l'event à l'émission — le handler
+4. Une donnée absente de l'event ? Enrichir l'event à l'émission — le handler
    travaille avec ce que l'event porte, il ne recharge pas l'agrégat. Vaut
    pour l'Instant (ADR 0024) : une réaction datée reprend celui du fait
    (`OpenedAt`, `RecordedAt`), elle ne prend jamais `TimeProvider` — deux
    dates pour un seul fait seraient un mensonge.
-4. L'implémentation du port dans `Services/` de l'Infrastructure, enregistrée
+5. L'implémentation du port dans `Services/` de l'Infrastructure, enregistrée
    dans le `Module` Autofac du module (voir `LoggingWelcomeLetterSender` et
    `BankInfrastructureModule`).
-5. Tests : en unitaire, appeler le handler avec un event et un fake du port
-   (`BankAccountOpenedDomainEventHandlerTest`, `FakeWelcomeLetterSender`) ; en
-   intégration, passer par le use case qui émet l'event (`OpenBankAccountTest`).
+6. Le tour d'intégration, après coup : passer par le use case qui émet
+   l'event (`OpenBankAccountTest`) — il épingle le câblage, il ne spécifie
+   pas le handler.
 
 ## Câblage dans le socle
 
@@ -76,6 +85,6 @@ enregistrés par l'hôte, qui scanne la `DomainAssembly` de chaque
 
 ## Avant de terminer
 
-Build sans warning, le test unitaire du handler vert (event reçu → port
-appelé avec les bons arguments), et `ModuleCompositionTest` vert — il prouve
-la résolution et le rangement.
+Build sans warning, le test unitaire de l'étape 2 **rouge d'abord, puis**
+vert (event reçu → port appelé avec les bons arguments), et
+`ModuleCompositionTest` vert — il prouve la résolution et le rangement.

@@ -25,31 +25,37 @@ délibéré) : l'égalité vient de `ValueObject`.
 
 ## Recette
 
-1. Classe `sealed` dans `ValueObjects/` du Domain concerné —
-   `SharedKernel.Domain` seulement si plusieurs modules la partagent.
-   Constructeur **privé**, brut : il assigne, rien d'autre.
-2. La **factory de création**, nommée métier (`Iban.Parse`, `Money.Of`,
+1. **Le squelette** : classe `sealed` dans `ValueObjects/` du Domain
+   concerné — `SharedKernel.Domain` seulement si plusieurs modules la
+   partagent. Constructeur **privé**, brut : il assigne, rien d'autre. Plus
+   les signatures de la factory et des propriétés, corps vides (`throw new
+   NotImplementedException()`), et l'exception de l'étape 6, que le test
+   nomme. Juste de quoi compiler.
+2. **Le test unitaire du VO** (`ValueObjects/XxxTest.cs`), écrit maintenant,
+   contre ce vide : égalité par valeur, normalisation, chaque règle de
+   validation rejetée avec son exception — sur la factory de création — et
+   le cas « `Hydrate` accepte tel quel » si un `Hydrate` existe.
+   **Il doit rougir** avant qu'une seule validation soit écrite : c'est le
+   RED de l'ADR 0032, et c'est lui qui garantit que le test spécifie le VO
+   au lieu de confirmer ce qu'on vient d'en coder.
+3. La **factory de création**, nommée métier (`Iban.Parse`, `Money.Of`,
    `XxxId.New`, `LedgerAccountRef.ForBankAccount`) : **normaliser d'abord**
    (espaces, casse), **valider ensuite**, lever l'exception dédiée sinon.
    Une valeur correcte par construction (`ForBankAccount` fabrique la forme
    canonique) ne revalide rien.
-3. **`Hydrate`** si — et seulement si — une conversion EF le consomme : il
+4. **`Hydrate`** si — et seulement si — une conversion EF le consomme : il
    passe la valeur stockée au constructeur brut, sans normaliser ni valider.
    Pas de `Hydrate` sans appelant (`PositiveMoney`, jamais persisté tel quel,
    n'en a pas). Un VO multi-champs owned (`Money`) n'en a pas non plus : EF
    lie son constructeur privé brut par noms de paramètres.
-4. Propriétés `get`-only ; une opération retourne une **nouvelle instance**
+5. Propriétés `get`-only ; une opération retourne une **nouvelle instance**
    (`Money.Add`, via le ctor brut — l'invariant est déjà prouvé), et son
    invariant propre lève une exception dédiée (`CurrencyMismatchException`).
-5. L'exception : `sealed`, héritant de `DomainException`, dans `Exceptions/`.
+6. L'exception : `sealed`, héritant de `DomainException`, dans `Exceptions/`.
    Elle ne porte aucun texte : elle passe à sa base un dictionnaire de
    **primitives** à clés camelCase (`["currency"] = currency`) — jamais un VO,
    le front reçoit le code dérivé du type (`INVALID_IBAN`) et internationalise.
-6. Regex de validation via `[GeneratedRegex]` (classe `partial`).
-7. Le test unitaire du VO (`ValueObjects/XxxTest.cs`) : égalité par valeur,
-   normalisation, chaque règle de validation rejetée avec son exception —
-   sur la factory de création — et le cas « `Hydrate` accepte tel quel » si
-   un `Hydrate` existe.
+7. Regex de validation via `[GeneratedRegex]` (classe `partial`).
 
 ## Exemples de référence
 
@@ -89,6 +95,7 @@ délibéré) : l'égalité vient de `ValueObject`.
 
 ## Avant de terminer
 
-Build sans warning, et les tests de l'étape 7 verts. Si le VO vit dans un
-module, son exception a sa ligne dans l'`ExceptionCodesTest` du module — le
-code est un contrat public, le test épingle le renommage.
+Build sans warning, et les tests de l'étape 2 **rouges d'abord, puis** verts.
+Si le VO vit dans un module, son exception a sa ligne dans
+l'`ExceptionCodesTest` du module — le code est un contrat public, le test
+épingle le renommage.

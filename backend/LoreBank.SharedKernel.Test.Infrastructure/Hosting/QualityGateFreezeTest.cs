@@ -52,6 +52,14 @@ public sealed class QualityGateFreezeTest
         "WarningsNotAsErrors", // gel:motif
     ];
 
+    // Le résidu d'un cycle TDD interrompu (ADR 0032) : le squelette écrit
+    // pour voir le RED, jamais remplacé par son corps. La suite le tient
+    // dans le cas courant — le test qu'on vient d'écrire est rouge — mais
+    // pas sur un chemin qu'aucun test ne traverse.
+    private readonly static string[] Residue = [
+        "NotImplementedException", // gel:motif
+    ];
+
     // Liste gelée — chaque ligne dotnet_diagnostic de .editorconfig, avec sa
     // section et sa sévérité. Pas seulement les `none` : IDE0036 et IDE0130
     // sont élevées à `warning`, et les rabaisser à `suggestion` les
@@ -204,6 +212,15 @@ public sealed class QualityGateFreezeTest
             ));
 
     [Test]
+    public void Sources_ShouldCarryNoUnimplementedResidue_WhenTheSolutionIsScanned() =>
+        SourcesContaining(Residue)
+            .Should()
+            .BeEmpty(Because(
+                rule: "un squelette laissé derrière le RED est un cycle TDD interrompu (ADR 0032), et la suite ne le voit que si un test le traverse",
+                geste: "écrire le corps que le test attend, ou supprimer le squelette"
+            ));
+
+    [Test]
     public void EditorConfig_ShouldDeclareTheFrozenSeverities_WhenItIsRead() =>
         DeclaredSeverities()
             .Should()
@@ -331,7 +348,7 @@ public sealed class QualityGateFreezeTest
     private static string Because(
         string rule,
         string geste
-    ) => $"{Freeze} — {rule} ; le geste est de {geste}";
+    ) => $"{Freeze} — {rule} ; le geste : {geste}";
 
     // Ce fichier est scanné comme les autres : seules ses lignes marquées
     // sortent, pour que ses propres motifs ne se signalent pas eux-mêmes.

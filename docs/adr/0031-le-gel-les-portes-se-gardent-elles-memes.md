@@ -35,7 +35,12 @@ qu'aucun franchissement n'a de cas légitime connu :
 - `#pragma warning disable` hors `Persistence/Migrations/` ;
 - toute ligne `dotnet_analyzer_diagnostic.*` — une sévérité de catégorie
   désarme une famille entière en une ligne, quand la doctrine est règle par
-  règle, avec son pourquoi.
+  règle, avec son pourquoi ;
+- `NotImplementedException` dans le code commité — le résidu d'un cycle TDD
+  interrompu (ADR 0032) : le squelette écrit pour voir le RED, jamais
+  remplacé par son corps. La suite le tient dans le cas courant, où le test
+  qu'on vient d'écrire est rouge, mais pas sur un chemin qu'aucun test ne
+  traverse.
 
 **Liste gelée** là où l'état est non vide et légitime :
 
@@ -81,16 +86,16 @@ walker privé pour scanner les `*.csproj` ; il devient `SourceTree`
 `Root` est le parent. Un seul walker dans le harnais : le second aurait
 divergé du premier.
 
-Les quinze axes ont été prouvés en desserrant chacun pour de vrai, puis en
-restaurant : `[Ignore]` posé, `AnalysisMode` rabaissé, symbole banni retiré,
-Porte retirée de `check`, step de CI supprimé, code d'exemption effacé de
+Chaque axe a été prouvé en le desserrant pour de vrai, puis en restaurant :
+`[Ignore]` posé, `AnalysisMode` rabaissé, symbole banni retiré, Porte retirée
+de `check`, step de CI supprimé, code d'exemption effacé de
 `docs/qualite.md`. Tous rougissent.
 
 ## Garde-fous
 
 | Règle | Ce qui rougit si elle casse |
 |---|---|
-| Un test ignoré, un `SuppressMessage`, un `NoWarn` de projet, un `#pragma` hors code généré, une sévérité de catégorie | `QualityGateFreezeTest` |
+| Un test ignoré, un `SuppressMessage`, un `NoWarn` de projet, un `#pragma` hors code généré, une sévérité de catégorie, un `NotImplementedException` commité | `QualityGateFreezeTest` |
 | Une exemption d'analyseur ajoutée, retirée, déplacée de section ou changée de sévérité | `QualityGateFreezeTest` |
 | Une exclusion de couverture, une propriété de build, un symbole banni modifiés | `QualityGateFreezeTest` |
 | Une Porte retirée de `[tasks.check]`, ou sans son step de CI | `QualityGateFreezeTest` |

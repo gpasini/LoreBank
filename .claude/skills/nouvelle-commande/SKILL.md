@@ -14,13 +14,30 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 
 ## Recette
 
-1. Dossier par use case : `Commands/<UseCase>/` dans l'Application du module,
-   le record et son handler dans des fichiers séparés, namespaces alignés sur
-   les dossiers.
-2. Le record : `sealed record XxxCommand(…) : ICommand` — ou `ICreationCommand`
-   si le use case crée l'agrégat. Propriétés primitives : ce record **est** le
-   body HTTP.
-3. Le handler : `XxxCommandHandler`, `sealed` — charge l'agrégat par le port de
+1. **Le squelette** : dossier par use case — `Commands/<UseCase>/` dans
+   l'Application du module, le record et son handler dans des fichiers
+   séparés, namespaces alignés sur les dossiers. Le record :
+   `sealed record XxxCommand(…) : ICommand` — ou `ICreationCommand` si le use
+   case crée l'agrégat ; propriétés primitives, ce record **est** le body
+   HTTP. Le handler `XxxCommandHandler`, `sealed`, réduit à sa signature —
+   `throw new NotImplementedException()`. Juste de quoi compiler : le test
+   passe par `ISender`, il n'a pas besoin de l'action.
+2. **Les tests d'intégration**, écrits maintenant contre ce vide
+   (`Applications/<Agrégat>/XxxTest.cs`, sur
+   `BaseIntegrationTest<XxxWebAppFactory, DbSetup>`) : le cas nominal vérifié
+   **par une query** — l'état d'après ne s'obtient que par une lecture — et
+   chaque rejet métier avec son exception. Arranges par le scénario du
+   `DbSetup` (ADR 0030) : `await DbSetup.CreateXxx().Yyy(b => b.With…())
+   .RunAsync()` — les gestes empilent, seul le terminal est attendu ; jamais
+   de `.Result` sous le scope ambiant, qui emballe l'échec en
+   `AggregateException`. Un test qui attend un Acteur ou un Instant précis
+   les pose sur les fakes avant l'arrange (`ConfigurableCurrentActor` du
+   module, `Factory.TimeProvider.Instant` du socle) et relit exactement
+   cette valeur — jamais « autour de maintenant » ; `ResetFakes` efface.
+   **Ils doivent rougir** — le RED de l'ADR 0032 — avant que le handler ne
+   charge quoi que ce soit : c'est le test qui dit quels rejets métier le
+   use case doit produire, et le handler qui s'y plie.
+3. Le handler : charge l'agrégat par le port de
    repository (`GetRequiredByIdAsync` : l'absence lève déjà la
    `NotFoundException` du module, aucun `?? throw` à écrire), construit les VO
    depuis les primitives, appelle la transition, `SaveAsync`. Une naissance
@@ -40,20 +57,11 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
    { AccountId = id }` écrase un champ posté en double, et la propriété
    écrasée porte `[property: RouteBound]` sur le record pour sortir du body
    décrit. Le nom de l'action est l'`operationId` du Client : du contrat.
-5. Tests d'intégration (`Applications/<Agrégat>/XxxTest.cs`, sur
-   `BaseIntegrationTest<XxxWebAppFactory, DbSetup>`) : le cas nominal vérifié
-   **par une query** — l'état d'après ne s'obtient que par une lecture — et
-   chaque rejet métier avec son exception. Arranges par le scénario du
-   `DbSetup` (ADR 0030) : `await DbSetup.CreateXxx().Yyy(b => b.With…())
-   .RunAsync()` — les gestes empilent, seul le terminal est attendu ; jamais
-   de `.Result` sous le scope ambiant, qui emballe l'échec en
-   `AggregateException`. Un test qui attend un Acteur ou un Instant précis
-   les pose sur les fakes avant l'arrange (`ConfigurableCurrentActor` du
-   module, `Factory.TimeProvider.Instant` du socle) et relit exactement
-   cette valeur — jamais « autour de maintenant » ; `ResetFakes` efface.
-6. Une nouvelle route se traverse aussi en HTTP réel : un cas dans le
-   `CqsContractTest` du module (204 ou 201 + `Location`, corps vide).
-7. Le builder et le geste de la commande (ADR 0030) : un
+5. Une nouvelle route se traverse aussi en HTTP réel : un cas dans le
+   `CqsContractTest` du module (204 ou 201 + `Location`, corps vide). C'est
+   un épinglage, pas une spécification : il photographie un contrat qui
+   existe, donc il s'écrit ici et non à l'étape 2 (ADR 0032).
+6. Le builder et le geste de la commande (ADR 0030) : un
    `<Commande>Builder` dans `Test.Infrastructure/Builders/` — champs privés
    à défauts valides, `With<Propriété>()`, le prérequis (l'agrégat visé) en
    nullable lisible posé par `Of(id)`, `Build()` qui lève s'il manque — et
@@ -62,7 +70,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
    configuré et le prérequis comblé **dans l'étape** (le dernier créé, ou un
    par défaut), envoi par `Sender`, `return this`. Une création empile son
    id pour `GetLast<Agrégat>Id()`.
-8. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
+7. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
    diff (la nouvelle opération, son body sans la propriété `[RouteBound]`)
    et le commiter avec le changement — la CI échoue s'il manque.
 
@@ -90,8 +98,8 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 
 Renommer une propriété du record est un breaking change HTTP que le
 compilateur ne voit pas : ce sont les payloads réels de `CqsContractTest` qui
-rougissent — d'où l'étape 6 — et le diff du document commité qui le montre en
-PR — d'où l'étape 8.
+rougissent — d'où l'étape 5 — et le diff du document commité qui le montre en
+PR — d'où l'étape 7.
 
 ## Pièges
 
@@ -111,5 +119,6 @@ PR — d'où l'étape 8.
 
 ## Avant de terminer
 
-Build sans warning, tests des étapes 5 et 6 verts : nominal relu par une
-query, chaque rejet avec son exception, la route traversée en HTTP réel.
+Build sans warning, les tests de l'étape 2 **rouges d'abord, puis** verts
+(nominal relu par une query, chaque rejet avec son exception) et l'épinglage
+de l'étape 5 vert (la route traversée en HTTP réel).

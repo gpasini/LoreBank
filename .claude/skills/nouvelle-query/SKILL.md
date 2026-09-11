@@ -14,13 +14,23 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
 
 ## Recette
 
-1. Dossier `Queries/<UseCase>/` dans l'Application : le record
-   `XxxQuery(…) : IQuery<XxxResult>`, son handler, et le Result colocalisé —
-   record de primitives, peuplé colonne par colonne, sans dépendance au modèle
-   d'écriture.
-2. Le port de lecture dans `Readers/` de l'Application (il rend un Result,
-   donc il se déclare là) : `Task<XxxResult?> …Async(…)` — pour un lecteur,
-   `null` est un résultat normal.
+1. **Le squelette** : dossier `Queries/<UseCase>/` dans l'Application — le
+   record `XxxQuery(…) : IQuery<XxxResult>`, son handler, et le Result
+   colocalisé (record de primitives, peuplé colonne par colonne, sans
+   dépendance au modèle d'écriture). Plus le port de lecture dans `Readers/`
+   de l'Application — il rend un Result, donc il se déclare là :
+   `Task<XxxResult?> …Async(…)`, pour un lecteur `null` est un résultat
+   normal. Handler et reader réduits à leur signature (`throw new
+   NotImplementedException()`). Juste de quoi compiler.
+2. **Le test du use case**, écrit maintenant contre ce vide
+   (`Applications/<Agrégat>/XxxTest.cs`) : **relire chaque champ** du Result
+   après une écriture arrangée par `DbSetup`, plus le cas absence →
+   `NotFoundException`. **Il doit rougir** — le RED de l'ADR 0032 — avant
+   qu'une colonne soit mappée. Il compte double ici : le mapping colonne →
+   propriété de la config keyless est en chaînes que rien ne compile, et
+   `ToView` étant hors migrations rien ne signale la dérive avec la table —
+   ce test est son seul garde-fou, et un test taillé après coup sur le
+   `Select` qu'on vient d'écrire ne garde rien du tout.
 3. Le handler transforme l'absence en erreur :
    `return result ?? throw new XxxNotFoundException(…)`.
 4. La row de la table lue, si elle n'existe pas encore : une classe plate de
@@ -41,15 +51,11 @@ c'est ce qui garantit qu'un 404 porte toujours un `code`. Un Result appartient
    OpenAPI lit (200 + schéma du Result) ; le nom de l'action est
    l'`operationId` du Client — `CreatedAtAction` d'une création le cible
    aussi, le renommer casse les deux.
-7. Le test du use case (`Applications/<Agrégat>/XxxTest.cs`) : **relire chaque
-   champ** du Result après une écriture arrangée par `DbSetup` — le mapping
-   colonne → propriété de la config keyless est en chaînes que rien ne
-   compile, et `ToView` étant hors migrations rien ne signale la dérive avec
-   la table : ce test est son seul garde-fou — plus le cas absence →
-   `NotFoundException`.
-8. Une nouvelle route `GET` épingle son contrat : l'ensemble exact de ses clés
-   JSON dans le `CqsContractTest` du module.
-9. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
+7. Une nouvelle route `GET` épingle son contrat : l'ensemble exact de ses
+   clés JSON dans le `CqsContractTest` du module. C'est un épinglage, pas une
+   spécification : il photographie un contrat qui existe, donc il s'écrit ici
+   et non à l'étape 2 (ADR 0032).
+8. Le build de l'hôte a réécrit `backend/openapi/lorebank.json` : relire le
    diff (l'opération, le schéma du Result) et le commiter avec le changement
    — la CI échoue s'il manque.
 
@@ -116,8 +122,8 @@ Liste : `Queries/ListBankAccounts/` et `ListBankAccountsTest`.
 | Aucune transaction ambiante autour d'une lecture | `PipelineWiringTest` (module), `TransactionBehaviorTest` (socle) |
 | Un reader ne requête que des rows keyless, jamais un agrégat | `ModuleReaderTest` (`Query` refuse un type à clé ou hors modèle) |
 | La row est dans le snapshot (migration générée) | `ModuleCompositionTest` (`HasPendingModelChanges`) |
-| Le 404 d'une lecture porte un code | `ErrorContractTest`, plus le cas absence de l'étape 7 |
-| L'ensemble exact des clés JSON du `GET` | `CqsContractTest` — étape 8 |
+| Le 404 d'une lecture porte un code | `ErrorContractTest`, plus le cas absence de l'étape 2 |
+| L'ensemble exact des clés JSON du `GET` | `CqsContractTest` — étape 7 |
 | La Description dit 200 + le schéma du Result, `decimal` en `number` | `DescriptionContractTest` (socle), le diff de `backend/openapi/lorebank.json` (CI) |
 | Une query qui rend une Page dérive de `ListQuery`, ses filtres sont multi-valeurs | `ApplicationConventionTest` |
 | La mécanique de la Liste — bornes (422 `INVALID_PAGING`), recherche, OU/ET, facettes disjonctives, paramètres camelCase | `ListContractTest`, `DescriptionContractTest` (socle, sur le Probe) |
@@ -146,6 +152,7 @@ Liste : `Queries/ListBankAccounts/` et `ListBankAccountsTest`.
 
 ## Avant de terminer
 
-Build sans warning, tests des étapes 7 et 8 verts : chaque champ du Result
-relu avec sa valeur arrangée, l'absence levant la `NotFoundException` du
-module, les clés JSON de la route épinglées.
+Build sans warning, le test de l'étape 2 **rouge d'abord, puis** vert (chaque
+champ du Result relu avec sa valeur arrangée, l'absence levant la
+`NotFoundException` du module) et l'épinglage de l'étape 7 vert (les clés
+JSON de la route).

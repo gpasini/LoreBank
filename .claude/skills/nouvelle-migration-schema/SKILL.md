@@ -77,3 +77,10 @@ ne s'écrit pas à la main.
 Build sans warning, `mise run migrate` passé sur le poste, et la suite
 `Test.Infrastructure` verte — elle rejoue la timeline entière sur un conteneur
 vierge, ce qu'aucun poste déjà migré ne prouve.
+
+**Cette skill est la seule exemptée du RED observé** (ADR 0032) : il n'y a
+aucun test à écrire — la migration est générée par EF, pas écrite, et sa
+preuve est la timeline rejouée à blanc. L'exemption est écrite ici pour
+qu'elle ne soit pas tacite ; elle ne s'étend à aucune autre skill, et surtout
+pas à `nouvelle-data-migration`, dont le test de rejeu s'écrit avant le corps
+de la migration.

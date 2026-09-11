@@ -37,8 +37,14 @@ et la batterie `ModuleCompositionTest` le couvre d'office.
 4. **L'adapter** dans `LoreBank.Host/Modules/` :
    `sealed class <Module>Module : HostModule<<Module>DbContext>` qui ne
    déclare que son `AutofacModule` — puis la ligne dans `HostModules.All`.
+   **C'est le RED de cette skill** (ADR 0032), et il est gratuit : le module
+   est déclaré mais n'a pas encore sa chaîne de connexion, donc
+   `AddModuleDbContext` refuse la clé absente et la composition casse — tout
+   le `Test.Infrastructure` du socle rougit. Lancer la suite ici, voir le
+   rouge, et savoir **pourquoi** : c'est la clé `<Module>Db` qui manque (ADR
+   0008), pas un bug du socle.
 5. **La chaîne de connexion** `<Module>Db` sous `ConnectionStrings` de
-   `appsettings.json` de l'hôte.
+   `appsettings.json` de l'hôte — le rouge de l'étape 4 passe au vert.
 6. **Le harnais de test du module** : une factory scellée
    `<Module>WebAppFactory : IntegrationTestWebAppFactory` — fakes dans
    `ConfigureModuleContainer` (pas `ConfigureTestServices` : la dernière
@@ -91,5 +97,5 @@ utiles), `BankDbContext`, `BankInfrastructureModule`, `BankWebAppFactory` et
 
 Build sans warning et suite complète verte — `ModuleCompositionTest` est le
 test de montage du nouveau module, il doit passer sur lui sans aucune ligne de
-test écrite ; le premier use case de bout en bout prouve le reste (skills de
-l'étape 7).
+test écrite, et **rouge d'abord** entre les étapes 4 et 5 ; le premier use
+case de bout en bout prouve le reste (skills de l'étape 7).
