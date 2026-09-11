@@ -68,17 +68,19 @@ fi
 stamp=.claude/.gates-ran
 
 if [ -f "$stamp" ]; then
-  # Tout ce que git voit : les fichiers suivis, plus les non suivis non
-  # ignorés — un .cs fraîchement créé et jamais ajouté est invisible des
-  # premiers, et c'est le cas exact d'un agent en plein travail.
-  perime=0
-  for fichier in $({ git ls-files; git ls-files --others --exclude-standard; }); do
+  # Les fichiers suivis seulement. Les non suivis ont été retirés du scan :
+  # ils rendaient le rappel bavard sans rien apprendre — un brouillon, un
+  # fichier de sortie posé à côté, et le tour était marqué périmé. Le prix
+  # est connu et assumé : un .cs créé et jamais ajouté passe sous le radar
+  # jusqu'à son premier `git add`.
+  declencheur=
+  for fichier in $(git ls-files); do
     if [ -e "$fichier" ] && [ "$fichier" -nt "$stamp" ]; then
-      perime=1
+      declencheur=$fichier
       break
     fi
   done
-  [ "$perime" = "0" ] && exit 0
+  [ -z "$declencheur" ] && exit 0
 fi
 
 # Comme dans hook:generated : un heredoc passé en argument ou logé dans un
@@ -103,6 +105,10 @@ bloquer() {
 # rappel seul dirait seulement d'aller voir.
 if ! sortie=$(mise run pre-commit 2>&1); then
   bloquer "$(printf '%s\n\n%s' "$sortie" "Les portes rapides sont rouges (ADR 0028, docs/qualite.md). Corrige, puis relance mise run check.")"
+fi
+
+if [ -n "$declencheur" ]; then
+  bloquer "$(printf '%s\n\nDernière édition non couverte : %s' "$(rappel)" "$declencheur")"
 fi
 
 bloquer "$(rappel)"

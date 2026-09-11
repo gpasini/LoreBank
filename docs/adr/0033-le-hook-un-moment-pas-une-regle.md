@@ -66,12 +66,19 @@ délibéré — l'agent s'arrête pour poser une question, faire trancher un
 choix — est légitime : il suffit de le redire. **Un blocage trop zélé est
 pire que pas de hook du tout.**
 
-Ce qu'il surveille : **tout ce que git voit**, fichiers suivis *plus* non
-suivis non ignorés. Ce second morceau n'est pas cosmétique — un `.cs`
-fraîchement créé et jamais `git add` serait invisible d'un scan des seuls
-fichiers suivis, et c'est le cas exact d'un agent en plein travail. Aucune
-exclusion : avec le rappel unique, un rappel de trop coûte une ligne, un
-rappel manquant coûte un build cassé découvert en CI.
+Ce qu'il surveille : les **fichiers suivis**, et eux seuls. Le scan
+couvrait d'abord aussi les non suivis non ignorés, pour attraper un `.cs`
+créé et jamais `git add` — le cas d'un agent en plein travail. L'usage a
+tranché autrement dès le premier tour réel : un brouillon posé à côté, un
+fichier de sortie, et le rappel tombait sans rien apprendre. Le prix est
+connu et assumé — un fichier neuf passe sous le radar jusqu'à son premier
+`git add`, et c'est le commit qui le rattrape.
+
+Le message **nomme le fichier** qui l'a déclenché. Sans lui, un rappel se
+discute au lieu de se traiter : la première fois que ce hook a bloqué pour
+de vrai, il a fallu dix minutes et trois hypothèses fausses pour retrouver
+quelle édition l'avait réveillé. Une ligne de plus dans le motif remplace
+l'enquête.
 
 L'horodatage est la neuvième entrée de `[tasks.check]`, écrite en dernier
 donc seulement si tout est vert. Ce n'est pas une Porte : le Gel sépare les
