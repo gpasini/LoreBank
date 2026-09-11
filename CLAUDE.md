@@ -6,7 +6,39 @@ Le module `Bank` sert d'exemple de référence pour construire un module ;
 `Ledger` (la comptabilité, nourrie par les events de `Bank`) pour la
 communication inter-modules.
 
-## Build & toolchain
+## À chaque tâche
+
+Avant de considérer un changement terminé : `mise run check` à la racine —
+toutes les portes, dans l'ordre de la CI (build sans warning, format,
+Description à jour, suite complète, front typé, linté, formaté, audité ;
+`docs/qualite.md`) — et comportement démontré à l'exécution (tests, ou
+programme de vérification). Un fichier hors format se corrige par
+`mise run format` (`backend/`) ou `mise run format` (`frontend/`), jamais à
+la main.
+
+## Ce qu'aucun garde-fou ne tient
+
+### Style
+
+- Dès qu'une signature — constructeur (primaire inclus), méthode, opérateur,
+  record positionnel — a plus d'un paramètre : retour à la ligne après la
+  parenthèse ouvrante, un paramètre par ligne, parenthèse fermante sur sa
+  propre ligne. Un seul paramètre reste sur la ligne.
+- Même règle pour les invocations (appels, `new`, `throw new`) : dès deux
+  arguments, un argument par ligne et **arguments nommés** (`amount: 0m`).
+  Un appel à un seul argument reste inline et non nommé.
+- Le tout est encodé pour Rider dans `.editorconfig`
+  (`resharper_max_formal_parameters_on_line = 1`,
+  `resharper_max_invocation_arguments_on_line = 1`,
+  `resharper_arguments_* = named`, `resharper_arguments_skip_single = true`)
+  — et tenu par Rider et la relecture seulement : Roslyn n'a pas
+  d'équivalent, `dotnet format` ne le vérifie pas (ADR 0028). Le reste de
+  `.editorconfig` (accolades, `var`, ordre des modificateurs, namespace =
+  dossier, encodage, newline finale) est tenu par la porte Format.
+
+## Le routage
+
+### Build & toolchain
 
 - Le SDK .NET vient de mise : `mise exec -- dotnet <cmd>`, jamais le dotnet du PATH.
 - C'est `backend/global.json` qui sélectionne la version du SDK (le pin de
@@ -50,7 +82,7 @@ communication inter-modules.
   `npm run audit` sont ses portes. TypeScript est pinné en 5.x —
   `openapi-typescript` consomme l'API compilateur que la 7 n'expose plus.
 
-## Architecture
+### Architecture
 
 - Un module = 6 projets `LoreBank.<Module>.{Domain, Application, Infrastructure,
   Api, Test.Unit, Test.Infrastructure}`, à plat dans `backend/`, regroupés dans
@@ -204,7 +236,7 @@ communication inter-modules.
   `SignalPublicationTest` (Bank, sur `SignalProbe` : ouvrir le flux, agir,
   passe du processor puis du suiveur, lire le Signal).
 
-## Conventions du domaine
+### Conventions du domaine
 
 - Les erreurs métier sont des exceptions : une classe par violation, héritant de
   `DomainException`, `sealed`. Pas de `Result`. Une exception ne porte aucun
@@ -292,7 +324,7 @@ communication inter-modules.
   sortie ne divergent pas. Le type de média est
   `application/problem+json; charset=utf-8` partout. Voir `docs/erreurs.md`.
 
-## Couche Application
+### Couche Application
 
 - CQS avec MediatR (pinné en 12.x, dernière version sous licence Apache 2.0),
   derrière les marqueurs de `LoreBank.SharedKernel.Application` : `ICommand`
@@ -437,7 +469,7 @@ communication inter-modules.
   par scan d'assembly — l'hôte agrège les `ApplicationAssembly` de tous les
   `IHostModule` en un seul `RegisterServicesFromAssemblies`.
 
-## Couche Infrastructure
+### Couche Infrastructure
 
 - EF Core + Npgsql — le package du provider est référencé par
   `LoreBank.SharedKernel.Infrastructure` (ADR 0008), les modules l'héritent en
@@ -538,7 +570,7 @@ communication inter-modules.
   `IEntityTypeConfiguration` : EF ne mappe pas une propriété sans setter d'un
   type non mappable, et `ModuleDbContextTest` épingle ce contrat.
 
-## Tests
+### Tests
 
 - **Le test avant le code** (ADR 0032) : squelette minimal qui compile →
   test → **RED observé** → corps. Un RED, c'est un test qui compile et
@@ -648,35 +680,7 @@ communication inter-modules.
   premier test avec un message explicite au lieu de flaker en CI.
 - Lancer : `mise exec -- dotnet test LoreBank.slnx`.
 
-## Style
-
-- Dès qu'une signature — constructeur (primaire inclus), méthode, opérateur,
-  record positionnel — a plus d'un paramètre : retour à la ligne après la
-  parenthèse ouvrante, un paramètre par ligne, parenthèse fermante sur sa
-  propre ligne. Un seul paramètre reste sur la ligne.
-- Même règle pour les invocations (appels, `new`, `throw new`) : dès deux
-  arguments, un argument par ligne et **arguments nommés** (`amount: 0m`).
-  Un appel à un seul argument reste inline et non nommé.
-- Le tout est encodé pour Rider dans `.editorconfig`
-  (`resharper_max_formal_parameters_on_line = 1`,
-  `resharper_max_invocation_arguments_on_line = 1`,
-  `resharper_arguments_* = named`, `resharper_arguments_skip_single = true`)
-  — et tenu par Rider et la relecture seulement : Roslyn n'a pas
-  d'équivalent, `dotnet format` ne le vérifie pas (ADR 0028). Le reste de
-  `.editorconfig` (accolades, `var`, ordre des modificateurs, namespace =
-  dossier, encodage, newline finale) est tenu par la porte Format.
-
-## Vérification
-
-Avant de considérer un changement terminé : `mise run check` à la racine —
-toutes les portes, dans l'ordre de la CI (build sans warning, format,
-Description à jour, suite complète, front typé, linté, formaté, audité ;
-`docs/qualite.md`) — et comportement démontré à l'exécution (tests, ou
-programme de vérification). Un fichier hors format se corrige par
-`mise run format` (`backend/`) ou `mise run format` (`frontend/`), jamais à
-la main.
-
-## Agent skills
+### Agent skills
 
 ### Skills du repo
 
