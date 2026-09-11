@@ -7,7 +7,8 @@ mise dans les deux cas. Décision et alternatives : ADR 0028.
 
 `mise run check` à la racine rejoue toutes les portes dans l'ordre de la CI ;
 chaque step de `.github/workflows/ci.yml` est `mise run <tâche>`, rien de
-plus.
+plus. Une neuvième entrée ferme la liste sans être une porte : elle date le
+passage, pour le hook qui rappelle de lancer `check` (ADR 0033).
 
 ## Les portes
 

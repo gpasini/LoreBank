@@ -3,6 +3,13 @@
 min_version = "2026.9.0"
 monorepo_root = true
 
+# `jq` sert aux hooks de `.claude/settings.json` (ADR 0033) : ils reçoivent
+# leur entrée en JSON sur stdin. Épinglé ici comme dotnet et node le sont dans
+# leurs configs — `mise install` le pose, et un parseur JSON en sed n'en
+# serait pas un.
+[tools]
+jq = "1"
+
 [monorepo]
 config_roots = [
     "backend",
@@ -24,6 +31,10 @@ run = [
     "mise run //frontend:typecheck",
     "mise run //frontend:check",
     "mise run //frontend:audit",
+    # L'horodatage que lit `hook:verify` (ADR 0033) : écrit en dernier, donc
+    # seulement si tout est vert. Ce n'est pas une Porte — le Gel distingue
+    # les huit au préfixe `mise run //`.
+    "mkdir -p .claude && touch .claude/.gates-ran",
 ]
 
 # Les gates rapides avant un commit — jamais la suite d'intégration.
@@ -34,3 +45,145 @@ run = [
     "mise run //backend:format:check",
     "mise run //frontend:check",
 ]
+
+# Les hooks de `.claude/settings.json` (ADR 0033) n'appellent que ces trois
+# tâches : la logique vit ici, avec les portes, donc elle se rejoue à la main
+# hors de Claude Code — `mise run hook:verify` répond la même chose dans un
+# terminal. Un hook impose le moment d'un garde-fou existant, jamais une règle.
+# `quiet` parce que leur sortie n'est pas lue par un humain : stderr devient
+# le motif du refus que l'agent reçoit, stdout le contexte qu'on lui pose.
+[tasks."hook:verify"]
+description = "Hook Stop : rappelle une fois que les portes n'ont pas tourné depuis la dernière édition"
+quiet = true
+run = '''
+input=$(cat)
+
+# Le garde anti-boucle : après notre blocage, Claude repasse ici avec ce
+# drapeau levé. Un rappel par tour, jamais deux — le plafond dur de huit
+# blocages consécutifs ne sert jamais.
+if [ "$(printf %s "$input" | jq -r ".stop_hook_active // false")" = "true" ]; then
+  exit 0
+fi
+
+stamp=.claude/.gates-ran
+
+if [ -f "$stamp" ]; then
+  # Tout ce que git voit : les fichiers suivis, plus les non suivis non
+  # ignorés — un .cs fraîchement créé et jamais ajouté est invisible des
+  # premiers, et c'est le cas exact d'un agent en plein travail.
+  perime=0
+  for fichier in $({ git ls-files; git ls-files --others --exclude-standard; }); do
+    if [ -e "$fichier" ] && [ "$fichier" -nt "$stamp" ]; then
+      perime=1
+      break
+    fi
+  done
+  [ "$perime" = "0" ] && exit 0
+fi
+
+# Comme dans hook:generated : un heredoc passé en argument ou logé dans un
+# bras de `case` est avalé par le parseur. En fonction, il tient.
+rappel() {
+  cat <<'STALE'
+mise run check n'a pas tourné depuis la dernière édition : rien ne prouve que
+les portes passent (ADR 0028, docs/qualite.md). Lance-le, puis reprends.
+
+Si tu t'arrêtes délibérément — une question à poser, un choix à faire
+trancher — c'est légitime : redis-le simplement, ce rappel ne reviendra pas
+dans ce tour.
+STALE
+}
+
+bloquer() {
+  jq -n --arg raison "$1" '{ decision: "block", reason: $raison }'
+  exit 0
+}
+
+# Les portes rapides d'abord : leur sortie dit *quoi* corriger, là où le
+# rappel seul dirait seulement d'aller voir.
+if ! sortie=$(mise run pre-commit 2>&1); then
+  bloquer "$(printf '%s\n\n%s' "$sortie" "Les portes rapides sont rouges (ADR 0028, docs/qualite.md). Corrige, puis relance mise run check.")"
+fi
+
+bloquer "$(rappel)"
+'''
+
+[tasks."hook:generated"]
+description = "Hook PreToolUse : refuse l'édition à la main d'un fichier généré, et donne le geste correct"
+quiet = true
+run = '''
+path=$(cat | jq -r ".tool_input.file_path // empty")
+
+# Les gestes en fonctions : un heredoc dans un bras de `case` est avalé par
+# le parseur avant que le bras soit choisi.
+geste_openapi() {
+  cat <<'GESTE'
+La Description OpenAPI est émise par le build de l'hôte (ADR 0019) :
+  cd backend && mise exec -- dotnet build LoreBank.slnx
+puis commite le diff. La CI rejette un fichier divergent (openapi:check).
+GESTE
+}
+
+geste_migration() {
+  cat <<'GESTE'
+Une migration de schéma se génère, jamais ne s'écrit (skill
+`nouvelle-migration-schema`) :
+  cd backend && mise exec -- dotnet tool run dotnet-ef migrations add <Nom> ...
+C'est la seule des trois familles générées qu'aucune porte ne rattrape : une
+retouche à la main ici passerait la CI et casserait la base au déploiement.
+GESTE
+}
+
+geste_client() {
+  cat <<'GESTE'
+Le Client TypeScript est généré depuis la Description :
+  cd frontend && mise exec -- npm run generate
+Le fichier est gitignoré : une retouche serait perdue au prochain `npm ci`.
+Une forme wire qui doit diverger se change côté back, dans la surface
+Application du module (ADR 0012).
+GESTE
+}
+
+case "$path" in
+  */backend/openapi/lorebank.json) geste=$(geste_openapi) ;;
+  *ModelSnapshot.cs|*.Designer.cs) geste=$(geste_migration) ;;
+  */frontend/src/api/schema.d.ts) geste=$(geste_client) ;;
+  *) exit 0 ;;
+esac
+
+# Le contrat JSON documenté plutôt qu'un exit 2 : lui seul porte le motif
+# sans que la ligne d'échec de mise vienne s'y coller.
+jq -n --arg raison "$path est un fichier généré, il ne se modifie pas à la main.
+
+$geste" '{
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: $raison
+  }
+}'
+'''
+
+[tasks."hook:skills"]
+description = "Hook SessionStart : pose la table chemin → skill dans le contexte"
+quiet = true
+run = '''
+cat <<'TABLE'
+Procédures de construction de ce repo (.claude/skills/) — invoque la skill
+avant d'écrire : elle porte la recette, ses garde-fous et son « Avant de
+terminer ». L'ordre y est celui de l'ADR 0032 — squelette, test, RED observé,
+corps.
+
+| Ce que tu t'apprêtes à toucher | Skill |
+|---|---|
+| une issue GitHub à dérouler de bout en bout | ajouter-fonctionnalite |
+| *.Domain/ValueObjects/ | nouveau-value-object |
+| *.Domain/Aggregates/, *.Domain/Events/ | nouvel-agregat |
+| *.Domain/EventHandlers/, *.Domain/Services/ | nouveau-domain-event-handler |
+| *.Application/Commands/ | nouvelle-commande |
+| *.Application/Queries/, *.Infrastructure/Readers/ | nouvelle-query |
+| *.Infrastructure/Persistence/Migrations/ | nouvelle-migration-schema |
+| *.Infrastructure/Persistence/DataMigrations/ | nouvelle-data-migration |
+| un bounded context entier qui n'existe pas | nouveau-module |
+TABLE
+'''

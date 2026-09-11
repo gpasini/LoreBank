@@ -32,3 +32,9 @@ dist/
 
 # Brouillons des agents (les issues vivent sur GitHub)
 .scratch/
+
+# Agents — les hooks versionnés vivent dans .claude/settings.json (ADR 0033),
+# son jumeau local n'a rien à faire ici, et l'horodatage que lit `hook:verify`
+# est une trace de poste.
+.claude/settings.local.json
+.claude/.gates-ran

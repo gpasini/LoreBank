@@ -1,7 +1,8 @@
 # Le test avant le code : le RED observé, jamais supposé
 
-> Statut : accepté — 2026-09-11. Étend le Gel de l'ADR 0031 d'un axe — le
-> résidu d'un cycle interrompu.
+> Statut : accepté — 2026-09-11 ; étend le Gel de l'ADR 0031 d'un axe — le
+> résidu d'un cycle interrompu — et corrigé par l'ADR 0033 : le hook qu'il
+> renvoyait à l'issue #29 n'entre pas dans la réserve des hooks.
 
 Le mot TDD n'apparaissait nulle part dans ce repo : ni dans `CLAUDE.md`, ni
 dans `docs/`, ni dans les neuf skills. Et l'ordre des recettes disait le
@@ -98,7 +99,9 @@ devient aussi celle de la méthode.
 Sa limite est dite franchement : **le récap ne couvre que ce qui passe par le
 chapeau**. Une brique déroulée seule, hors issue, ne laisse rien. C'est un
 cran au-dessus de l'espoir, ce n'est pas une Porte — et `docs/qualite.md` le
-recense pour cela dans « Ce qu'aucune porte ne tient ».
+recense pour cela dans « Ce qu'aucune porte ne tient ». Rien ne viendra la
+fermer : l'ADR 0033 a écarté le hook qui l'aurait fait, parce qu'il aurait
+porté une règle au lieu d'un moment.
 
 ### Le résidu
 
@@ -132,9 +135,13 @@ où l'on en ferme une n'aurait pas eu de sens.
   skills** : huit répétitions d'un vide, quand le repo a déjà un registre de
   ce qu'aucune Porte ne tient.
 - **Un hook qui vérifie qu'un rouge a précédé le vert** : c'est le seul
-  mécanisme qui fermerait la limite du récap. Renvoyé à l'issue #29, qui
-  cadre les hooks versionnés — et qui ne doit ajouter aucune règle, seulement
-  imposer le *moment* de celles qui existent.
+  mécanisme qui fermerait la limite du récap, et il a été renvoyé à l'issue
+  #29. **L'ADR 0033 l'a écarté** : un hook n'est admis que s'il impose le
+  *moment* d'un garde-fou existant — lancer une Porte, refuser un fichier
+  généré, rappeler une skill. Or aucune Porte ne tient le RED ; un hook qui
+  l'imposerait ajouterait une règle que rien ne rejoue hors de Claude Code.
+  Le RED reste donc sans garde-fou mécanique, et `docs/qualite.md` le recense
+  comme tel — c'est la limite, écrite, de cette décision.
 - **Restructurer chaque recette en trois phases** (Squelette / Test /
   Corps) : la liste d'artefacts d'une recette sert aussi de checklist de ce
   qui doit exister ; la redistribuer en trois blocs la détruit, et réécrit

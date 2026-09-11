@@ -118,8 +118,9 @@ public sealed class QualityGateFreezeTest
         "P:System.DateTimeOffset.UtcNow",
     ];
 
-    // La liste des Portes elle-même (ADR 0028) : une Porte supprimée est le
-    // desserrage maximal.
+    // Les entrées de `[tasks.check]` (ADR 0028) : une Porte supprimée est le
+    // desserrage maximal. La dernière n'est pas une Porte mais l'horodatage
+    // que lit le hook Stop (ADR 0033) — `CiGates` les sépare.
     private readonly static string[] FrozenGates = [
         "mise run //backend:build",
         "mise run //backend:format:check",
@@ -129,7 +130,17 @@ public sealed class QualityGateFreezeTest
         "mise run //frontend:typecheck",
         "mise run //frontend:check",
         "mise run //frontend:audit",
+        "mkdir -p .claude && touch .claude/.gates-ran",
     ];
+
+    // Les seules entrées qui sont des Portes : celles que la CI doit rejouer.
+    // L'horodatage de `check` n'en est pas une (ADR 0033) — il ne vérifie
+    // rien, il date le passage.
+    private static IEnumerable<string> CiGates => FrozenGates.Where(entry => entry.StartsWith(
+            value: "mise run //",
+            comparisonType: StringComparison.Ordinal
+        )
+    );
 
     private static string EditorConfig => Path.Combine(
         path1: SourceTree.Root,
@@ -297,7 +308,7 @@ public sealed class QualityGateFreezeTest
 
     // Le pendant de la ligne « par construction » de la table Garde-fous de
     // l'ADR 0028 : elle devient un test.
-    [TestCaseSource(nameof(FrozenGates))]
+    [TestCaseSource(nameof(CiGates))]
     public void QualityGates_ShouldHaveACiStep_WhenTheTaskIsDeclared(string task)
     {
         var command = task

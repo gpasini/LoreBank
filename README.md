@@ -48,6 +48,15 @@ Les conventions d'architecture et de code sont décrites dans
 récurrents dans `.claude/skills/`. [AGENTS.md](AGENTS.md) y renvoie, pour les
 agents qui suivent cette convention plutôt que celle de Claude Code.
 
+`.claude/settings.json` embarque trois hooks (ADR 0033) qui n'ajoutent
+aucune règle : ils rappellent de lancer les portes, refusent l'édition à la
+main d'un fichier généré, et posent la table chemin → skill. Ils ne
+s'exécutent que sous Claude Code, et seulement après que vous ayez accordé
+votre confiance à l'espace de travail. Travailler autrement ne fait rien
+perdre des règles — elles sont toutes tenues par les portes — seulement le
+rappel : `mise run hook:verify` et `mise run hook:generated` répondent la
+même chose dans un terminal.
+
 ## Documentation
 
 - [Les erreurs, de bout en bout](docs/erreurs.md) — comment une règle métier
