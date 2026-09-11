@@ -11,6 +11,17 @@ public abstract partial class DomainException : Exception
 
     protected DomainException(Dictionary<string, object> parameters)
     {
+        foreach (var (key, value) in parameters) {
+            if (!IsScalar(value)) {
+                throw new ArgumentException(
+                    message: $"Le paramètre « {key} » de {GetType().Name} porte un {value?.GetType().Name ?? "null"} : "
+                    + "une DomainException ne transporte que des scalaires — on passe balance.Amount et "
+                    + "balance.Currency, jamais balance (docs/erreurs.md).",
+                    paramName: nameof(parameters)
+                );
+            }
+        }
+
         Parameters = parameters;
         Code = CodeOf(GetType());
     }
@@ -43,6 +54,16 @@ public abstract partial class DomainException : Exception
             ? violation
             : $"{module}.{violation}";
     }
+
+    // Les valeurs partent telles quelles dans le JSON de l'erreur : n'est admis
+    // que ce qui y sérialise en scalaire. Un value object y ferait fuir sa
+    // forme interne, et le front recevrait une valeur déjà formatée qu'il ne
+    // peut plus adapter à la locale.
+    private static bool IsScalar(object? value) => value switch {
+        null => false,
+        string or decimal or Guid or DateTimeOffset or DateTime or DateOnly or TimeOnly or TimeSpan or Enum => true,
+        _ => value.GetType().IsPrimitive,
+    };
 
     // Le 2e segment du namespace nomme le module ; le SharedKernel n'en est pas un et ne préfixe rien.
     private static string? DeriveModule(string? @namespace)

@@ -6,6 +6,7 @@ using LoreBank.SharedKernel.Domain.Exceptions;
 using LoreBank.SharedKernel.Infrastructure.IntegrationEvents;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using LoreBank.SharedKernel.Infrastructure.Persistence.DataMigrations;
+using LoreBank.SharedKernel.Infrastructure.Readers;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -334,6 +335,41 @@ public sealed class ModuleCompositionTest
             .ToList();
 
         illegalReferences.Should().BeEmpty("un projet Contracts ne dépend que de SharedKernel.Contracts — toute autre référence ferait fuir des types internes dans le langage publié (ADR 0015)");
+    }
+
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldImplementEveryPublishedPortAsAReader_WhenTheModulePublishes(IHostModule module)
+    {
+        var root = module.DbContextType.Assembly.GetName().Name!.Split('.')[0];
+
+        Assembly contracts;
+
+        try {
+            contracts = Assembly.Load($"{root}.{module.ModuleName}.Contracts");
+        } catch (FileNotFoundException) {
+            return;
+        }
+
+        // Les deux canaux entre modules sont l'integration event et le port
+        // de lecture publié (ADR 0014, 0015). Rien n'empêchait de déclarer
+        // dans un Contracts un port qui écrit : cette garde exige que toute
+        // implémentation d'une interface publiée dérive de ModuleReader, qui
+        // ne requête que des rows keyless — elle ne peut matériellement pas
+        // écrire.
+        var publishedPorts = contracts
+            .GetTypes()
+            .Where(type => type.IsInterface)
+            .ToHashSet();
+
+        var writingImplementations = module.DbContextType.Assembly
+            .GetTypes()
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .Where(type => type.GetInterfaces().Any(publishedPorts.Contains))
+            .Where(type => !type.IsAssignableTo(typeof(ModuleReader)))
+            .Select(type => type.Name)
+            .ToList();
+
+        writingImplementations.Should().BeEmpty("un port publié est un port de lecture : son implémentation dérive de ModuleReader, qui ne sait pas écrire (ADR 0015)");
     }
 
     [TestCaseSource(nameof(Modules))]

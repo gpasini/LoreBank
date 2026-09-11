@@ -63,8 +63,9 @@ obtenir un sans passer par la factory.
    jumeau.
 8. **Exceptions** : une classe `sealed : DomainException` par invariant, dans
    `Exceptions/`. Le constructeur peut prendre des VO, mais le dictionnaire
-   passé à la base ne porte que des **primitives** à clés camelCase
-   (`["balance"] = balance.Amount`) — jamais de texte.
+   passé à la base ne porte que des **scalaires** à clés camelCase
+   (`["balance"] = balance.Amount`) — jamais de texte, jamais le VO : la base
+   refuse tout le reste à l'instanciation.
 9. **Sa partielle de `DbSetup`** (`Test.Infrastructure/Setups/DbSetup.<Agrégat>.cs`,
     ADR 0030) : la liste des ids créés, `GetLast<Agrégat>Id()` et
     `Get<Agrégat>Async()` via le repository — tous deux par `Arranged` ; ses
@@ -89,6 +90,8 @@ exceptions et id typé dans le même projet.
 | Règle | Ce qui rougit si elle casse |
 |---|---|
 | Constructeurs privés, `sealed` (agrégat, events, exceptions) | `DomainConventionTest` (SharedKernel.Test.Infrastructure) |
+| Une erreur métier est une exception, jamais un `Result` : aucun paquet référencé par le Domain, aucun type nommé `*Result`/`*Error`/`*Outcome` | `DomainConventionTest` (ADR 0035) |
+| Les paramètres d'une exception sont des scalaires — ni VO, ni `null` | le constructeur de `DomainException` lève une `ArgumentException` ; rougit dans `ExceptionCodesTest` — étape 9 (ADR 0035) |
 | Namespace d'exception nommant le module — le préfixe du code en dépend | `ModuleCompositionTest` |
 | Codes d'erreur publiés | `ExceptionCodesTest` du module — étape 9 |
 | Invariants et ordre des events | les tests de transition — étape 9 |

@@ -17,8 +17,7 @@ communication inter-modules.
 ## À chaque tâche
 
 - **Le SDK .NET vient de mise** : `mise exec -- dotnet <cmd>`, jamais le
-  dotnet du PATH — c'est `backend/global.json` qui sélectionne la version.
-  Rien ne rattrape l'oubli : le mauvais SDK compile, puis diverge.
+  dotnet du PATH.
 - **Avant d'écrire, invoquer la skill du geste.** Elle porte la recette, ses
   garde-fous, et l'ordre de l'ADR 0032 — squelette, test, **RED observé**,
   corps. Le tableau du routage, plus bas, dit laquelle.
@@ -58,26 +57,6 @@ ne le signale.
 leurs tests. C'est la seule règle tenue par un test qui reste écrite ici :
 la découvrir tard oblige à *défaire* la forme du use case, pas à corriger une
 ligne.
-
-### Une commande ne traverse pas deux modules
-
-Le `TransactionScope` ambiant **n'est pas un garde-fou de frontière** : selon
-que les connexions des deux modules sont ouvertes simultanément ou non,
-Npgsql peut réutiliser le même connecteur — et la commande passe
-silencieusement — ou en enrôler un second, et la transaction escalade en
-distribué, non supporté hors Windows. Ne comptez pas dessus : c'est une règle
-d'architecture à tenir, pas une contrainte technique. Les deux canaux admis
-sont l'integration event et le port de lecture publié (ADR 0014, 0015).
-
-### Les erreurs métier sont des exceptions
-
-Une classe par violation, `sealed`, héritant de `DomainException`. **Pas de
-`Result`.** Et les paramètres qu'elle passe à sa base sont des **primitives,
-jamais des value objects** : on passe `balance.Amount` et `balance.Currency`,
-pas `balance`. Sinon la forme interne des VO devient un contrat public, et le
-front reçoit une valeur déjà formatée qu'il ne peut plus adapter à la locale.
-Rien ne teste ces deux points ; `docs/erreurs.md` en donne la mécanique
-complète.
 
 ### Le style des signatures et des appels
 
@@ -137,6 +116,7 @@ le test qui rougit si elle casse.
 | La validation aux frontières, la réhydratation | ADR 0016 |
 | Le dispatch des domain events | ADR 0003 |
 | Les hooks versionnés de Claude Code | ADR 0033 |
+| Les règles sans garde-fou : tenues ou assumées | `docs/qualite.md` · ADR 0035 |
 | Ce fichier-ci | ADR 0034 |
 
 `docs/agents/` porte les conventions de travail : issue tracker, labels de

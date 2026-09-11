@@ -68,6 +68,7 @@ enregistrés par l'hôte, qui scanne la `DomainAssembly` de chaque
 |---|---|
 | Le handler se résout dans le conteneur de l'hôte | `ModuleCompositionTest` |
 | Le handler vit dans la `DomainAssembly` — ailleurs, il échapperait au scan | `ModuleCompositionTest` |
+| Le handler ne dépend d'aucun `Contracts` d'un autre module — il tourne sous le scope de la commande | `ApplicationConventionTest` (ADR 0035) |
 | Un handler qui échoue annule la commande | `TransactionRollbackTest`, `ModuleDbContextTest` |
 | Aucune implémentation concrète dans le Domain | le graphe de projets — le Domain ne référence aucune infrastructure, la dépendance ne compile pas |
 | Le handler ne lit pas l'horloge (ADR 0024) | le build : l'analyseur d'API bannies rougit en `RS0030` dans tout projet `.Domain` |
@@ -75,6 +76,8 @@ enregistrés par l'hôte, qui scanne la `DomainAssembly` de chaque
 ## Pièges
 
 - Le handler orchestre ; les invariants restent dans l'agrégat émetteur.
+- Le handler tourne sous le scope de la commande : il ne dépend d'aucun
+  `Contracts` d'un autre module — pas même de son port de lecture publié.
 - Propager le `CancellationToken` jusqu'au port.
 - Handler court, de préférence in-process : il tourne dans la transaction de
   la commande, les lignes touchées restent verrouillées le temps de son

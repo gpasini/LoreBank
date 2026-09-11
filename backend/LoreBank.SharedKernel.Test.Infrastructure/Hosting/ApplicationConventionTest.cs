@@ -1,6 +1,7 @@
 using System.Reflection;
 using LoreBank.Host.Modules;
 using LoreBank.SharedKernel.Application;
+using LoreBank.SharedKernel.Domain.Events;
 using LoreBank.SharedKernel.Infrastructure.Modules;
 using MediatR;
 
@@ -85,6 +86,47 @@ public sealed class ApplicationConventionTest
         }
     }
 
+    // Une commande ne traverse pas deux modules. Le TransactionScope ambiant
+    // n'est pas un garde-fou de frontière : un handler qui, sous le scope de
+    // sa commande, lit par le port publié d'un autre module y ouvre une
+    // deuxième connexion — selon l'ordre d'ouverture, Npgsql réutilise le
+    // connecteur et la commande passe, ou en enrôle un second et la
+    // transaction escalade en distribué, non supportée hors Windows. Ce qui
+    // tourne sous le scope — handlers de commande et de domain event — ne
+    // dépend donc d'aucun Contracts d'un autre module ; les queries et les
+    // handlers d'integration events, hors scope, restent libres (ADR 0014,
+    // 0015).
+    [TestCaseSource(nameof(Modules))]
+    public void All_ShouldKeepAmbientScopeHandlersOffForeignContracts_WhenTheModuleIsDeclared(IHostModule module)
+    {
+        var root = module.DbContextType.Assembly.GetName().Name!.Split('.')[0];
+        var foreignContracts = HostModules.All
+            .Where(other => other.ModuleName != module.ModuleName)
+            .Select(other => $"{root}.{other.ModuleName}.Contracts")
+            .ToHashSet(StringComparer.Ordinal);
+
+        var scopedHandlerTypes = module.ApplicationAssembly
+            .GetTypes()
+            .Where(HandlesAMutatingRequest)
+            .Concat(module.DomainAssembly
+                .GetTypes()
+                .Where(HandlesADomainEvent)
+            )
+            .Where(type => type is { IsAbstract: false, IsInterface: false })
+            .ToList();
+
+        foreach (var handlerType in scopedHandlerTypes) {
+            var foreignParameters = handlerType
+                .GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Where(parameter => foreignContracts.Contains(parameter.ParameterType.Assembly.GetName().Name!))
+                .Select(parameter => parameter.ParameterType.Name)
+                .ToList();
+
+            foreignParameters.Should().BeEmpty($"{handlerType.Name} tourne sous le scope ambiant de sa commande — ce qu'il sait d'un autre module lui vient par un integration event, jamais par une lecture sous scope");
+        }
+    }
+
     private static bool RendersAPage(Type type) => type
         .GetInterfaces()
         .Any(contract => contract.IsGenericType
@@ -106,6 +148,18 @@ public sealed class ApplicationConventionTest
 
     private static bool IsMultiValued(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>);
+
+    private static bool HandlesAMutatingRequest(Type type) => type
+        .GetInterfaces()
+        .Any(contract => contract.IsGenericType
+            && contract.GetGenericTypeDefinition() is var definition
+            && (definition == typeof(IRequestHandler<,>) || definition == typeof(IRequestHandler<>))
+            && contract.GetGenericArguments()[0].IsAssignableTo(typeof(IMutatingRequest))
+        );
+
+    private static bool HandlesADomainEvent(Type type) => type
+        .GetInterfaces()
+        .Any(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>));
 
     private static bool HandlesAQuery(Type type) => type
         .GetInterfaces()

@@ -1,6 +1,7 @@
 # Le contrat HTTP d'un module est sa surface Application
 
-> Statut : accepté — 2026-09-04.
+> Statut : accepté — 2026-09-04 ; complété par l'ADR 0035 — « pas de
+> `Result`, des scalaires » gagne ses garde-fous.
 
 Le dossier `Contracts/` de l'Api recopiait champ pour champ les types de
 l'Application : `OpenBankAccountRequest` était `OpenBankAccountCommand`,

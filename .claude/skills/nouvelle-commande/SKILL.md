@@ -87,6 +87,7 @@ lie directement sur le record de la commande, pas de dossier `Contracts/`.
 |---|---|
 | Le handler se résout dans le conteneur de l'hôte | `ModuleCompositionTest` |
 | La commande s'exécute dans une transaction ambiante | `TransactionBehaviorTest` (socle), `PipelineWiringTest` (module) |
+| Le handler ne dépend d'aucun `Contracts` d'un autre module — une commande ne traverse pas deux modules | `ApplicationConventionTest` (ADR 0035) |
 | Un handler d'event qui échoue annule la commande | `TransactionRollbackTest` |
 | 204 / 201 + `Location`, corps vide | `ModuleControllerTest` (socle), `CqsContractTest` (module, de bout en bout) |
 | Erreur métier → 422/404 codé | `ErrorContractTest`, `ExceptionCodesTest` du module |
@@ -107,7 +108,9 @@ PR — d'où l'étape 7.
   ressource redeviendrait une lecture, et sa représentation pourrait diverger
   de celle du `GET` sans que rien ne le signale.
 - Une commande traverse un seul module : le `TransactionScope` ambiant ne
-  tient pas la frontière (règle d'architecture, pas contrainte technique).
+  tient pas la frontière. Ce que le handler sait du voisin lui vient par un
+  integration event — jamais par son port de lecture publié, qui ouvrirait
+  une deuxième connexion sous le scope.
 - `ReadCommitted` ne protège pas un lire-modifier-écrire concurrent : le
   remède est un jeton de concurrence optimiste sur l'agrégat, pas un niveau
   d'isolation plus strict.

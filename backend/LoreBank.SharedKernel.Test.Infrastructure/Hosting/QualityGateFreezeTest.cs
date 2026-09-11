@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Xml.Linq;
 using LoreBank.SharedKernel.Test.Infrastructure.Setups;
 
@@ -378,6 +379,51 @@ public sealed class QualityGateFreezeTest
                     geste: "faire de la place en sortant une règle qui a son garde-fou, ou relever le plafond dans QualityGateFreezeTest en disant pourquoi"
                 )
             );
+
+    // Le SDK vient de mise, jamais du PATH — et global.json tient déjà la
+    // règle à la bande près : un host dotnet, quel qu'il soit, refuse un SDK
+    // d'une autre bande de fonctionnalités (rollForward latestPatch). Le
+    // trou restant est entre les deux pins : un `dotnet = "10"` dans mise
+    // installe la bande la plus récente sur un runner neuf, que global.json
+    // refuse. Les deux fichiers nomment la même version, et montent ensemble.
+    [Test]
+    public void Sdk_ShouldBePinnedToTheSameVersion_WhenGlobalJsonAndMiseAreRead() =>
+        DeclaredMiseSdk()
+            .Should()
+            .Be(
+                DeclaredGlobalJsonSdk(),
+                because: Because(
+                    rule: "backend/mise.toml et backend/global.json nomment le même SDK — sinon le runner installe une bande que global.json refuse, ou le poste compile avec une autre que la CI",
+                    geste: "monter la version dans les deux fichiers d'un même geste"
+                )
+            );
+
+    private static string BackendMiseToml => Path.Combine(
+        path1: SourceTree.Backend,
+        path2: "mise.toml"
+    );
+
+    private static string GlobalJson => Path.Combine(
+        path1: SourceTree.Backend,
+        path2: "global.json"
+    );
+
+    private static string DeclaredMiseSdk() => File.ReadAllLines(BackendMiseToml)
+        .Select(line => line.Trim())
+        .Single(line => line.StartsWith(
+            value: "dotnet =",
+            comparisonType: StringComparison.Ordinal
+        ))
+        .Split('=')[1]
+        .Trim()
+        .Trim('"');
+
+    private static string DeclaredGlobalJsonSdk() => JsonDocument
+        .Parse(File.ReadAllText(GlobalJson))
+        .RootElement
+        .GetProperty("sdk")
+        .GetProperty("version")
+        .GetString()!;
 
     private static string Because(
         string rule,

@@ -74,6 +74,7 @@ utiles), `BankDbContext`, `BankInfrastructureModule`, `BankWebAppFactory` et
 | Règle | Ce qui rougit si elle casse |
 |---|---|
 | Module monté : handlers résolus, controllers montés, schéma propre, migrations à jour | `ModuleCompositionTest` — il itère `HostModules.All`, le nouveau module y passe d'office |
+| Un port publié dans `Contracts` est implémenté par un `ModuleReader` — il ne peut pas écrire ; un handler sous scope ne dépend d'aucun `Contracts` d'un autre module | `ModuleCompositionTest`, `ApplicationConventionTest` (ADR 0035) |
 | Nom d'assembly `<Racine>.<Module>.<Couche>` | `ModuleAssemblyNameTest`, et échec bruyant au premier contact avec `HostModules.All` |
 | DbContext dérivé de `ModuleDbContext` | la contrainte générique de `HostModule<TDbContext>` — incompilable sinon |
 | Clé de connexion présente, `Enlist` actif | `AddModuleDbContext` casse à la composition (`ModuleDbContextRegistrationTest`) |
@@ -88,8 +89,8 @@ utiles), `BankDbContext`, `BankInfrastructureModule`, `BankWebAppFactory` et
   l'adapter — en repassant par l'extension du socle, sinon le module reprend à
   sa charge le garde-fou `Enlist`.
 - Une commande traverse un seul module : le nouveau module ne rejoint pas une
-  transaction d'un autre (règle d'architecture — le `TransactionScope` ambiant
-  ne la fait pas respecter).
+  transaction d'un autre. Ses deux canaux vers le voisin sont l'integration
+  event et le port de lecture publié, implémenté par un `ModuleReader`.
 - Les propriétés MSBuild communes viennent de `Directory.Build.props`, les
   versions de `Directory.Packages.props` : les csproj n'en redéclarent aucune.
 

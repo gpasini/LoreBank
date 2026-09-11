@@ -1,6 +1,7 @@
 using System.Globalization;
 using LoreBank.FakeModule.Domain.Exceptions;
 using LoreBank.SharedKernel.Domain.Exceptions;
+using LoreBank.SharedKernel.Domain.ValueObjects;
 using LoreBank.SharedKernel.Test.Unit.Fakes;
 
 namespace LoreBank.SharedKernel.Test.Unit.Exceptions;
@@ -46,6 +47,44 @@ public sealed class DomainExceptionTest
         var exception = new IBANFailureException();
 
         exception.Code.Should().Be("IBAN_FAILURE");
+    }
+
+    [Test]
+    public void Constructor_ShouldAcceptTheParameters_WhenEveryValueIsAScalar()
+    {
+        // Ce qui sérialise en scalaire JSON passe : primitifs, string,
+        // decimal, Guid, dates et heures, enum.
+        var act = () => new ScalarFailureException();
+
+        act.Should().NotThrow();
+    }
+
+    [Test]
+    public void Constructor_ShouldRejectTheParameter_WhenItsValueIsAValueObject()
+    {
+        // Les valeurs sont des primitives, jamais un value object
+        // (docs/erreurs.md) : on passe balance.Amount et balance.Currency,
+        // pas balance. Sinon la forme interne du VO devient un contrat
+        // public, et le front reçoit une valeur déjà formatée.
+        var act = () => new ValueObjectFailureException(Money.Of(
+            amount: 20m,
+            currency: "EUR"
+        ));
+
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithMessage("*balance*Money*");
+    }
+
+    [Test]
+    public void Constructor_ShouldRejectTheParameter_WhenItsValueIsNull()
+    {
+        // Un paramètre absent ne se déclare pas.
+        var act = () => new NullFailureException();
+
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithMessage("*label*");
     }
 
     [Test]

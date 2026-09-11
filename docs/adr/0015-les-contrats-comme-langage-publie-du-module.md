@@ -1,6 +1,7 @@
 # Les Contrats comme langage publié du module
 
-> Statut : accepté — 2026-09-05.
+> Statut : accepté — 2026-09-05 ; complété par l'ADR 0035 — le port publié
+> est lecture par construction, et nul handler sous scope n'en dépend.
 
 Ce qu'un module offre aux autres vit dans un projet dédié,
 `LoreBank.<Module>.Contracts` : ses integration events et ses ports de

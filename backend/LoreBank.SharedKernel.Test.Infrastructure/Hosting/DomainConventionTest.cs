@@ -84,6 +84,61 @@ public sealed class DomainConventionTest
         unsealedTypes.Should().BeEmpty("les types concrets du domaine sont sealed ; une variante se modélise par un nouveau type, pas par héritage");
     }
 
+    [TestCaseSource(nameof(DomainAssemblies))]
+    public void All_ShouldReferenceNothingButTheSocle_WhenTheAssemblyIsADomainAssembly(Assembly assembly)
+    {
+        // Les erreurs métier sont des exceptions, pas un Result (ADR 0012,
+        // docs/erreurs.md). La route la plus courte vers un Result est un
+        // paquet — FluentResults, ErrorOr, OneOf — et un Domain qui en
+        // référence un l'a déjà prise. Le Domain ne dépend que du runtime et
+        // de la racine du repo : le socle et ses Contracts.
+        var root = assembly.GetName().Name!.Split('.')[0];
+
+        var foreignReferences = assembly
+            .GetReferencedAssemblies()
+            .Select(reference => reference.Name!)
+            .Where(name => name != "netstandard" && !name.StartsWith(
+                value: "System.",
+                comparisonType: StringComparison.Ordinal
+            ))
+            .Where(name => !name.StartsWith(
+                value: $"{root}.",
+                comparisonType: StringComparison.Ordinal
+            ))
+            .ToList();
+
+        foreignReferences.Should().BeEmpty($"{assembly.GetName().Name} est un Domain : il ne référence aucun paquet — un Result y entrerait par là, et une erreur métier est une exception (ADR 0012)");
+    }
+
+    [TestCaseSource(nameof(DomainAssemblies))]
+    public void All_ShouldNameNoTypeLikeAResult_WhenTheAssemblyIsADomainAssembly(Assembly assembly)
+    {
+        // L'autre route vers un Result est le type maison : Result<T>, Error,
+        // Outcome, Either. Une heuristique de nom suffit à la voir — le
+        // Domain n'a aucun usage légitime de ces mots, ses Result sont ceux
+        // des queries, en Application (ADR 0012).
+        var resultLikeTypes = assembly
+            .GetTypes()
+            .Where(type => !type.IsNested)
+            .Where(type => ResultSuffixes.Any(suffix => type.Name.EndsWith(
+                    value: suffix,
+                    comparisonType: StringComparison.Ordinal
+                ))
+                || ResultPrefixes.Any(prefix => type.Name.StartsWith(
+                    value: prefix,
+                    comparisonType: StringComparison.Ordinal
+                ))
+            )
+            .Select(type => type.Name)
+            .ToList();
+
+        resultLikeTypes.Should().BeEmpty("une erreur métier est une exception qui hérite de DomainException, jamais une valeur rendue (ADR 0012, docs/erreurs.md)");
+    }
+
+    private readonly static string[] ResultSuffixes = ["Result", "Error", "Outcome"];
+
+    private readonly static string[] ResultPrefixes = ["Either", "Maybe", "OneOf"];
+
     private static IEnumerable<Type> TypesOf(Assembly assembly) => assembly
         .GetTypes()
         .Where(type => type is { IsAbstract: false, IsInterface: false });

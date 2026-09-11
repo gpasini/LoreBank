@@ -49,6 +49,10 @@ cloneur qui ne le veut pas ne l'installe pas.
 
 ## Ce qu'aucune porte ne tient
 
+Chaque angle mort est **assumé** : écrit ici avec son pourquoi, jamais
+espéré (ADR 0035). Une règle qu'on hésite à ajouter à cette liste est une
+règle qui vaut un test.
+
 - La section « Style » de `CLAUDE.md` — un paramètre par ligne, arguments
   nommés — vit en `resharper_*` dans `.editorconfig` : Rider la formate, la
   relecture la tient, Roslyn ne la connaît pas.
@@ -56,23 +60,25 @@ cloneur qui ne le veut pas ne l'installe pas.
   `Directory.Packages.props`).
 - La couverture de code : mesurée et publiée, jamais seuillée — voir
   ci-dessous.
-- **Le SDK vient de mise**, jamais du PATH : le mauvais SDK compile, puis
-  diverge. `backend/global.json` sélectionne la version, rien ne vérifie par
-  quel binaire on passe.
-- **Les erreurs métier sont des exceptions, pas un `Result`** — et les
-  paramètres qu'une `DomainException` passe à sa base sont des primitives,
-  jamais un value object (ADR 0012, `docs/erreurs.md`). Aucun test ne voit
-  ni l'un ni l'autre.
-- **Une commande ne traverse pas deux modules** : le `TransactionScope`
-  ambiant n'est pas un garde-fou de frontière — selon l'ordre d'ouverture
-  des connexions, Npgsql laisse passer ou escalade en distribué. C'est une
-  règle d'architecture, pas une contrainte technique.
 - Le **RED observé** avant le code (ADR 0032) : un test écrit après coup est
   vert, et la couverture monte — aucune porte ne distingue un test qui
   spécifie d'un test qui confirme. Le récap de l'issue en porte la trace
   (section « RED observés » de `ajouter-fonctionnalite`), ce qui ne couvre
   que le travail passé par le chapeau. Le Gel tient en revanche le résidu :
   un `NotImplementedException` commité rougit.
+- Une `DomainException` **qu'aucun test n'instancie** ne rencontre la garde
+  des scalaires de son constructeur qu'en production (ADR 0035). Exiger un
+  test par exception serait une garde sur les tests, pas sur le code ; la
+  recette de `nouvel-agregat` dicte déjà l'`ExceptionCodesTest`.
+- Un `Result` maison nommé **hors de l'heuristique** de
+  `DomainConventionTest` (`Reply`, `Answer`…) : la relecture le tient.
+
+Trois règles ont quitté cette liste le 2026-09-11 (ADR 0035) : les erreurs
+métier comme exceptions à paramètres scalaires — le constructeur de
+`DomainException` et `DomainConventionTest` —, la commande qui ne traverse
+pas deux modules — `ApplicationConventionTest` et `ModuleCompositionTest` —,
+et le SDK, que `backend/global.json` tenait déjà à la bande près et dont le
+Gel tient maintenant la concordance avec `backend/mise.toml`.
 
 ## La couverture : une mesure, pas une porte
 
@@ -104,7 +110,9 @@ Elles sont **gelées** (ADR 0031). `QualityGateFreezeTest`
 (`LoreBank.SharedKernel.Test.Infrastructure/Hosting/`) épingle la liste
 exacte des treize lignes `dotnet_diagnostic` avec leur section *et* leur
 sévérité — les exemptions comme les deux élévations, qu'un passage à
-`suggestion` désarmerait tout aussi silencieusement. En ajouter une est donc
+`suggestion` désarmerait tout aussi silencieusement. Il tient aussi la
+concordance du SDK : `backend/mise.toml` et `backend/global.json` nomment la
+même version, et montent d'un même geste (ADR 0035). En ajouter une est donc
 un geste en trois temps : `.editorconfig` avec son pourquoi, la liste gelée
 du test, et cette section — le test rougit tant que le code n'est pas nommé
 ici.

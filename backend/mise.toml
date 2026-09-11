@@ -1,5 +1,5 @@
 [tools]
-dotnet = "10"
+dotnet = "10.0.400"
 
 [tasks.build]
 description = "Build sans warning : TreatWarningsAsErrors, API bannies, analyseurs CA recommandés, règles IDE élevées (ADR 0028)"

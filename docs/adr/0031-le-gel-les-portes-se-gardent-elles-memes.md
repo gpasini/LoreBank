@@ -1,7 +1,8 @@
 # Le Gel : les portes se gardent elles-mêmes
 
 > Statut : accepté — 2026-09-11. Complète l'ADR 0028, dont la ligne « par
-> construction » de la table Garde-fous devient un test.
+> construction » de la table Garde-fous devient un test ; étendu d'un axe par
+> l'ADR 0032 (le résidu) et par l'ADR 0035 (la concordance du SDK).
 
 L'ADR 0028 a outillé les Portes, l'ADR 0029 a fait de la Couverture une
 mesure. Restait un angle mort : **rien ne relisait les fichiers qui les
@@ -59,7 +60,10 @@ qu'aucun franchissement n'a de cas légitime connu :
   les messages : on ne gèle pas de la prose ;
 - les **huit** entrées de `[tasks.check]`, et pour chacune, son step dans
   `.github/workflows/ci.yml`. Une Porte supprimée est le desserrage maximal,
-  et c'est ce qui remplace le « par construction » de l'ADR 0028.
+  et c'est ce qui remplace le « par construction » de l'ADR 0028 ;
+- la **concordance du SDK** entre `backend/mise.toml` et `backend/global.json`
+  (ADR 0035) : deux pins qui divergent, c'est un runner neuf qui installe une
+  bande que `global.json` refuse.
 
 Desserrer reste **légitime**. Ce que le Gel refuse, c'est le silence : le
 message d'échec le dit, et nomme le fichier à éditer avant le test.

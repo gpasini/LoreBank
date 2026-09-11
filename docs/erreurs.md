@@ -67,7 +67,10 @@ Trois règles, et une seule est évidente :
 **Les valeurs sont des primitives, jamais des value objects.** On passe
 `balance.Amount` et `balance.Currency`, pas `balance`. Sinon la forme interne des
 VO devient un contrat public, et surtout le front reçoit `20.00` au lieu de
-`"20.00 EUR"` — c'est lui qui formate selon la locale de l'utilisateur.
+`"20.00 EUR"` — c'est lui qui formate selon la locale de l'utilisateur. Le
+constructeur de `DomainException` le tient : un VO, un `null`, tout ce qui ne
+sérialise pas en scalaire lève une `ArgumentException` à l'instanciation
+(ADR 0035).
 
 **Les clés sont en camelCase.** ASP.NET Core met les *propriétés* en camelCase
 mais laisse les clés de dictionnaire telles quelles (`DictionaryKeyPolicy` est
