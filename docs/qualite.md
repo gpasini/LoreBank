@@ -106,6 +106,18 @@ le module Probe, les projets de test — dans `backend/coverage.runsettings`.
 Rien d'autre : une exclusion de plus déguiserait la carte, et le Gel la
 tient.
 
+Le front a la sienne, même doctrine : `mise run //frontend:coverage`
+rejoue la suite vitest avec `@vitest/coverage-v8` et rend
+`frontend/coverage/` (gitignoré) — `index.html` ligne à ligne, et le
+résumé texte dans le terminal. En CI, le step Coverage du job frontend
+écrit ce résumé dans la page du run et publie le HTML en artefact
+`coverage-report-frontend`. Tout `src/` est mesuré, y compris ce qu'aucun
+test ne touche ; sortent le généré (`schema.d.ts`, `vite-env.d.ts`), le
+harnais (`src/test/`), les tests, et `main.tsx` qui monte React sur le
+DOM réel. Les deux listes et l'absence de seuil sont gelées par
+`gel.test.ts` (ADR 0036) : un seuil ferait de la mesure une porte en
+silence.
+
 ## Les exemptions
 
 Elles vivent dans `.editorconfig`, chacune avec son pourquoi, à la sévérité

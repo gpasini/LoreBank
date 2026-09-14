@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import viteConfig from "../../vite.config";
 
 // Le Gel du front (ADR 0031, 0036) : les échappatoires se gardent
 // elles-mêmes. Un agent coincé sur un lint a un chemin plus court que
@@ -52,6 +53,25 @@ const frozenBiomeIgnores = [
 const frozenBiomeRules: string[] = [];
 
 const frozenBiomeIncludes = ["**", "!src/api/schema.d.ts", "!dist"];
+
+// Listes gelées : la carte de couverture (ADR 0029, appliqué au front).
+// Elle inclut tout src/, sinon un fichier sans test n'y apparaît pas ; elle
+// exclut ce qu'aucun test ne vise — le généré, le harnais, les tests
+// eux-mêmes, l'entrée qui monte React sur le DOM réel. Une exclusion de
+// plus déguiserait la carte ; un seuil en ferait une porte en silence.
+const frozenCoverageInclude = ["src/**/*.{ts,tsx}"];
+
+const frozenCoverageExclude = [
+  "src/api/schema.d.ts",
+  "src/vite-env.d.ts",
+  "src/test/**",
+  "src/**/*.test.{ts,tsx}",
+  "src/main.tsx",
+];
+
+// La config telle que vitest la verra — la fonction de defineConfig
+// appelée, pas sa source scannée.
+const coverage = viteConfig({ mode: "test", command: "serve" }).test?.coverage;
 
 const frozenStrictness = {
   strict: true,
@@ -140,6 +160,30 @@ describe("le Gel du front", () => {
         "éditer biome.json, puis la liste gelée de gel.test.ts",
       ),
     ).toEqual(frozenBiomeIncludes);
+  });
+
+  it("garde la carte de couverture sur tout src/, sous ses exclusions gelées, sans seuil", () => {
+    expect(
+      coverage?.include,
+      because(
+        "un fichier hors de l'inclusion n'apparaît pas sur la carte, même sans aucun test",
+        "éditer vite.config.ts, puis la liste gelée de gel.test.ts",
+      ),
+    ).toEqual(frozenCoverageInclude);
+    expect(
+      coverage?.exclude,
+      because(
+        "une exclusion de plus déguise la carte : le fichier sort de la mesure sans que rien ne le dise",
+        "éditer vite.config.ts avec son pourquoi dans docs/qualite.md, puis la liste gelée de gel.test.ts",
+      ),
+    ).toEqual(frozenCoverageExclude);
+    expect(
+      coverage?.thresholds,
+      because(
+        "un seuil fait de la mesure une porte, en silence — la couverture rougit sans être dans la liste des Portes (ADR 0029)",
+        "retirer le seuil ; la carte se lit, elle ne rougit pas",
+      ),
+    ).toBeUndefined();
   });
 
   it("garde le tsconfig strict", () => {

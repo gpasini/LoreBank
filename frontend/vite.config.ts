@@ -25,6 +25,24 @@ export default defineConfig(({ mode }) => {
       // refuse une URL relative. Le stub de fetch (src/test/) ne lit que le
       // chemin.
       env: { VITE_API_URL: "http://api.test" },
+      // La carte de couverture (ADR 0029, appliqué au front) : une mesure,
+      // pas une porte — `mise run coverage`, hors de `check`, sans seuil.
+      // Tout src/ est mesuré, y compris ce qu'aucun test ne touche ; sort
+      // ce qu'aucun test ne vise. Les deux listes sont gelées (gel.test.ts).
+      coverage: {
+        provider: "v8",
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: [
+          "src/api/schema.d.ts",
+          "src/vite-env.d.ts",
+          "src/test/**",
+          "src/**/*.test.{ts,tsx}",
+          "src/main.tsx",
+        ],
+        // Le texte montre aussi les fichiers à 100 % : la carte est
+        // entière dans la page du run, pas seulement ses trous.
+        reporter: [["text", { skipFull: false }], "html"],
+      },
     },
   };
 });

@@ -1,3 +1,11 @@
 # Le Client (TypeScript) se régénère depuis backend/openapi/lorebank.json
 # (`npm run generate`, appelé par `prepare`) : jamais commité, jamais édité.
 src/api/schema.d.ts
+
+# La carte de couverture (ADR 0029), produite par `mise run coverage`. Ici
+# et pas à la racine : Biome lit ce fichier-ci (vcs.useIgnoreFile) et ne
+# doit pas linter le rapport HTML.
+coverage/
+
+# Le cache de vitest (sorties JSON locales) : jamais commité, jamais linté.
+.vitest/

@@ -124,12 +124,16 @@ aucun `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` ; aucun `.skip`,
 `.only`, `.todo` ; `biome.json` au défaut — `linter` et `formatter`
 allumés, pas d'`overrides`, ses inclusions gelées, et sa liste de `rules`
 gelée, vide aujourd'hui ; `strict`, `noUncheckedIndexedAccess`,
-`isolatedModules` dans le `tsconfig`. Desserrer reste légitime : le message
-nomme le fichier à éditer avant la liste, et `docs/front.md` porte le
-pourquoi.
+`isolatedModules` dans le `tsconfig` ; la carte de couverture de
+`vite.config.ts` — son inclusion, ses exclusions, et aucun seuil — lue en
+appelant la config, pas en scannant sa source. Desserrer reste légitime :
+le message nomme le fichier à éditer avant la liste, et `docs/front.md`
+porte le pourquoi.
 
 ## Les portes
 
 Dans l'ordre de `mise run check` : `generate`, `typecheck`, `check`
 (Biome), `test`, `build` (`vite build` seul — ce que `tsc` accepte et que
-Vite refuse), `audit`. Le registre complet : `docs/qualite.md`.
+Vite refuse), `audit`. Le registre complet : `docs/qualite.md`. Hors de
+`check`, `coverage` rend la carte (`coverage/index.html`) : une mesure,
+jamais une porte (ADR 0029, `docs/qualite.md`).

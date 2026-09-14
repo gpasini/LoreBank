@@ -95,3 +95,19 @@ jobs:
       # Dépendances de dev incluses : elles s'exécutent sur le poste et ici.
       - name: Audit
         run: mise run audit
+
+      # La même doctrine que le back (ADR 0029) : une mesure, pas une porte,
+      # hors de `mise run check`. Le résumé texte de vitest va dans la page
+      # du run, le HTML en artefact.
+      - name: Coverage
+        run: |
+          {
+            echo '```'
+            mise run coverage
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-frontend
+          path: frontend/coverage
