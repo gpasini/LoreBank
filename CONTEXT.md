@@ -256,7 +256,8 @@ _Avoid_ : notification, message, push, event client, websocket
 Une vérification que la CI tient et qu'une tâche mise rejoue à l'identique
 sur le poste — même commande, un step de CI par tâche : build sans warning
 (compilateur, API bannies, analyseurs, audit NuGet), format, Description
-à jour, suite complète, front typé, linté, formaté, testé, construit, audité. Elle ne redit
+à jour, suite complète, front typé, linté, formaté, testé, construit, audité,
+image déployée. Elle ne redit
 pas ce que le build ou un test d'architecture tient déjà ; ce qu'aucune
 porte ne tient est dit tel quel (le Style Rider, la couverture).
 _Avoid_ : check, lint, quality gate, hook

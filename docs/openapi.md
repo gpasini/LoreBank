@@ -8,7 +8,10 @@ soit. Décision et alternatives : ADR 0019.
 
 Le type de retour d'une action dit ce qu'elle sert ; le socle le lit, complète
 le document avec ce qu'il sait (erreurs, codes), l'émet à chaque build dans
-`backend/openapi/lorebank.json`, et le front en génère ses types.
+`backend/openapi/lorebank.json`, et le front en génère ses types. Une
+exception assumée : un publish ciblé sur un RID — l'image, ADR 0039 —
+n'émet rien, le binaire musl ne se charge pas sur le poste et le fichier
+est déjà commité ; `openapi:check` le tient toujours.
 
 ## Ce que la convention lit
 

@@ -5,6 +5,12 @@ dotnet = "10.0.400"
 description = "Build sans warning : TreatWarningsAsErrors, API bannies, analyseurs CA recommandés, règles IDE élevées (ADR 0028)"
 run = "dotnet build LoreBank.slnx"
 
+# L'image OCI de l'hôte (ADR 0039) : le SDK l'écrit dans le démon Docker
+# local, propriétés Container* du csproj. Release, jamais Debug.
+[tasks.image]
+description = "Construit l'image lorebank:latest par le SDK (PublishContainer), sans Dockerfile"
+run = "dotnet publish LoreBank.Host -c Release /t:PublishContainer"
+
 [tasks.test]
 description = "Suite complète (Testcontainers PostgreSQL) — les tests d'architecture du socle sont le vrai filet"
 depends = ["build"]

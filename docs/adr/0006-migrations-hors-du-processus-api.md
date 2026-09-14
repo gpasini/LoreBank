@@ -1,6 +1,7 @@
 # Migrations hors du processus API
 
-> Statut : accepté — 2026-09-04.
+> Statut : accepté — 2026-09-04. Prolongé par l'ADR 0039 jusqu'au
+> déploiement : `deploy:smoke` tient désormais « le démarrage ne migre pas ».
 
 Le démarrage de l'API ne migre plus — ni en dev ni ailleurs. Migrer au boot
 était un trou en prod (réplicas concurrents qui migrent en même temps, verrous

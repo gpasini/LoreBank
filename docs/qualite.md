@@ -7,7 +7,7 @@ mise dans les deux cas. Décision et alternatives : ADR 0028.
 
 `mise run check` à la racine rejoue toutes les portes dans l'ordre de la CI ;
 chaque step de `.github/workflows/ci.yml` est `mise run <tâche>`, rien de
-plus. Une onzième entrée ferme la liste sans être une porte : elle prend
+plus. Une douzième entrée ferme la liste sans être une porte : elle prend
 l'empreinte de l'arbre suivi, pour le hook qui rappelle de lancer `check`
 (ADR 0033).
 
@@ -24,6 +24,7 @@ l'empreinte de l'arbre suivi, pour le hook qui rappelle de lancer `check`
 | Tests du front — socle, écrans, conventions, Gel du front (ADR 0036) | `mise run //frontend:test` | — |
 | Build du front — ce que `tsc` accepte et que Vite refuse | `mise run //frontend:build` | — |
 | Vulnérabilités npm, `high` et plus, dev incluses | `mise run //frontend:audit` | `npm audit fix`, ou une montée de version ciblée |
+| Image et déploiement — l'image du SDK migre puis sert, deux réplicas, aucun ne migre (ADR 0039, `docs/deploiement.md`) | `mise run //:deploy:smoke` | lire les logs du compose ; ports 8080-8081 libres |
 
 Depuis `backend/` ou `frontend/`, le préfixe tombe : `mise run format`,
 `mise run check`.

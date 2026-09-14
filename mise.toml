@@ -33,11 +33,41 @@ run = [
     "mise run //frontend:test",
     "mise run //frontend:build",
     "mise run //frontend:audit",
+    "mise run //:deploy:smoke",
     # L'empreinte de l'arbre suivi que compare `hook:verify` (ADR 0033) :
     # écrite en dernier, donc seulement si tout est vert. Ce n'est pas une
-    # Porte — le Gel distingue les dix au préfixe `mise run //`.
+    # Porte — le Gel distingue les onze au préfixe `mise run //`.
     "mkdir -p .claude && mise run hook:empreinte > .claude/.gates-ran",
 ]
+
+# La Porte du déploiement (ADR 0039) : l'image construite par
+# `//backend:image` démarre, migre une fois, sert — deux réplicas d'`api`,
+# et aucun ne migre. Rejoue docker-compose.deploy.yml tel qu'un cloneur le
+# déploierait, et le démonte, volumes compris.
+[tasks."deploy:smoke"]
+description = "Porte : l'image migre puis sert, deux réplicas, aucun ne migre (docker-compose.deploy.yml)"
+depends = ["//backend:image"]
+run = '''
+set -eu
+compose="docker compose -f docker-compose.deploy.yml -p lorebank-smoke"
+trap '$compose down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
+
+$compose up --wait --scale api=2 --quiet-pull
+
+# Chaque réplica sert : la plage 8080-8081 en donne un à chacun.
+for port in 8080 8081; do
+  curl -fsS --retry 20 --retry-connrefused --retry-delay 1 "http://localhost:$port/health/ready"
+  echo
+done
+
+# Le service migrate a migré ; aucun réplica d'api n'a touché au schéma
+# (ADR 0006) : la catégorie EF des migrations n'apparaît que chez migrate.
+$compose logs --no-log-prefix migrate | grep -q 'EntityFrameworkCore.Migrations'
+if $compose logs --no-log-prefix api | grep 'EntityFrameworkCore.Migrations'; then
+  echo "un réplica d'api a migré au démarrage (ADR 0006)" >&2
+  exit 1
+fi
+'''
 
 # Les gates rapides avant un commit — jamais la suite d'intégration.
 # Opt-in, rien dans .git n'est versionné : `mise generate git-pre-commit --write`.

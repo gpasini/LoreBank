@@ -30,7 +30,8 @@ mise exec -- dotnet run --project LoreBank.Host
 
 Avant de pousser, `mise run check` à la racine rejoue toutes les portes de
 qualité de la CI (build sans warning, format, Description OpenAPI à jour,
-suite complète, front typé, linté, formaté, testé, construit, audité — `docs/qualite.md`) ;
+suite complète, front typé, linté, formaté, testé, construit, audité, image
+déployée — `docs/qualite.md`) ;
 `mise generate git-pre-commit --write` installe les rapides en hook.
 
 Côté front, les types de l'API se génèrent depuis
@@ -40,6 +41,9 @@ Côté front, les types de l'API se génèrent depuis
 cd frontend && mise exec -- npm ci   # génère src/api/schema.d.ts (prepare)
 mise exec -- npm run dev
 ```
+
+Pour déployer — l'image OCI par le SDK, la migration enchaînée par
+l'orchestrateur, Kubernetes — voir `docs/deploiement.md` (ADR 0039).
 
 ## Conventions
 

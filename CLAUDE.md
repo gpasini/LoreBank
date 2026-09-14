@@ -108,6 +108,7 @@ le test qui rougit si elle casse.
 | Le Signal (SSE) | `docs/signaux.md` · ADR 0026 |
 | Le front : la frontière socle / exemple, ses tests, son Gel | `docs/front.md` · ADR 0036 |
 | La Télémétrie | `docs/telemetrie.md` · ADR 0025 |
+| Le déploiement : l'image, migrate puis serve, Kubernetes | `docs/deploiement.md` · ADR 0039 |
 | Le montage d'un module dans l'hôte | ADR 0001, 0005, 0007, 0008, 0009 |
 | Les integration events, outbox et inbox | ADR 0014, 0015, 0021 |
 | Les readers, les rows keyless | ADR 0018 |

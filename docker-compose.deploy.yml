@@ -1,0 +1,57 @@
+# Le déploiement de référence (ADR 0039, docs/deploiement.md) : la même
+# image sert de HTTP et migre ; c'est l'orchestration qui enchaîne — jamais
+# l'entrypoint, sinon chaque réplica migrerait au boot (ADR 0006). Sous
+# Kubernetes : un Job `migrate` avant le rollout du Deployment `api`.
+#
+#   mise run //backend:image           # construit lorebank:latest
+#   docker compose -f docker-compose.deploy.yml up --wait --scale api=2
+#
+# Le compose du poste (docker-compose.yml) reste celui du développement.
+
+x-lorebank: &lorebank
+  image: ${LOREBANK_IMAGE:-lorebank:latest}
+  # Construite par le SDK, jamais tirée : un cloneur qui pousse dans un
+  # registre pose LOREBANK_IMAGE et retire cette ligne.
+  pull_policy: never
+  environment:
+    ConnectionStrings__BankDb: Host=postgres;Port=5432;Database=lorebank;Username=lorebank;Password=lorebank
+    ConnectionStrings__LedgerDb: Host=postgres;Port=5432;Database=lorebank;Username=lorebank;Password=lorebank
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lorebank
+      POSTGRES_PASSWORD: lorebank
+      POSTGRES_DB: lorebank
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lorebank -d lorebank"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Le verbe migrate : même composition que l'API, migre tous les modules,
+  # sort. Un seul, jamais scalé.
+  migrate:
+    <<: *lorebank
+    command: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # L'API ne démarre qu'après une migration réussie, et se scale librement :
+  # l'outbox tient plusieurs instances (ADR 0021). Pas de healthcheck ici —
+  # l'image n'embarque pas curl ; /health/live et /health/ready sont faits
+  # pour les sondes HTTP de l'orchestrateur (ADR 0022).
+  api:
+    <<: *lorebank
+    ports:
+      - "8080-8081:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

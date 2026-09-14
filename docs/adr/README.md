@@ -55,6 +55,7 @@ fichier. Décision et alternatives : ADR 0037.
 | [0036](0036-le-front-est-un-modele-pas-une-vitrine.md) | Le front est un modèle, pas une vitrine | accepté | Front |
 | [0037](0037-l-index-des-adr-une-carte-verifiee-pas-une-reorganisation.md) | L'index des ADR : une carte vérifiée, pas une réorganisation | accepté | Cadrer l'agent |
 | [0038](0038-la-relecture-un-lecteur-frais-pas-l-auteur.md) | La relecture : un lecteur frais, pas l'auteur | accepté | Cadrer l'agent |
+| [0039](0039-l-image-par-le-sdk-la-migration-par-l-orchestrateur.md) | L'image par le SDK, la migration par l'orchestrateur | accepté | Déploiement |
 
 ## Par thème
 
@@ -74,6 +75,7 @@ qui a été décidé sur un sujet.
 | Portes et Gel | 0028, 0029, 0031 |
 | Cadrer l'agent | 0032, 0033, 0034, 0035, 0037, 0038 |
 | Front | 0036 |
+| Déploiement | 0039 |
 
 ## Écrire le prochain
 

@@ -60,7 +60,8 @@ qu'aucun franchissement n'a de cas légitime connu :
 - les **quatre** symboles de `BannedSymbols.txt` — les symboles seuls, pas
   les messages : on ne gèle pas de la prose ;
 - les entrées de `[tasks.check]` — **huit** à l'origine, dix depuis que le
-  front a ses tests et son build (ADR 0036) —, et pour chacune, son step dans
+  front a ses tests et son build (ADR 0036), onze avec le déploiement
+  (ADR 0039) —, et pour chacune, son step dans
   `.github/workflows/ci.yml`. Une Porte supprimée est le desserrage maximal,
   et c'est ce qui remplace le « par construction » de l'ADR 0028 ;
 - la **concordance du SDK** entre `backend/mise.toml` et `backend/global.json`

@@ -1,7 +1,8 @@
 # Les portes de qualité du repo (ADR 0028, docs/qualite.md) : rien ne se
 # merge sans build sans warning (TreatWarningsAsErrors, API bannies,
 # analyseurs), format déclaré, Description OpenAPI à jour, suite complète,
-# front typé, linté, formaté et sans vulnérabilité high. Chaque step est
+# front typé, linté, formaté, testé, construit et sans vulnérabilité high,
+# image construite et déployée par son compose. Chaque step est
 # une tâche mise, appelée telle quelle — `mise run check` rejoue la même
 # liste sur le poste. Le SDK vient de mise, comme sur le poste :
 # backend/mise.toml + global.json restent la source unique de la toolchain.
@@ -43,6 +44,13 @@ jobs:
       # tests d'architecture du socle y jouent le rôle de relecture.
       - name: Test
         run: mise run test
+
+      # L'image et son déploiement (ADR 0039) : le SDK construit l'image dans
+      # le Docker du runner, le compose de déploiement la migre puis la sert
+      # en deux réplicas — la même Porte que sur le poste, le même compose
+      # qu'un cloneur déploierait.
+      - name: Image et déploiement
+        run: mise run //:deploy:smoke
 
       # La couverture est une mesure, pas une porte (ADR 0029) : hors de
       # `mise run check`, elle ne rougit jamais. Le résumé par assembly va
