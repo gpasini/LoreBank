@@ -17,10 +17,14 @@ sonde sa santé en HTTP (ADR 0022). Il fallait une image, et l'enchaînement
 `dotnet publish LoreBank.Host /t:PublishContainer`, derrière
 `mise run //backend:image`. Les propriétés `Container*` de
 `LoreBank.Host.csproj` disent le reste : base `aspnet:10.0-alpine`, nom
-`lorebank`, tag `latest`, deux RID musl (`linux-musl-x64`,
-`linux-musl-arm64`) en un seul publish, donc un manifeste multi-arch — le
-poste prend sa native, le cluster la sienne. Le registre et le push sont au
-cloneur : `ContainerRegistry` suffit. La toolchain reste déclarée une fois,
+`lorebank`, tag `latest`. Sans registre, le SDK infère l'architecture du
+poste et le musl de la base : une image native, que le compose prend telle
+quelle. Vers un registre — `ContainerRegistry`, et le push est au cloneur —
+les deux RID musl (`linux-musl-x64`, `linux-musl-arm64`) partent en un seul
+publish, en un index multi-arch : le cluster prend la sienne. La distinction
+n'est pas un choix mais une contrainte : un démon Docker sans store
+containerd — le runner GitHub, Docker Engine par défaut — refuse de charger
+un index (`CONTAINER1020`), un registre l'accepte toujours. La toolchain reste déclarée une fois,
 dans mise et `global.json` ; un Dockerfile aurait été une seconde version
 de SDK à tenir en phase.
 
@@ -74,7 +78,11 @@ servi à part, sous la même origine par l'Ingress du cloneur.
   à servir des fichiers pour une décision que l'ADR 0036 laisse au
   déploiement.
 - **Une architecture seule** (`linux-x64`) : le smoke tournerait en émulation
-  sur un poste arm64. Le multi-arch coûte une propriété.
+  sur un poste arm64. L'inférence du SDK donne la native pour rien.
+- **Le multi-arch aussi en local**, en exigeant le store containerd du
+  démon : la première CI a rougi dessus (`CONTAINER1020`), et un cloneur sous
+  Docker Engine aurait rougi pareil. Deux propriétés conditionnées à
+  `ContainerRegistry` suffisent.
 
 ## Le coût assumé
 

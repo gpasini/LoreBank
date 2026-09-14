@@ -6,16 +6,20 @@
 
         <!-- L'image OCI (ADR 0039) : `dotnet publish /t:PublishContainer`, sans
              Dockerfile — la toolchain reste celle de mise et de global.json.
-             Base Alpine, donc RID musl ; deux architectures en un publish, un
-             manifeste multi-arch. Nom et tag locaux : le registre est au
+             Base Alpine, donc RID musl. Nom et tag locaux : le registre est au
              cloneur (ContainerRegistry). -->
         <ContainerRepository>lorebank</ContainerRepository>
         <ContainerImageTag>latest</ContainerImageTag>
         <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-alpine</ContainerBaseImage>
-        <ContainerRuntimeIdentifiers>linux-musl-x64;linux-musl-arm64</ContainerRuntimeIdentifiers>
-        <!-- Le restore doit connaître les deux RID, sinon le publish par RID
-             s'arrête sur NETSDK1047. -->
-        <RuntimeIdentifiers>linux-musl-x64;linux-musl-arm64</RuntimeIdentifiers>
+        <!-- Multi-arch seulement vers un registre : un démon Docker sans store
+             containerd (runner GitHub, Docker Engine par défaut) refuse un
+             index d'images (CONTAINER1020). En local, l'architecture du
+             poste, que le compose prend telle quelle. -->
+        <ContainerRuntimeIdentifiers Condition="'$(ContainerRegistry)' != ''">linux-musl-x64;linux-musl-arm64</ContainerRuntimeIdentifiers>
+        <!-- Le restore doit connaître les RID d'un publish ciblé, sinon
+             NETSDK1047 — et sans registre, cette liste ferait à elle seule
+             un index multi-arch : même condition. -->
+        <RuntimeIdentifiers Condition="'$(ContainerRegistry)' != ''">linux-musl-x64;linux-musl-arm64</RuntimeIdentifiers>
         <!-- La Description est émise par le build ordinaire (ADR 0019), jamais
              par un publish ciblé sur un RID : le binaire musl ne se charge pas
              sur le poste, et le fichier est déjà commité. -->

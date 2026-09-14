@@ -14,13 +14,16 @@ mise run //backend:image      # lorebank:latest dans le démon Docker local
 Le SDK .NET construit l'image (`dotnet publish /t:PublishContainer`), sans
 Dockerfile ni `docker build`. Les propriétés `Container*` de
 `backend/LoreBank.Host/LoreBank.Host.csproj` la décrivent : base
-`mcr.microsoft.com/dotnet/aspnet:10.0-alpine`, deux architectures
-(`linux-musl-x64`, `linux-musl-arm64`) en un manifeste multi-arch. Le reste
-est le défaut du SDK, absent du csproj : utilisateur non-root `app`, port
-8080, entrypoint `dotnet LoreBank.Host.dll`.
+`mcr.microsoft.com/dotnet/aspnet:10.0-alpine`, et l'architecture du poste,
+inférée par le SDK avec le musl de la base — une image native pour le
+compose. Le reste est le défaut du SDK, absent du csproj : utilisateur
+non-root `app`, port 8080, entrypoint `dotnet LoreBank.Host.dll`.
 
 Pour pousser dans un registre, une propriété de plus, et le `docker login`
-du poste ou du runner fait le reste :
+du poste ou du runner fait le reste. Avec un registre, le publish produit
+les deux architectures (`linux-musl-x64`, `linux-musl-arm64`) et pousse un
+index multi-arch — jamais en local : un démon Docker sans store containerd
+refuse un index (`CONTAINER1020`).
 
 ```bash
 cd backend && mise exec -- dotnet publish LoreBank.Host -c Release /t:PublishContainer \
@@ -83,10 +86,13 @@ seul `migrate` a touché au schéma, puis démonte tout, volumes compris.
 - **Docker Compose et `curl`** : la Porte les appelle et mise ne les épingle
   pas — Compose vient avec Docker, `curl` avec macOS et Ubuntu. Sans l'un,
   elle rougit au `up` ou au `GET`.
+- **`CONTAINER1020` au publish** : une liste de RID est arrivée jusqu'au
+  démon local. Le multi-arch ne s'active qu'avec `ContainerRegistry` ; sans
+  registre, aucune propriété `RuntimeIdentifier*` ne doit être posée.
 - **Ports 8080 et 8081 occupés** sur le poste : la Porte échoue au `up` ;
   libérer, ou changer la plage dans le compose.
 - **Le premier passage est long** : deux images de base à tirer, deux
   publish. Les suivants tiennent en une minute à chaud.
 - **`ContainerRuntimeIdentifiers` sans `RuntimeIdentifiers`** : le restore
   ne connaît pas les RID et le publish s'arrête sur NETSDK1047. Les deux
-  propriétés vont ensemble dans le csproj.
+  propriétés vont ensemble, sous la même condition.
