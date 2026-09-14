@@ -50,13 +50,26 @@ depends = ["//backend:image"]
 run = '''
 set -eu
 compose="docker compose -f docker-compose.deploy.yml -p lorebank-smoke"
-trap '$compose down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
+
+# En rouge, les logs du compose avant le démontage : c'est là que se lit
+# un `migrate` qui échoue ou un réplica qui ne démarre pas.
+demonter() {
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    $compose logs --no-color 2>&1 | tail -n 80 >&2
+  fi
+  $compose down -v --remove-orphans >/dev/null 2>&1 || true
+  exit "$rc"
+}
+trap demonter EXIT
 
 $compose up --wait --scale api=2 --quiet-pull
 
-# Chaque réplica sert : la plage 8080-8081 en donne un à chacun.
+# Chaque réplica sert : la plage 8080-8081 en donne un à chacun. Toutes les
+# erreurs se retentent, pas seulement le refus de connexion : le proxy de
+# port de Docker accepte puis coupe tant que Kestrel n'écoute pas encore.
 for port in 8080 8081; do
-  curl -fsS --retry 20 --retry-connrefused --retry-delay 1 "http://localhost:$port/health/ready"
+  curl -fsS --retry 20 --retry-all-errors --retry-delay 1 "http://localhost:$port/health/ready"
   echo
 done
 
