@@ -1,7 +1,8 @@
 # Le hook : un moment, pas une règle
 
 > Statut : accepté — 2026-09-11. Corrige l'ADR 0032, qui renvoyait à ce
-> chantier un garde-fou que la réserve ci-dessous exclut.
+> chantier un garde-fou que la réserve ci-dessous exclut. Amendé le
+> 2026-09-14 : l'empreinte de l'arbre remplace l'horodatage (#38).
 
 Les Portes de ce repo sont outillées (ADR 0028) et leurs desserrages sont
 gelés (ADR 0031). Il restait un trou d'un genre différent : **rien ne
@@ -74,15 +75,30 @@ fichier de sortie, et le rappel tombait sans rien apprendre. Le prix est
 connu et assumé — un fichier neuf passe sous le radar jusqu'à son premier
 `git add`, et c'est le commit qui le rattrape.
 
+Ce qu'il compare : **un contenu, jamais une date.** La première version
+comparait la date de chaque fichier suivi à celle d'un horodatage touché par
+`check`. Le 2026-09-14, deux tours sans aucune édition ont été bloqués : un
+`git checkout --` avait annulé un reliquat sur `dotnet-tools.json`, donc
+réécrit le fichier à l'identique avec une date neuve. Toute la classe des
+réécritures git — `checkout --`, `stash pop`, `reset --hard`, rebase — avait
+le même effet, et un blocage trop zélé est pire que pas de hook. Depuis,
+`check` écrit l'**empreinte** de l'arbre suivi (`hook:empreinte` : le hash
+d'arbre de `git stash create`, HEAD si l'arbre est propre) et le hook
+recalcule la sienne. Un fichier réécrit à l'identique ne réveille rien ; un
+fichier édité puis committé sans `check` réveille encore, ce que la date ne
+tenait pas.
+
 Le message **nomme le fichier** qui l'a déclenché. Sans lui, un rappel se
 discute au lieu de se traiter : la première fois que ce hook a bloqué pour
 de vrai, il a fallu dix minutes et trois hypothèses fausses pour retrouver
 quelle édition l'avait réveillé. Une ligne de plus dans le motif remplace
-l'enquête.
+l'enquête. Depuis l'empreinte, le nom vient de `git diff --name-only HEAD` ;
+s'il est vide alors que l'empreinte diffère, le motif dit qu'un commit est
+passé depuis le dernier `check`.
 
-L'horodatage est la neuvième entrée de `[tasks.check]`, écrite en dernier
+L'empreinte est la dernière entrée de `[tasks.check]`, écrite en dernier
 donc seulement si tout est vert. Ce n'est pas une Porte : le Gel sépare les
-huit au préfixe `mise run //`.
+Portes au préfixe `mise run //`.
 
 ### Ce que le cloneur voit, et ce qu'il perd
 
@@ -94,14 +110,14 @@ versionné acceptable dans un template.
 
 Un cloneur qui travaille sans Claude Code ne perd aucune règle — par
 construction, puisqu'ils n'en portent aucune. Il perd le *moment* : plus
-personne ne lui rappelle de lancer les Portes. Les trois tâches `hook:*`
+personne ne lui rappelle de lancer les Portes. Les tâches `hook:*`
 restent à sa disposition dans son terminal. Le README le dit.
 
 ## Garde-fous
 
 | Règle | Ce qui rougit si elle casse |
 |---|---|
-| La neuvième entrée de `[tasks.check]` (l'horodatage) retirée ou changée | `QualityGateFreezeTest` (le Gel, ADR 0031) |
+| La dernière entrée de `[tasks.check]` (l'empreinte) retirée ou changée | `QualityGateFreezeTest` (le Gel, ADR 0031) |
 | Un hook supprimé, ajouté ou détourné | **rien** — et c'est délibéré, voir ci-dessous |
 
 **Les hooks ne passent pas sous le Gel.** Les figer les traiterait comme des
@@ -111,8 +127,10 @@ Les geler l'obligerait à conserver un outillage qu'il ne peut pas exécuter,
 sous peine de suite rouge. Le Gel garde les garde-fous **rejouables** ; un
 hook ne l'est pas — c'est précisément ce qui en fait un sixième type, et ce
 qui lui interdit de porter une règle. Les tâches `hook:*`, elles, sont
-rejouables, mais elles ne sont pas dans `[tasks.check]` : le Gel ne les voit
-pas, et c'est cohérent.
+rejouables, mais leur corps n'est pas dans `[tasks.check]` : le Gel ne le
+voit pas, et c'est cohérent. Seule la ligne qui appelle `hook:empreinte` en
+dernière entrée de `check` est gelée — qu'elle s'écrive, pas ce qu'elle
+calcule.
 
 ## Options écartées
 
@@ -138,6 +156,11 @@ pas, et c'est cohérent.
   `stop_hook_active` : l'agent ne pourrait plus poser une question sans
   franchir huit blocages. Le rappel unique préserve l'arrêt délibéré.
 - **Geler les hooks** : voir Garde-fous.
+- **Comparer l'arbre à HEAD** (`git diff --quiet HEAD`) plutôt qu'à une
+  empreinte, à l'amendement du 2026-09-14 : réglait le faux positif de #38
+  sans rien écrire dans `check`, mais un fichier édité puis committé sans
+  `check` redevenait identique à HEAD et passait sous le radar — le seul cas
+  que la date tenait, perdu. L'empreinte de l'arbre tient les deux.
 - **Trancher ici le sort d'`enabledPlugins`**, que ce fichier versionne
   aussi : l'issue #13 porte les quatre références du plugin dans
   `docs/agents/` et la question de l'exemple d'issue embarqué. Trancher

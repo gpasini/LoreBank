@@ -33,10 +33,10 @@ run = [
     "mise run //frontend:test",
     "mise run //frontend:build",
     "mise run //frontend:audit",
-    # L'horodatage que lit `hook:verify` (ADR 0033) : écrit en dernier, donc
-    # seulement si tout est vert. Ce n'est pas une Porte — le Gel distingue
-    # les huit au préfixe `mise run //`.
-    "mkdir -p .claude && touch .claude/.gates-ran",
+    # L'empreinte de l'arbre suivi que compare `hook:verify` (ADR 0033) :
+    # écrite en dernier, donc seulement si tout est vert. Ce n'est pas une
+    # Porte — le Gel distingue les dix au préfixe `mise run //`.
+    "mkdir -p .claude && mise run hook:empreinte > .claude/.gates-ran",
 ]
 
 # Les gates rapides avant un commit — jamais la suite d'intégration.
@@ -48,8 +48,8 @@ run = [
     "mise run //frontend:check",
 ]
 
-# Les hooks de `.claude/settings.json` (ADR 0033) n'appellent que ces trois
-# tâches : la logique vit ici, avec les portes, donc elle se rejoue à la main
+# Les hooks de `.claude/settings.json` (ADR 0033) n'appellent que ces tâches
+# `hook:*` : la logique vit ici, avec les portes, donc elle se rejoue à la main
 # hors de Claude Code — `mise run hook:verify` répond la même chose dans un
 # terminal. Un hook impose le moment d'un garde-fou existant, jamais une règle.
 # `quiet` parce que leur sortie n'est pas lue par un humain : stderr devient
@@ -67,22 +67,25 @@ if [ "$(printf %s "$input" | jq -r ".stop_hook_active // false")" = "true" ]; th
   exit 0
 fi
 
-stamp=.claude/.gates-ran
+# L'empreinte de l'arbre suivi, comparée à celle que `check` a écrite quand
+# tout était vert. Un contenu, jamais une date : un `git checkout --` qui
+# réécrit un fichier à l'identique ne réveille rien ; un fichier édité puis
+# committé sans `check` réveille encore. Le motif nomme le premier fichier
+# modifié ou indexé depuis HEAD — s'il n'y en a aucun, c'est qu'un commit
+# est passé depuis le dernier `check`.
+empreinte=.claude/.gates-ran
 
-if [ -f "$stamp" ]; then
-  # Les fichiers suivis seulement. Les non suivis ont été retirés du scan :
-  # ils rendaient le rappel bavard sans rien apprendre — un brouillon, un
-  # fichier de sortie posé à côté, et le tour était marqué périmé. Le prix
-  # est connu et assumé : un .cs créé et jamais ajouté passe sous le radar
-  # jusqu'à son premier `git add`.
-  declencheur=
-  for fichier in $(git ls-files); do
-    if [ -e "$fichier" ] && [ "$fichier" -nt "$stamp" ]; then
-      declencheur=$fichier
-      break
-    fi
-  done
-  [ -z "$declencheur" ] && exit 0
+if [ ! -f "$empreinte" ]; then
+  motif="Aucun passage de mise run check enregistré."
+elif [ "$(cat "$empreinte")" = "$(mise run hook:empreinte)" ]; then
+  exit 0
+else
+  declencheur=$(git diff --name-only HEAD | head -n 1)
+  if [ -n "$declencheur" ]; then
+    motif="Dernière édition non couverte : $declencheur"
+  else
+    motif="Committé depuis le dernier check."
+  fi
 fi
 
 # Comme dans hook:generated : un heredoc passé en argument ou logé dans un
@@ -109,11 +112,19 @@ if ! sortie=$(mise run pre-commit 2>&1); then
   bloquer "$(printf '%s\n\n%s' "$sortie" "Les portes rapides sont rouges (ADR 0028, docs/qualite.md). Corrige, puis relance mise run check.")"
 fi
 
-if [ -n "$declencheur" ]; then
-  bloquer "$(printf '%s\n\nDernière édition non couverte : %s' "$(rappel)" "$declencheur")"
-fi
+bloquer "$(printf '%s\n\n%s' "$(rappel)" "$motif")"
+'''
 
-bloquer "$(rappel)"
+# L'empreinte de l'arbre suivi — modifications et index compris, fichiers non
+# suivis exclus (ADR 0033 : un brouillon posé à côté ne doit rien réveiller).
+# `git stash create` fabrique le commit sans rien empiler, et ne rend rien si
+# l'arbre est propre : HEAD suffit alors.
+[tasks."hook:empreinte"]
+description = "L'empreinte de l'arbre suivi : `check` l'écrit, `hook:verify` la compare"
+quiet = true
+run = '''
+commit=$(git stash create)
+git rev-parse "${commit:-HEAD}^{tree}"
 '''
 
 [tasks."hook:generated"]

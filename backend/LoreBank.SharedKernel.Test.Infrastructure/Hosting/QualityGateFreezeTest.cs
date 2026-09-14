@@ -120,8 +120,8 @@ public sealed class QualityGateFreezeTest
     ];
 
     // Les entrées de `[tasks.check]` (ADR 0028) : une Porte supprimée est le
-    // desserrage maximal. La dernière n'est pas une Porte mais l'horodatage
-    // que lit le hook Stop (ADR 0033) — `CiGates` les sépare.
+    // desserrage maximal. La dernière n'est pas une Porte mais l'empreinte
+    // que compare le hook Stop (ADR 0033) — `CiGates` les sépare.
     private readonly static string[] FrozenGates = [
         "mise run //backend:build",
         "mise run //backend:format:check",
@@ -133,12 +133,12 @@ public sealed class QualityGateFreezeTest
         "mise run //frontend:test",
         "mise run //frontend:build",
         "mise run //frontend:audit",
-        "mkdir -p .claude && touch .claude/.gates-ran",
+        "mkdir -p .claude && mise run hook:empreinte > .claude/.gates-ran",
     ];
 
     // Les seules entrées qui sont des Portes : celles que la CI doit rejouer.
-    // L'horodatage de `check` n'en est pas une (ADR 0033) — il ne vérifie
-    // rien, il date le passage.
+    // L'empreinte de `check` n'en est pas une (ADR 0033) — elle ne vérifie
+    // rien, elle fixe l'arbre sur lequel les Portes ont passé.
     private static IEnumerable<string> CiGates => FrozenGates.Where(entry => entry.StartsWith(
             value: "mise run //",
             comparisonType: StringComparison.Ordinal

@@ -34,7 +34,7 @@ dist/
 .scratch/
 
 # Agents — les hooks versionnés vivent dans .claude/settings.json (ADR 0033),
-# son jumeau local n'a rien à faire ici, et l'horodatage que lit `hook:verify`
+# son jumeau local n'a rien à faire ici, et l'empreinte que compare `hook:verify`
 # est une trace de poste.
 .claude/settings.local.json
 .claude/.gates-ran
