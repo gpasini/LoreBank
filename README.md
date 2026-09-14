@@ -57,6 +57,12 @@ perdre des règles — elles sont toutes tenues par les portes — seulement le
 rappel : `mise run hook:verify` et `mise run hook:generated` répondent la
 même chose dans un terminal.
 
+`.claude/agents/relecteur.md` est le relecteur à contexte frais (ADR 0038) :
+un sous-agent qui relit un diff avec l'issue, `docs/qualite.md`, le
+glossaire et les ADR touchés, et rend les écarts qu'aucun test ne tient.
+Même statut que les hooks : sans Claude Code, le fichier se donne tel quel,
+avec le diff, à ce que vous utilisez pour relire.
+
 ## Documentation
 
 - [Les erreurs, de bout en bout](docs/erreurs.md) — comment une règle métier

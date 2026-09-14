@@ -3,7 +3,8 @@
 > Statut : accepté — 2026-09-11. Complète les ADR 0012 et 0015 d'un
 > garde-fou chacun, étend le Gel de l'ADR 0031 d'un axe — la concordance du
 > SDK — et corrige la doctrine du SDK que `CLAUDE.md` et `docs/qualite.md`
-> portaient depuis l'ADR 0028.
+> portaient depuis l'ADR 0028. Complété par l'ADR 0038 — la relecture qui
+> tient les règles assumées a un lecteur.
 
 L'allègement de `CLAUDE.md` (ADR 0034) était un audit de couverture
 doctrinale : chaque ligne qu'on hésitait à retirer désignait une règle que

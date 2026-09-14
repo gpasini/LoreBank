@@ -83,6 +83,10 @@ règle qui vaut un test.
   il compile et diverge en silence, aucun scan ne le distingue d'un type
   d'écran légitime (ADR 0036). La relecture le tient ; `docs/front.md` le
   dit.
+- **La relecture elle-même** : rien ne vérifie qu'elle a eu lieu, ni que ses
+  écarts ont été traités. La section « Relecture » du récap de l'issue en
+  porte la trace, comme « RED observés » porte celle du RED — et ne couvre,
+  comme elle, que le travail passé par le chapeau.
 
 Trois règles ont quitté cette liste le 2026-09-11 (ADR 0035) : les erreurs
 métier comme exceptions à paramètres scalaires — le constructeur de
@@ -90,6 +94,29 @@ métier comme exceptions à paramètres scalaires — le constructeur de
 pas deux modules — `ApplicationConventionTest` et `ModuleCompositionTest` —,
 et le SDK, que `backend/global.json` tenait déjà à la bande près et dont le
 Gel tient maintenant la concordance avec `backend/mise.toml`.
+
+## La relecture
+
+Chaque fois que cette page dit « la relecture le tient », c'est de ceci
+qu'elle parle : le sous-agent `relecteur` (`.claude/agents/relecteur.md`,
+ADR 0038) relit le diff **à contexte frais** — muni de l'issue, de la
+section ci-dessus, du bloc Style de `CLAUDE.md`, du vocabulaire de
+`CONTEXT.md` et des ADR que le diff touche — et rend les écarts qu'aucun
+test ne tient, chacun avec sa source et un verdict : à corriger, à assumer
+ici, ou contredit un ADR. Il ne relance aucune porte et ne redouble aucun
+test : ce qui est tenu n'est pas son sujet.
+
+Il se lance avant de considérer un changement terminé (`CLAUDE.md`), avec
+la base du diff — `HEAD` sur ce repo, la merge-base pour un cloneur en
+branche — et le numéro de l'issue. Un écart se corrige, s'assume, se
+rouvre, ou se rejette en le disant : le rejet silencieux est le seul vrai
+échec. Ce n'est pas un garde-fou au sens du Gel : un jugement ne se rejoue
+pas, et rien ne rougit si la relecture est sautée — c'est écrit ci-dessus,
+dans la liste de ce qu'aucune porte ne tient.
+
+Le fichier est du Markdown : un cloneur qui travaille sans Claude Code le
+donne tel quel, avec le diff, à ce qu'il utilise — ou le lit lui-même comme
+une checklist.
 
 ## La couverture : une mesure, pas une porte
 

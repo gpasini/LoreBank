@@ -47,7 +47,7 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    l'ADR 0032 — squelette, test, **RED observé**, corps — et il n'est pas
    négociable : un test écrit après le code est taillé sur lui, et aucune
    porte ne voit la différence. Noter le rouge de chaque brique au passage,
-   il est exigé à l'étape 6.
+   il est exigé à l'étape 7.
 5. **Vérification finale** : `mise run check` à la racine — toutes les
    portes de qualité dans l'ordre de la CI (ADR 0028, `docs/qualite.md`) :
    build sans warning, format, Description à jour, **suite complète** verte,
@@ -56,13 +56,24 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
    `ApplicationConventionTest`, contrats HTTP) sont le filet de tout ce
    qu'une consigne aurait pu manquer. Un fichier hors format se corrige par
    `mise run format`, jamais à la main.
-6. **Clore** : un commentaire de récapitulatif (`gh issue comment NN`) —
+6. **Relire à contexte frais** (ADR 0038) : lancer le sous-agent
+   `relecteur` (`.claude/agents/relecteur.md`) avec la base du diff —
+   `HEAD`, le working tree — et le numéro de l'issue. Il rend les écarts
+   qu'aucun test ne tient, avec leur source et un verdict. Chaque écart se
+   traite : corrigé dans le diff s'il est dans le périmètre, assumé dans
+   `docs/qualite.md`, rouvert en commentaire s'il contredit un ADR, ou
+   **rejeté en disant pourquoi**. Le rejet silencieux est le seul vrai
+   échec de l'étape.
+7. **Clore** : un commentaire de récapitulatif (`gh issue comment NN`) —
    fichiers créés, use cases exposés, tests ajoutés, écarts éventuels avec
    la spec — **plus une section « RED observés »** : un tableau brique /
    test / message d'échec, une ligne par brique (et une seule ligne s'il n'y
    en a qu'une). C'est la seule trace que laisse un RED, et elle ne
    s'invente pas après coup : elle se recopie du run rouge. Une brique
-   exemptée (`nouvelle-migration-schema`) le dit dans sa ligne. Puis
+   exemptée (`nouvelle-migration-schema`) le dit dans sa ligne. **Et une
+   section « Relecture »** : chaque écart rendu à l'étape 6 et ce qu'il est
+   devenu — corrigé, assumé, rouvert, rejeté et pourquoi — ou « Aucun
+   écart. » C'est la seule trace que laisse la relecture. Puis
    `gh issue edit NN --add-label ready-for-human
    --remove-label ready-for-agent`. Pas de `gh issue close` : c'est la revue
    humaine qui ferme, une fois le diff intégré.
@@ -80,6 +91,6 @@ Il s'arrête là — pas de commit : la revue humaine décide de la suite.
 ## Avant de terminer
 
 L'étape 5 passée pour de vrai (la sortie des commandes fait foi), un RED
-observé par brique et recopié dans le récap, l'issue passée en
-`ready-for-human` à l'étape 6 — et rien de commité : le diff reste en working
-tree pour la revue.
+observé par brique et recopié dans le récap, chaque écart du relecteur
+traité et tracé, l'issue passée en `ready-for-human` à l'étape 7 — et rien
+de commité : le diff reste en working tree pour la revue.

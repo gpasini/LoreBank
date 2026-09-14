@@ -25,7 +25,10 @@ communication inter-modules.
   racine — toutes les portes, dans l'ordre de la CI (`docs/qualite.md`) — et
   comportement démontré à l'exécution : des tests, ou un programme de
   vérification. Un fichier hors format se corrige par `mise run format`,
-  jamais à la main.
+  jamais à la main. Puis **la relecture à contexte frais** : le sous-agent
+  `relecteur` (`.claude/agents/`, ADR 0038) rend les écarts qu'aucun test
+  ne tient ; chacun se corrige, s'assume, se rouvre, ou se rejette en le
+  disant.
 - **Le périmètre est celui de la demande.** Une amélioration repérée en route
   devient une issue `needs-triage`, pas un élargissement silencieux du diff.
 

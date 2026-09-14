@@ -54,6 +54,7 @@ fichier. Décision et alternatives : ADR 0037.
 | [0035](0035-une-regle-tenue-ou-assumee-jamais-esperee.md) | Une règle sans garde-fou est tenue ou assumée, jamais espérée | accepté | Cadrer l'agent |
 | [0036](0036-le-front-est-un-modele-pas-une-vitrine.md) | Le front est un modèle, pas une vitrine | accepté | Front |
 | [0037](0037-l-index-des-adr-une-carte-verifiee-pas-une-reorganisation.md) | L'index des ADR : une carte vérifiée, pas une réorganisation | accepté | Cadrer l'agent |
+| [0038](0038-la-relecture-un-lecteur-frais-pas-l-auteur.md) | La relecture : un lecteur frais, pas l'auteur | accepté | Cadrer l'agent |
 
 ## Par thème
 
@@ -71,7 +72,7 @@ qui a été décidé sur un sujet.
 | Harnais de test | 0002, 0017, 0030 |
 | Observabilité | 0022, 0025, 0026 |
 | Portes et Gel | 0028, 0029, 0031 |
-| Cadrer l'agent | 0032, 0033, 0034, 0035, 0037 |
+| Cadrer l'agent | 0032, 0033, 0034, 0035, 0037, 0038 |
 | Front | 0036 |
 
 ## Écrire le prochain
