@@ -67,3 +67,5 @@ même chose dans un terminal.
   TypeScript du front.
 - [Les portes de qualité, du poste à la CI](docs/qualite.md) — ce que la CI
   refuse et le geste mise qui le rejoue sur le poste, à l'identique.
+- [Les ADR, la carte](docs/adr/README.md) — chaque décision d'architecture,
+  par numéro et par thème, avec son statut ; et le gabarit du prochain.

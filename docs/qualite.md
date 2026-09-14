@@ -49,6 +49,10 @@ cloneur qui ne le veut pas ne l'installe pas.
   modules) : `DomainConventionTest`, `ApplicationConventionTest`,
   `ModuleCompositionTest` — un analyseur les dirait moins bien. Côté front,
   `conventions.test.ts` et `gel.test.ts` (`docs/front.md`, ADR 0036).
+- **L'index des ADR** (`docs/adr/README.md`) : `AdrIndexTest` tient la
+  carte — une ligne par fichier, titre, statut, un thème par ADR —, la
+  numérotation contiguë, le gabarit à partir de 0037, et que toute mention
+  `ADR NNNN` du repo désigne un fichier (ADR 0037).
 
 ## Ce qu'aucune porte ne tient
 

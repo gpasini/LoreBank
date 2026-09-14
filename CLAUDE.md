@@ -120,6 +120,7 @@ le test qui rougit si elle casse.
 | Les hooks versionnés de Claude Code | ADR 0033 |
 | Les règles sans garde-fou : tenues ou assumées | `docs/qualite.md` · ADR 0035 |
 | Ce fichier-ci | ADR 0034 |
+| Toutes les décisions, par thème et statut | `docs/adr/README.md` · ADR 0037 |
 
 `docs/agents/` porte les conventions de travail : issue tracker, labels de
 triage, domain docs. `AGENTS.md` renvoie ici pour les agents qui suivent

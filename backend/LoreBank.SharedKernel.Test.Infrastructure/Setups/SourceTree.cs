@@ -32,6 +32,42 @@ public static class SourceTree
                )
         );
 
+    // Tout le repo, hors ce qui n'est pas source : le dépôt git, les
+    // dépendances installées, les sorties de build et de mesure. Pour les
+    // gardes qui lisent ce que les humains et les agents écrivent partout —
+    // les citations d'ADR (ADR 0037) traversent CLAUDE.md, les skills, les
+    // csproj, le front.
+    public static IEnumerable<string> RepositoryFiles() => EnumerateBelow(new DirectoryInfo(Root));
+
+    private readonly static string[] NotSource = [
+        ".git",
+        "node_modules",
+        "bin",
+        "obj",
+        "dist",
+        "coverage",
+    ];
+
+    private static IEnumerable<string> EnumerateBelow(DirectoryInfo directory)
+    {
+        foreach (var file in directory.EnumerateFiles()) {
+            yield return file.FullName;
+        }
+
+        foreach (var child in directory.EnumerateDirectories()) {
+            if (NotSource.Contains(
+                    value: child.Name,
+                    comparer: StringComparer.Ordinal
+                )) {
+                continue;
+            }
+
+            foreach (var path in EnumerateBelow(child)) {
+                yield return path;
+            }
+        }
+    }
+
     private static string FindBackend()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
